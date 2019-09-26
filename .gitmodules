@@ -1,3 +1,6 @@
 [submodule "pfnn"]
 	path = pfnn
 	url = git://github.com/sreyafrancis/PFNN.git
+[submodule "basecode"]
+	path = basecode
+	url = https://github.com/Jungdam/basecode.git
