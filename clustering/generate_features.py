@@ -23,6 +23,7 @@ GENERIC_TO_PFNN_MAPPING = {
     "rankle": "RightFoot",
     "rtoes": "RightToeBase",
     "ltoes": "LeftToeBase",
+    "root": "LowerBack",
 }
 
 class Skeleton(Enum):
@@ -33,19 +34,19 @@ class Skeleton(Enum):
 def distance_between_points(a, b):
     return np.linalg.norm(np.array(a) - np.array(b))
 
-def side_of_plane(a, b, c, p):
+def distance_from_plane(a, b, c, p, threshold):
     ba = np.array(b) - np.array(a)
     ca = np.array(c) - np.array(a)
     cross = np.cross(ba, ca)
 
     pa = np.array(p) - np.array(a)
-    return np.dot(cross, pa) > 0
+    return np.dot(cross, pa)/np.linalg.norm(cross) > threshold
 
 
-def side_of_plane_normal(n1, n2, a, p):
+def distance_from_plane_normal(n1, n2, a, p, threshold):
     normal = np.array(n1) - np.array(n2)
     pa = np.array(p) - np.array(a)
-    return np.dot(normal, pa) > 0
+    return np.dot(normal, pa)/np.linalg.norm(normal) > threshold
 
 
 def angle_within_range(j1, j2, k1, k2, range):
@@ -92,52 +93,59 @@ class Features:
         self.joints = joints
         self.frame_time = frame_time
         self.frame_num = 1
-        # humerus length
-        self.hl = 0
-        # shoulder width
-        self.sw = 0
-        # hip width
-        self.hw = 0
+        self.offsets = anim.offsets
         if skeleton == Skeleton.PFNN:
             self.joint_mapping = GENERIC_TO_PFNN_MAPPING
         else:
             self.joint_mapping = GENERIC_TO_CMU_MAPPING
 
-    def next_frame():
+        # humerus length
+        self.hl = distance_between_points(self.transform_and_fetch_offset('lshoulder'), self.transform_and_fetch_offset('lelbow'))
+        # shoulder width
+        self.sw = distance_between_points(self.transform_and_fetch_offset('lshoulder'), self.transform_and_fetch_offset('rshoulder'))
+        # hip width
+        self.hw = distance_between_points(self.transform_and_fetch_offset('lhip'), self.transform_and_fetch_offset('rhip'))
+        import pdb
+        pdb.set_trace()
+
+    def next_frame(self):
         self.frame_num += 1
 
 
-    def transform_and_fetch_position(j):
-        return self.global_positions[self.frame_num][self.joints.index(self.joint_mapping(j))]
+    def transform_and_fetch_position(self, j):
+        return self.global_positions[self.frame_num][self.joints.index(self.joint_mapping[j])]
 
-    def transform_and_fetch_prev_position(j):
-        return self.global_positions[self.frame_num-1][self.joints.index(self.joint_mapping(j))]
+    def transform_and_fetch_prev_position(self, j):
+        return self.global_positions[self.frame_num-1][self.joints.index(self.joint_mapping[j])]
 
-    def f_move(j1, j2, j3, j4, range):
-        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
+    def transform_and_fetch_offset(self, j):
+        return self.offsets[self.joints.index(self.joint_mapping[j])]
+
+    def f_move(self, j1, j2, j3, j4, range):
         j1_prev, j2_prev, j3_prev, j4_prev = [self.transform_and_fetch_prev_position(j) for j in [j1, j2, j3, j4]]
+        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
         return velocity_direction_above_threshold(j1, j1_prev, j2, j2_prev, j3, j3_prev, range)
 
-    def f_nmove(j1, j2, j3, j4, range):
-        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
+    def f_nmove(self, j1, j2, j3, j4, range):
         j1_prev, j2_prev, j3_prev, j4_prev = [self.transform_and_fetch_prev_position(j) for j in [j1, j2, j3, j4]]
+        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
         return velocity_direction_above_threshold_normal(j1, j1_prev, j2, j3, j4, j4_prev, range)
 
-    def f_plane(j1, j2, j3, j4):
+    def f_plane(self, j1, j2, j3, j4, threshold):
         j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
-        return side_of_plane(j1, j2, j3, j4)
+        return distance_from_plane(j1, j2, j3, j4, threshold)
 
-    def f_nplane(j1, j2, j3, j4):
+    def f_nplane(self, j1, j2, j3, j4, threshold):
         j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
-        return side_of_plane_normal(j1, j2, j3, j4)
+        return distance_from_plane_normal(j1, j2, j3, j4, threshold)
 
-    def f_angle(j1, j2, j3, j4, range):
+    def f_angle(self, j1, j2, j3, j4, range):
         j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
         return angle_within_range(j1, j2, j3, j4, range)
 
-    def f_fast(j1, threshold):
-        j1 = self.transform_and_fetch_position(j1)
+    def f_fast(self, j1, threshold):
         j1_prev = self.transform_and_fetch_prev_position(j1)
+        j1 = self.transform_and_fetch_position(j1)
         return velocity_above_threshold(j1, j1_prev, threshold)
 
 
@@ -163,9 +171,11 @@ def extract_features(filepath):
         pose_features.append(f.f_fast("lwrist", 2.5*f.hl))
         pose_features.append(f.f_plane("root", "lhip", "ltoes", "rankle", 0.38*f.hl))
         pose_features.append(f.f_plane("root", "rhip", "rtoes", "lankle", 0.38*f.hl))
+        
         pose_features.append(f.f_fast("root", 2.3*f.hl))
+        features.append(pose_features)
         f.next_frame()
-    return pose_features
+    return features
 
 
 def main(args):
