@@ -2,8 +2,36 @@ import argparse
 import math
 import numpy as np
 import os
+
+from enum import Enum
 from ..pfnn import Quaternions, Animation, BVH
 
+
+GENERIC_TO_PFNN_MAPPING = {
+    "neck": "Neck",
+    "lhip": "LeftUpLeg",
+    "rhip": "RightUpLeg",
+    "lwrist": "LeftHand",
+    "rwrist": "RightHand",
+    "belly": "Spine",
+    "chest": "Spine1",
+    "relbow": "RightForeArm",
+    "rshoulder": "RightArm",
+    "lelbow": "LeftForeArm",
+    "lshoulder": "LeftArm",
+    "lankle": "LeftFoot",
+    "rankle": "RightFoot",
+    "rtoes": "RightToeBase",
+    "ltoes": "LeftToeBase",
+}
+
+class Skeleton(Enum):
+    PFNN = 'pfnn'
+    CMU = 'cmu'
+
+
+def distance_between_points(a, b):
+    return np.linalg.norm(np.array(a) - np.array(b))
 
 def side_of_plane(a, b, c, p):
     ba = np.array(b) - np.array(a)
@@ -27,10 +55,10 @@ def angle_within_range(j1, j2, k1, k2, range):
     angle = np.arccos(np.dot(j, k)/(np.linalg.norm(j) * np.linalg.norm(k)))
     angle = np.degrees(angle)
 
-    if angle < range[0] and angle > range[1]:
-        return 1
+    if angle > range[0] and angle < range[1]:
+        return True
     else:
-        return 0
+        return False
 
 
 def velocity_direction_above_threshold(j1, j1_prev, j2, j2_prev, p, p_prev, threshold, time_per_frame=1/120):
@@ -58,11 +86,9 @@ def velocity_above_threshold(p, p_prev, threshold, time_per_frame=1/120):
     return velocity > threshold
 
 
-
 class Features:
-
-    def __init__(self, anim, joints, frame_time):
-        self.anim  = anim
+    def __init__(self, anim, joints, frame_time, skeleton=Skeleton.PFNN):
+        self.global_positions = Animation.positions_global(anim)
         self.joints = joints
         self.frame_time = frame_time
         self.frame_num = 1
@@ -72,36 +98,54 @@ class Features:
         self.sw = 0
         # hip width
         self.hw = 0
+        if skeleton == Skeleton.PFNN:
+            self.joint_mapping = GENERIC_TO_PFNN_MAPPING
+        else:
+            self.joint_mapping = GENERIC_TO_CMU_MAPPING
 
     def next_frame():
         self.frame_num += 1
 
-    def f_move(j1, j2, j3, j4):
-        return 0
 
-    def f_nmove(j1, j2, j3, j4):
-        return 0
+    def transform_and_fetch_position(j):
+        return self.global_positions[self.frame_num][self.joints.index(self.joint_mapping(j))]
+
+    def transform_and_fetch_prev_position(j):
+        return self.global_positions[self.frame_num-1][self.joints.index(self.joint_mapping(j))]
+
+    def f_move(j1, j2, j3, j4, range):
+        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
+        j1_prev, j2_prev, j3_prev, j4_prev = [self.transform_and_fetch_prev_position(j) for j in [j1, j2, j3, j4]]
+        return velocity_direction_above_threshold(j1, j1_prev, j2, j2_prev, j3, j3_prev, range)
+
+    def f_nmove(j1, j2, j3, j4, range):
+        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
+        j1_prev, j2_prev, j3_prev, j4_prev = [self.transform_and_fetch_prev_position(j) for j in [j1, j2, j3, j4]]
+        return velocity_direction_above_threshold_normal(j1, j1_prev, j2, j3, j4, j4_prev, range)
 
     def f_plane(j1, j2, j3, j4):
-        return 0
+        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
+        return side_of_plane(j1, j2, j3, j4)
 
     def f_nplane(j1, j2, j3, j4):
-        return 0
+        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
+        return side_of_plane_normal(j1, j2, j3, j4)
 
-    def f_angle(j1, j2, j3, j4):
-        return 0
+    def f_angle(j1, j2, j3, j4, range):
+        j1, j2, j3, j4 = [self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]]
+        return angle_within_range(j1, j2, j3, j4, range)
 
-    def f_fast(j1, ):
-        curr_pos = self.anim.positions[self.frame_num][self.joints.index(j1)]
-        prev_pos = self.anim.positions[self.frame_num-1][self.joints.index(j1)]
-        return np.linalg.norm(curr_pos - prev_pos)/self.frame_time
+    def f_fast(j1, threshold):
+        j1 = self.transform_and_fetch_position(j1)
+        j1_prev = self.transform_and_fetch_prev_position(j1)
+        return velocity_above_threshold(j1, j1_prev, threshold)
 
 
 def extract_features(filepath):
     anim, joints, time_per_frame = BVH.load(filepath)
     features = []
-    f = Features(anim, joints, time_per_frame)
-    for i in range(1, len(anim)):
+    f = Features(anim, joints, time_per_frame, Skeleton.PFNN)
+    for i in range(1, len(anim), 30):
         pose_features = []
         pose_features.append(f.f_nmove("neck", "rhip", "lhip", "rwrist", 1.8*f.hl))
         pose_features.append(f.f_nmove("neck", "lhip", "rhip", "lwrist", 1.8*f.hl))
@@ -121,6 +165,7 @@ def extract_features(filepath):
         pose_features.append(f.f_plane("root", "rhip", "rtoes", "lankle", 0.38*f.hl))
         pose_features.append(f.f_fast("root", 2.3*f.hl))
         f.next_frame()
+    return pose_features
 
 
 def main(args):
