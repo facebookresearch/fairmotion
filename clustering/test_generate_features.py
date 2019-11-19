@@ -19,42 +19,46 @@ class Test3DGeometryUtils(unittest.TestCase):
             True,
         )
 
-    def test_side_of_plane_normal(self):
+    def test_distance_from_plane_normal(self):
         self.assertEqual(
-            generate_features.side_of_plane_normal(
+            generate_features.distance_from_plane_normal(
                 [0, 0, 0],
                 [0, 0, 1],
                 [0, 0, 0],
-                [0, 0, 1],
+                [0, 1, 2],
+                3,
             ),
             False,
         )
         self.assertEqual(
-            generate_features.side_of_plane_normal(
+            generate_features.distance_from_plane_normal(
                 [0, 0, 0],
                 [0, 0, 1],
                 [0, 0, 0],
-                [0, 0, -1],
+                [0, 1, 2],
+                1
             ),
             True,
         )
 
-    def test_side_of_plane(self):
+    def test_distance_from_plane(self):
         self.assertEqual(
-            generate_features.side_of_plane(
+            generate_features.distance_from_plane(
                 [0, 0, 0],
                 [0, 1, 0],
                 [1, 0, 0],
                 [0, 0, 1],
+                2,
             ),
             False,
         )
         self.assertEqual(
-            generate_features.side_of_plane(
+            generate_features.distance_from_plane(
                 [0, 0, 0],
                 [0, 1, 0],
                 [1, 0, 0],
-                [0, 0, -1],
+                [0, 0, 1],
+                0,
             ),
             True,
         )

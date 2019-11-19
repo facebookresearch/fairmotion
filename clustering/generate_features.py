@@ -23,6 +23,8 @@ GENERIC_TO_PFNN_MAPPING = {
     "rankle": "RightFoot",
     "rtoes": "RightToeBase",
     "ltoes": "LeftToeBase",
+    "rknee": "RightLeg",
+    "lknee": "LeftLeg",
     "root": "LowerBack",
 }
 
@@ -37,14 +39,14 @@ def distance_between_points(a, b):
 def distance_from_plane(a, b, c, p, threshold):
     ba = np.array(b) - np.array(a)
     ca = np.array(c) - np.array(a)
-    cross = np.cross(ba, ca)
+    cross = np.cross(ca, ba)
 
     pa = np.array(p) - np.array(a)
     return np.dot(cross, pa)/np.linalg.norm(cross) > threshold
 
 
 def distance_from_plane_normal(n1, n2, a, p, threshold):
-    normal = np.array(n1) - np.array(n2)
+    normal = np.array(n2) - np.array(n1)
     pa = np.array(p) - np.array(a)
     return np.dot(normal, pa)/np.linalg.norm(normal) > threshold
 
@@ -105,14 +107,19 @@ class Features:
         self.sw = distance_between_points(self.transform_and_fetch_offset('lshoulder'), self.transform_and_fetch_offset('rshoulder'))
         # hip width
         self.hw = distance_between_points(self.transform_and_fetch_offset('lhip'), self.transform_and_fetch_offset('rhip'))
-        import pdb
-        pdb.set_trace()
 
     def next_frame(self):
         self.frame_num += 1
 
-
     def transform_and_fetch_position(self, j):
+        if j == "y_unit":
+            return [0, 1, 0]
+        elif j == "minus_y_unit":
+            return [0, -1, 0]
+        elif j == "zero":
+            return [0, 0, 0]
+        elif j == "y_min":
+            return [0, min([y for (_, y, _) in self.global_positions[self.frame_num]]), 0]
         return self.global_positions[self.frame_num][self.joints.index(self.joint_mapping[j])]
 
     def transform_and_fetch_prev_position(self, j):
@@ -171,7 +178,21 @@ def extract_features(filepath):
         pose_features.append(f.f_fast("lwrist", 2.5*f.hl))
         pose_features.append(f.f_plane("root", "lhip", "ltoes", "rankle", 0.38*f.hl))
         pose_features.append(f.f_plane("root", "rhip", "rtoes", "lankle", 0.38*f.hl))
-        
+        pose_features.append(f.f_nplane("zero", "y_unit", "y_min", "rankle", 1.2*f.hl))
+        pose_features.append(f.f_nplane("zero", "y_unit", "y_min", "lankle", 1.2*f.hl))
+        pose_features.append(f.f_nplane("lhip", "rhip", "lankle", "rankle", 2.1*f.hw))
+        pose_features.append(f.f_angle("rknee", "rhip", "rknee", "rankle", [0, 110]))
+        pose_features.append(f.f_angle("lknee", "lhip", "lknee", "lankle", [0, 110]))
+        pose_features.append(f.f_fast("rankle", 2.5*f.hl))
+        pose_features.append(f.f_fast("lankle", 2.5*f.hl))
+        pose_features.append(f.f_angle("neck", "root", "rshoulder", "relbow", [25, 180]))
+        pose_features.append(f.f_angle("neck", "root", "lshoulder", "lelbow", [25, 180]))
+        pose_features.append(f.f_angle("neck", "root", "rhip", "rknee", [50, 180]))
+        pose_features.append(f.f_angle("neck", "root", "lhip", "lknee", [50, 180]))
+        pose_features.append(f.f_plane("rankle", "neck", "lankle", "root", 0.5*f.hl))
+        pose_features.append(f.f_angle("neck", "root", "zero", "y_unit", [70, 110]))
+        pose_features.append(f.f_nplane("zero", "minus_y_unit", "y_min", "rwrist", -1.2*f.hl))
+        pose_features.append(f.f_nplane("zero", "minus_y_unit", "y_min", "lwrist", -1.2*f.hl))
         pose_features.append(f.f_fast("root", 2.3*f.hl))
         features.append(pose_features)
         f.next_frame()
@@ -179,13 +200,17 @@ def extract_features(filepath):
 
 
 def main(args):
-    features = extract_features(args.file)
-    np.save(args.output_file, features)
-
+    with open(os.path.join(args.output_folder, "features.tsv"), "w") as all_features, open(os.path.join(args.output_folder, "labels.tsv"), "w") as labels:
+        for root, dirs, files in os.walk(args.folder, topdown=False):
+            for filename in files:
+                features = extract_features(os.path.join(root, filename))
+                np.save(os.path.join(args.output_folder, filename), features)
+                all_features.write("\t".join([str(int(datapoint)) for pose_features in features for datapoint in pose_features]) + "\n")
+                labels.write(filename + "\n")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract features from BVH files")
-    parser.add_argument("--file", type=str, help="File to extract features from")
-    parser.add_argument("--output-file", type=str)
+    parser.add_argument("--folder", type=str, help="Folder with files to extract features from")
+    parser.add_argument("--output-folder", type=str)
     args = parser.parse_args()
     main(args)
