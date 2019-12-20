@@ -1,3 +1,8 @@
+"""
+Example command
+python -m mocap_processing.clustering.clustering --output-file ~/data/clustering_random_pfnn/random_pfnn_translated_kinetic_local_position_features/clusters.tsv --features ~/data/clustering_random_pfnn/random_pfnn_translated_kinetic_local_position_features/features.tsv --num-clusters 10
+"""
+
 import argparse
 import numpy as np
 import os

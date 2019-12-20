@@ -1,3 +1,8 @@
+"""
+Example command:
+python2 -m mocap_processing.clustering.generate_features --type kinetic --folder ~/data/clustering_pfnn/pfnn_bvh_split --output-folder ~/data/clustering_pfnn/pfnn_bvh_split_kinetic_joint_position_features
+"""
+
 import argparse
 import numpy as np
 import os
