@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(name='mocap_processing',
       version='0.1',
@@ -6,5 +6,9 @@ setup(name='mocap_processing',
       url='https://github.com/fairinternal/mocap_processing',
       author='FAIR Pittsburgh',
       author_email='dgopinath@fb.com',
-      packages=['mocap_processing'],
-      zip_safe=False)
+      install_requires = [
+      'basecode @ git+https://github.com/Jungdam/basecode#egg=basecode',
+      ],
+      packages=find_packages(),
+      zip_safe=False
+)
