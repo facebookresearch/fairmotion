@@ -8,6 +8,11 @@ setup(name='mocap_processing',
       author_email='dgopinath@fb.com',
       install_requires = [
       'basecode @ git+https://github.com/Jungdam/basecode#egg=basecode',
+      'jupyter',
+      'numpy',
+      'pillow',
+      'scipy',
+      'PyOpenGL',
       ],
       packages=find_packages(),
       zip_safe=False
