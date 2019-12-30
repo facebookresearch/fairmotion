@@ -9,6 +9,7 @@ setup(name='mocap_processing',
       install_requires = [
       'basecode @ git+https://github.com/Jungdam/basecode#egg=basecode',
       'jupyter',
+      'matplotlib',
       'numpy',
       'pillow',
       'scipy',
