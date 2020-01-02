@@ -447,11 +447,9 @@ def wrapper_extract_features(inputs):
     global thresholds
     filepath = inputs[0]
     feature_type = inputs[1]
-    output_filepath  =inputs[2]
-    up_vec = inputs[3]
+    up_vec = inputs[2]
 
     features = extract_features(filepath, feature_type, thresholds, up_vec)
-    np.save(output_filepath, features)
     filename = filepath.split("/")[-1]
     with open(os.path.join(args.output_folder, "features.tsv"), "a") as all_features:
         if args.type == "manual":
@@ -477,7 +475,7 @@ def main(args):
     thresholds = None
     pool = Pool(args.cpu)
     for root, _, files in os.walk(args.folder, topdown=False):
-        pool.map(wrapper_extract_features, [(os.path.join(root, filename), args.type, os.path.join(args.output_folder, filename), args.up_vec) for filename in files])
+        pool.map(wrapper_extract_features, [(os.path.join(root, filename), args.type, args.up_vec) for filename in files])
 
 
 if __name__ == "__main__":
