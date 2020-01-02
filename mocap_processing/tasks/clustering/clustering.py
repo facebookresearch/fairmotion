@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 import os
 from scipy.cluster.hierarchy import dendrogram, linkage
-from sklearn.cluster import AgglomerativeClustering, KMeans
+from sklearn.cluster import AgglomerativeClustering, KMeans, OPTICS, cluster_optics_dbscan
 from collections import defaultdict
 
 
@@ -33,6 +33,10 @@ def get_ranked_clusters(clusters):
         ranked_clusters[label] = ranked_cluster
 
     return ranked_clusters
+
+
+def run_optics_clustering(features, names, args):
+    optics = OPTICS(min_samples=50, xi=.05, min_cluster_size=.05)
 
 
 def run_kmeans_clustering(features, names, args):
@@ -70,6 +74,10 @@ def run_hierarchical_clustering(features, names, args):
             for (name, rank, score) in ranked_clusters[cluster]:
                 f.write(",".join([str(cluster), str(rank), str(score)]) + ":" + str(name) + "\n")
 
+def normalize_features(features):
+    X = np.array(features)
+    Xmean, Xstd = X.mean(axis=0), X.std(axis=0)
+    return (X - Xmean) / (Xstd + 1.0e-8)
 
 def main(args):
     features = []
@@ -78,11 +86,17 @@ def main(args):
         for line in f:
             line = line.strip()
             names.append(line.split(":")[0])
-            features.append([float(x) for x in line.split(":")[-1].split("\t")]) 
+            features.append([float(x) for x in line.split(":")[-1].split("\t")])
+    if 0.0 < args.clip_features < 100.0:
+        np.percentile(features, args.clip_features, axis=0, overwrite_input=True)
+    if args.normalize_features:
+        features = normalize_features(features)
     if args.type == "kmeans":
         run_kmeans_clustering(features, names, args)
     elif args.type == "hierarchical":
         run_hierarchical_clustering(features, names, args)
+    elif args.type == "optics":
+        run_optics_clustering(features, names, args)
 
 
 if __name__ == "__main__":
@@ -102,6 +116,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--linkage", type=str, help="Type of linkage in agglomerative clusering",
         default="average"
+    )
+    parser.add_argument(
+        "--normalize-features", action='store_true', 
+        help="Perform feature normalization",
+    )
+    parser.add_argument(
+        "--clip-features", type=float, help="Clip feature by percentile",
+        default=95
     )
     args = parser.parse_args()
     main(args)
