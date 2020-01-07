@@ -36,22 +36,17 @@ class DecoderStep(nn.Module):
 class LSTMDecoder(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dim, device='cuda'):
         super(LSTMDecoder, self).__init__()
-        self.decoder_step = DecoderStep(input_dim, output_dim, hidden_dim)
+        self.decoder_step = DecoderStep(input_dim=input_dim, output_dim=output_dim, hidden_dim=hidden_dim)
         self.device = device
 
     def forward(self, trg, hidden=None, cell=None, encoder_outputs=None, teacher_forcing_ratio=0.5):
-        trg = trg.transpose(0, 1)
         max_len = trg.shape[0]
         batch_size = trg.shape[1]
 
         input = trg[0, :]
-        outputs = torch.zeros(max_len, batch_size, self.decoder.input_dim).to(self.device)
+        outputs = torch.zeros(max_len, batch_size, self.decoder_step.input_dim).to(self.device)
         for t in range(max_len):
             input = input.unsqueeze(0)
-            if (hidden is None) and (cell is None):
-                output, (hidden, cell) = self.lstm(input)
-            else:
-                output, (hidden, cell) = self.lstm(input, (hidden, cell))
             output, hidden, cell = self.decoder_step(input, hidden, cell)
             outputs[t] = output
             teacher_force = random.random() < teacher_forcing_ratio
