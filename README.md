@@ -2,6 +2,8 @@
 
 The Motion Library provides easy-to-use interfaces and tools to work with motion capture data. The objective of the library is to hide the complexity of mocap file formats, 3D geometry, representation and visualization, and let users focus on high level tasks with motion.
 
+<img src="mocap_processing/viz/samples/anim_viz.gif" width="520"><img src="mocap_processing/viz/samples/anim_smpl.gif" width="350">
+
 ## Installation
 To run a clean install of the library, first create a virtual environment with Python3, and activate it.
 ```
