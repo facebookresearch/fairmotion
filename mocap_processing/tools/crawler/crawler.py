@@ -2,7 +2,7 @@ import argparse
 from collections import defaultdict
 import os
 
-MOCAP_FORMATS = [".c3d", ".amc", ".bvh", ".fbx", ".v", ".avi", ".x2d", ".xcp", ".hdf", ".trial"]
+MOCAP_FORMATS = [".c3d", ".amc", ".bvh", ".fbx", ".v", ".x2d", ".xcp", ".hdf", ".trial"]
 
 def walk_dir(folder, output_file):
     print(folder)
