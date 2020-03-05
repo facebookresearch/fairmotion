@@ -26,9 +26,9 @@ Reconstruction is simple sequential modeling task that aims to generate trajecto
 ### Clustering of motion capture dataset
 In this task, we semantically cluster motion sequences from a large motion capture dataset, specifically the [AMASS dataset](http://amass.is.tue.mpg.de/). We implement two quick methods to generate features for sequences -- the first based on [joint heuristics](https://dl.acm.org/doi/10.1145/1073204.1073247) and the second based on [kinetic energy](https://www.researchgate.net/publication/251419971_FMDistance_A_fast_and_effective_distance_function_for_motion_capture_data) and acceleration of joints. We cluster the features using KMeans and Hierarchical approaches and visualize their t-SNE embeddings.
 
-<img src="mocap_processing/tasks/clustering/tsne.svg" width="400"><img src="mocap_processing/tasks/clustering/labelled_tsne.jpg" width="400">
+<img src="mocap_processing/tasks/clustering/tsne-pca-k-8.jpg" width="600">
 
-t-SNE embeddings of sequences from AMASS CMU dataset; 20 clusters formed by hierarchical clustering
+t-SNE embeddings of sequences from AMASS CMU dataset; 8 clusters formed by k-means clustering
 
 ### Changepoint detection
 We implement an acceleration based changepoint detection algorithm in `mocap_processing/tasks/changepoint_detection`.
