@@ -1,7 +1,7 @@
 import numpy as np
 
 
-EPS = np.finfo(float).eps
+EPSILON = np.finfo(float).eps
 
 eye_R = np.array([
     [1., 0., 0.],

@@ -8,7 +8,7 @@ from basecode.utils import basics
 from basecode.utils import multiprocessing as mp
 from basecode.math import mmMath
 
-EPS = 1.0e-6
+from mocap_processing.utils import constants
 
 
 def get_index(index_dict, key):
@@ -226,7 +226,7 @@ class Velocity(object):
 
     def _compute(self, pose1, pose2, dt):
         assert pose1.skel.num_joint() == pose2.skel.num_joint()
-        assert dt > EPS
+        assert dt > constants.EPSILSON
         for joint in self.skel.joints:
             T1 = pose1.get_transform(joint, local=True)
             T2 = pose2.get_transform(joint, local=True)
@@ -475,7 +475,7 @@ class Motion(object):
             return self.velocities[frame1]
         if time == t2:
             return self.velocities[frame2]
-        assert (t2-t1) > EPS
+        assert (t2-t1) > constants.EPSILON
         alpha = basics.clamp((time-t1)/(t2-t1), 0.0, 1.0)
         vel1 = self.get_velocity_by_frame(frame1)
         vel2 = self.get_velocity_by_frame(frame2)
