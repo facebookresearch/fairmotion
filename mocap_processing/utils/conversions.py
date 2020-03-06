@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from mocap_processing.utils import constants
+from mocap_processing.utils import utils
 
 
 """
@@ -15,6 +16,7 @@ Q: Quaternion (4,)
 R: Rotation matrix (3,3)
 T: Transition matrix (4,4)
 """
+# TODO: Add batched input support to all conversion methods
 
 
 def rad2deg(rad):
@@ -29,6 +31,8 @@ def deg2rad(deg):
 
 def A2R(A):
     theta = np.linalg.norm(A)
+    if theta == 0:
+        return constants.eye_R
     # normalize axes
     A = A/theta
     x, y, z = A
@@ -78,6 +82,9 @@ def R2E(R):
         An np array of shape (..., 3) containing the Euler angles for each
         rotation matrix in `R`
     """
+    R = np.swapaxes(R, R.ndim - 1, R.ndim - 2)
+
+    # Rest of the method assumes row-wise arrangement of rotation matrix R
     assert R.shape[-1] == 3 and R.shape[-2] == 3
     orig_shape = R.shape[:-2]
     rs = np.reshape(R, [-1, 3, 3])
@@ -219,3 +226,32 @@ def Rp2T(R, p):
     T[:3, :3] = R
     T[:3, 3] = p
     return T
+
+
+def p2T(p):
+    return Rp2T(constants.eye_R, p)
+
+
+def R2T(R):
+    return Rp2T(R, constants.zero_p)
+
+
+def Ax2R(Ax):
+    """
+    Convert (axis) angle along x axis Ax to rotation matrix R
+    """
+    return A2R(Ax * utils.str_to_axis("x"))
+
+
+def Ay2R(Ay):
+    """
+    Convert (axis) angle along y axis Ay to rotation matrix R
+    """
+    return A2R(Ay * utils.str_to_axis("y"))
+
+
+def Az2R(Az):
+    """
+    Convert (axis) angle along z axis Az to rotation matrix R
+    """
+    return A2R(Az * utils.str_to_axis("z"))
