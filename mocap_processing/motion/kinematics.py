@@ -226,7 +226,7 @@ class Velocity(object):
 
     def _compute(self, pose1, pose2, dt):
         assert pose1.skel.num_joint() == pose2.skel.num_joint()
-        assert dt > constants.EPSILSON
+        assert dt > constants.EPSILON
         for joint in self.skel.joints:
             T1 = pose1.get_transform(joint, local=True)
             T2 = pose2.get_transform(joint, local=True)
@@ -319,7 +319,7 @@ class Motion(object):
 
     def set_skeleton(self, skel):
         self.skel = skel
-        for i in range(self.num_frame()):
+        for i in range(self.num_frames()):
             self.postures[i].skel = skel
             self.velocities[i].skel = skel
 
@@ -333,7 +333,7 @@ class Motion(object):
             motion = copy.deepcopy(motion)
             if init_time:
                 t_init = motion.times[0]
-                for i in range(motion.num_frame()):
+                for i in range(motion.num_frames()):
                     motion.times[i] -= t_init
         else:
             assert not init_time
@@ -342,14 +342,14 @@ class Motion(object):
     def append(self, motion, blend_length=0.5):
         assert isinstance(motion, Motion)
         assert self.skel.num_joint() == motion.skel.num_joint()
-        assert motion.num_frame() > 0
+        assert motion.num_frames() > 0
         assert motion.length() > blend_length
 
         motion = copy.deepcopy(motion)
 
         ''' If the current motion is empty, just copy the given motion '''
-        if self.num_frame() == 0:
-            for i in range(motion.num_frame()):
+        if self.num_frames() == 0:
+            for i in range(motion.num_frames()):
                 self.times.append(motion.times[i]-motion.times[0])
                 self.postures.append(motion.postures[i])
                 self.velocities.append(motion.velocities[i])
@@ -381,7 +381,7 @@ class Motion(object):
         t_processed = 0.0
         times_new = []
         poses_new = []
-        for i in range(1, motion.num_frame()):
+        for i in range(1, motion.num_frames()):
             dt = (motion.get_time_by_frame(i)-motion.get_time_by_frame(i-1))
             t_total += dt
             t_processed += dt
@@ -407,7 +407,7 @@ class Motion(object):
         self.times.append(t)
         self.postures.append(Posture(self.skel, pose_data))
         ''' We push a dummy velocity when we have only one frame '''
-        if self.num_frame() == 1:
+        if self.num_frames() == 1:
             self.velocities.append(
                 Velocity(self.postures[-1], self.postures[-1], 0.01),
             )
@@ -415,13 +415,13 @@ class Motion(object):
         When we add the second frame,
         we can modify the dummy velocity that we added before
         '''
-        if self.num_frame() == 2:
+        if self.num_frames() == 2:
             dt = self.times[-1] - self.times[-2]
             self.velocities[-1] = Velocity(
                 self.postures[-2], self.postures[-1], dt,
             )
         ''' We can compute a real velociy when we have more than two frames '''
-        if self.num_frame() >= 2:
+        if self.num_frames() >= 2:
             dt = self.times[-1] - self.times[-2]
             self.velocities.append(
                 Velocity(self.postures[-2], self.postures[-1], dt),
@@ -434,17 +434,17 @@ class Motion(object):
         return basics.bisect(self.times, time)
 
     def get_time_by_frame(self, frame):
-        assert frame < self.num_frame()
+        assert frame < self.num_frames()
         return self.times[frame]
 
     def get_pose_by_frame(self, frame):
-        assert frame < self.num_frame()
+        assert frame < self.num_frames()
         return self.postures[frame]
 
     def get_pose_by_time(self, time):
         time = basics.clamp(time, self.times[0], self.times[-1])
         frame1 = self.time_to_frame(time)
-        frame2 = min(frame1+1, self.num_frame()-1)
+        frame2 = min(frame1+1, self.num_frames()-1)
         if frame1 == frame2:
             return self.postures[frame1]
         t1 = self.times[frame1]
@@ -460,13 +460,13 @@ class Motion(object):
         )
 
     def get_velocity_by_frame(self, frame):
-        assert frame < self.num_frame()
+        assert frame < self.num_frames()
         return self.velocities[frame]
 
     def get_velocity_by_time(self, time):
         time = basics.clamp(time, self.times[0], self.times[-1])
         frame1 = self.time_to_frame(time)
-        frame2 = min(frame1+1, self.num_frame()-1)
+        frame2 = min(frame1+1, self.num_frames()-1)
         if frame1 == frame2:
             return self.velocities[frame1]
         t1 = self.times[frame1]
@@ -492,7 +492,7 @@ class Motion(object):
         v.set(self.skel, vel_data_local, vel_data_global)
         return v
 
-    def num_frame(self):
+    def num_frames(self):
         return len(self.times)
 
     def length(self):
@@ -513,19 +513,19 @@ class Motion(object):
         pose_anchor = self.get_pose_by_frame(anchor_frame)
         T_root = pose_anchor.get_root_transform()
         T_root_inv = mmMath.invertSE3(T_root)
-        for i in range(self.num_frame()):
+        for i in range(self.num_frames()):
             pose = self.get_pose_by_frame(i)
             T_rel = np.dot(T_root_inv, pose.get_root_transform())
             T_from_anchor_pose.append(T_rel)
         pose_anchor.transform(T, local=False)
         T_root_new = pose_anchor.get_root_transform()
-        for i in range(self.num_frame()):
+        for i in range(self.num_frames()):
             T_rel = T_from_anchor_pose[i]
             T_new = np.dot(T_root_new, T_rel)
             self.get_pose_by_frame(i).set_root_transform(T_new, local=False)
         ''' Change velocity (global value only) '''
         R = mmMath.T2R(T)
-        for i in range(self.num_frame()):
+        for i in range(self.num_frames()):
             self.get_velocity_by_frame(i).rotate(R)
 
     def load_bvh(
@@ -617,12 +617,12 @@ class Motion(object):
             while cnt < len(words):
                 word = words[cnt].lower()
                 if word == 'motion':
-                    num_frame = int(words[cnt+2])
+                    num_frames = int(words[cnt+2])
                     dt = float(words[cnt+5])
                     cnt += 6
                     t = 0.0
                     range_num_dofs = range(self.skel.num_dofs)
-                    for i in range(num_frame):
+                    for i in range(num_frames):
                         raw_values = [
                             float(words[cnt+j]) for j in range_num_dofs
                         ]
@@ -671,7 +671,7 @@ class Motion(object):
                         t += dt
                 else:
                     cnt += 1
-            assert self.num_frame() > 0
+            assert self.num_frames() > 0
 
     def _write_hierarchy_bvh(self, file, joint, scale=1.0, tab=""):
         is_root_joint = joint.parent_joint is None
@@ -716,15 +716,15 @@ class Motion(object):
             t_start = self.times[0]
             t_end = self.times[-1]
             dt = 1.0/fps
-            num_frame = round((t_end - t_start) * fps) + 1
+            num_frames = round((t_end - t_start) * fps) + 1
             f.write("MOTION\n")
-            f.write("Frames: %d\n" % num_frame)
+            f.write("Frames: %d\n" % num_frames)
             f.write("Frame Time: %f\n" % dt)
             t = t_start
-            for i in range(num_frame):
+            for i in range(num_frames):
                 if verbose and i % fps == 0:
                     print("\r >  >  >  >  %d/%d processed (%d FPS)" % (
-                        i+1, num_frame, fps
+                        i+1, num_frames, fps
                     ), end=" ")
                 pose = self.get_pose_by_time(t)
                 for joint in self.skel.joints:
@@ -743,9 +743,9 @@ class Motion(object):
                         f.write("%f %f %f " % (Rz, Ry, Rx))
                 f.write("\n")
                 t += dt
-                if verbose and i == num_frame-1:
+                if verbose and i == num_frames-1:
                     print("\r >  >  >  >  %d/%d processed (%d FPS)" % (
-                        i+1, num_frame, fps
+                        i+1, num_frames, fps
                     ))
             f.close()
 
