@@ -1,4 +1,5 @@
 import numpy as np
+from basecode.utils import multiprocessing as mp
 from mocap_processing.motion import motion as motion_classes
 from mocap_processing.utils import constants
 from mocap_processing.utils import conversions
@@ -101,13 +102,13 @@ def load(
         while cnt < len(words):
             word = words[cnt].lower()
             if word == "motion":
-                num_frame = int(words[cnt+2])
+                num_frames = int(words[cnt+2])
                 dt = float(words[cnt+5])
                 motion.fps = round(1/dt)
                 cnt += 6
                 t = 0.0
                 range_num_dofs = range(motion.skel.num_dofs)
-                for i in range(num_frame):
+                for i in range(num_frames):
                     raw_values = [
                         float(words[cnt+j]) for j in range_num_dofs
                     ]
@@ -203,15 +204,15 @@ def save(motion, filename, scale=1.0, verbose=False):
         t_start = motion.times[0]
         t_end = motion.times[-1]
         dt = 1.0/motion.fps
-        num_frame = round((t_end - t_start) * motion.fps) + 1
+        num_frames = round((t_end - t_start) * motion.fps) + 1
         f.write("MOTION\n")
-        f.write("Frames: %d\n" % num_frame)
+        f.write("Frames: %d\n" % num_frames)
         f.write("Frame Time: %f\n" % dt)
         t = t_start
-        for i in range(num_frame):
+        for i in range(num_frames):
             if verbose and i % motion.fps == 0:
                 print("\r >  >  >  >  %d/%d processed (%d FPS)" % (
-                    i+1, num_frame, motion.fps
+                    i+1, num_frames, motion.fps
                 ), end=" ")
             pose = motion.get_pose_by_time(t)
             for joint in motion.skel.joints:
@@ -230,8 +231,67 @@ def save(motion, filename, scale=1.0, verbose=False):
                     f.write("%f %f %f " % (Rz, Ry, Rx))
             f.write("\n")
             t += dt
-            if verbose and i == num_frame-1:
+            if verbose and i == num_frames-1:
                 print("\r >  >  >  >  %d/%d processed (%d FPS)" % (
-                    i+1, num_frame, motion.fps
+                    i+1, num_frames, motion.fps
                 ))
         f.close()
+
+
+def _read_motions(job_idx, scale, v_up_skel, v_face_skel, v_up_env):
+    res = []
+    if job_idx[0] >= job_idx[1]:
+        return res
+    for i in range(job_idx[0], job_idx[1]):
+        file = mp.shared_data[i]
+        if file.endswith('.bvh'):
+            motion = load(
+                file=file,
+                scale=scale,
+                v_up_skel=v_up_skel,
+                v_face_skel=v_face_skel,
+                v_up_env=v_up_env,
+            )
+        else:
+            raise Exception('Unknown Motion File Type')
+        res.append(motion)
+    return res
+
+
+def read_motions_parallel(
+    files,
+    num_workers=10,
+    scale=1.0,
+    v_up_skel=np.array([0.0, 1.0, 0.0]),
+    v_face_skel=np.array([0.0, 0.0, 1.0]),
+    v_up_env=np.array([0.0, 1.0, 0.0]),
+):
+    '''
+    Load motion files in parallel
+
+    Parameters
+    ----------
+    files : a list of str
+        a list containing motion file names
+    num_worker : int
+        the number of cpus to use
+    scale : float
+        scale for loading motion
+    v_up_skel : numpy array R^3
+        the up vector of skeleton
+    v_face_skel : numpy array R^3
+        the facing vector of skeleton
+    v_up_env : numpy array R^3
+        the up vector of the environment
+    '''
+    mp.shared_data = files
+    motions = mp.run_parallel_async_idx(
+        _read_motions,
+        num_workers,
+        len(mp.shared_data),
+        scale,
+        v_up_skel,
+        v_face_skel,
+        v_up_env,
+    )
+    return motions
