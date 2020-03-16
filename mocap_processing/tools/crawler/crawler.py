@@ -4,6 +4,7 @@ import os
 
 MOCAP_FORMATS = [".c3d", ".amc", ".bvh", ".fbx", ".v", ".x2d", ".xcp", ".hdf", ".trial"]
 
+
 def walk_dir(folder, output_file):
     print(folder)
     for root, dirs, files in os.walk(folder, topdown=False):
@@ -26,8 +27,8 @@ def main(args):
     walk_dir(args.root_path, args.output_file)
 
 
-if __name__=="__main__":
-    parser = argparse.ArgumentParser(description='List files in disk')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="List files in disk")
     parser.add_argument("--root-path", type=str)
     parser.add_argument("--output-file", type=str)
     args = parser.parse_args()

@@ -13,29 +13,25 @@ def normalize_features(features):
 
 def get_tsne_embeddings(X):
     X = np.array(X)
-    X_embedded = TSNE(
-        n_components=2, random_state=0
-    ).fit_transform(X)
+    X_embedded = TSNE(n_components=2, random_state=0).fit_transform(X)
     return X_embedded
 
 
 def get_mds_embeddings(X):
     X = np.array(X)
-    X_embedded = MDS(
-        n_components=2, random_state=0,
-    ).fit_transform(X)
+    X_embedded = MDS(n_components=2, random_state=0,).fit_transform(X)
     return X_embedded
 
 
 def plot_embeddings(filename, X, labels=None):
     fig, ax = plt.subplots(figsize=(10, 7.5))
     if labels is None:
-        ax.scatter(X[:,0], X[:,1], marker="o")
+        ax.scatter(X[:, 0], X[:, 1], marker="o")
     else:
         # In order of count of labels, highest to lowest
         for l in np.flip(np.argsort(np.bincount(labels))):
             i = np.where(labels == l)
-            ax.scatter(X[i,0], X[i,1], label=l, marker="o")
+            ax.scatter(X[i, 0], X[i, 1], label=l, marker="o")
     ax.legend()
     plt.savefig(filename)
 
@@ -61,17 +57,17 @@ def main(args):
                 label = int(label_and_score.strip().split(",")[0])
                 filename2label[filename.strip()] = label
     plot_embeddings(
-        filename=args.output_file, 
+        filename=args.output_file,
         X=embeddings,
-        labels=[
-            filename2label[filename] for filename in filenames
-        ] if args.clusters_file else None,
+        labels=[filename2label[filename] for filename in filenames]
+        if args.clusters_file
+        else None,
     )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Generate images with t-sne visualization'
+        description="Generate images with t-sne visualization"
     )
     parser.add_argument("--features-file", type=str, required=True)
     parser.add_argument("--output-file", type=str, required=True)

@@ -21,13 +21,10 @@ def transform(motion, T, local=False):
         R0, p0 = conversions.T2Rp(motion.poses[pose_id].get_root_transform())
         R1, p1 = conversions.T2Rp(T)
         if local:
-            R, p = np.dot(R0, R1), p0+np.dot(R0, p1)
+            R, p = np.dot(R0, R1), p0 + np.dot(R0, p1)
         else:
-            R, p = np.dot(R1, R0), p0+p1
-        motion.poses[pose_id].set_root_transform(
-            conversions.Rp2T(R, p),
-            local=False
-        )
+            R, p = np.dot(R1, R0), p0 + p1
+        motion.poses[pose_id].set_root_transform(conversions.Rp2T(R, p), local=False)
     return motion
 
 
@@ -45,8 +42,8 @@ def cut(motion, frame_start, frame_end):
     """
     cut_motion = motion_class.Motion(skel=motion.skel)
     cut_motion.name = f"{motion.name}_{frame_start}_{frame_end}"
-    cut_motion.times = motion.times[frame_start: frame_end + 1]
-    cut_motion.poses = motion.poses[frame_start: frame_end + 1]
+    cut_motion.times = motion.times[frame_start : frame_end + 1]
+    cut_motion.poses = motion.poses[frame_start : frame_end + 1]
 
     t_init = cut_motion.times[0]
     for i in range(cut_motion.num_frames()):
@@ -62,7 +59,7 @@ def resample(motion, fps):
     times_new = []
     poses_new = []
 
-    dt = 1.0/fps
+    dt = 1.0 / fps
     t = motion.times[0]
     while t < motion.times[-1]:
         pose = motion.get_pose_by_time(t)

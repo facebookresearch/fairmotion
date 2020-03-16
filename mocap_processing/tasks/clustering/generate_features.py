@@ -109,9 +109,11 @@ def calc_average_velocity(positions, i, joint_idx, sliding_window, frame_time):
     current_window = 0
     average_velocity = np.zeros(len(positions[0][joint_idx]))
     for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1  < 0 or i + j >= len(positions):
+        if i + j - 1 < 0 or i + j >= len(positions):
             continue
-        average_velocity += positions[i+j][joint_idx] - positions[i+j-1][joint_idx]
+        average_velocity += (
+            positions[i + j][joint_idx] - positions[i + j - 1][joint_idx]
+        )
         current_window += 1
     return np.linalg.norm(average_velocity / (current_window * frame_time))
 
@@ -120,44 +122,62 @@ def calc_average_acceleration(positions, i, joint_idx, sliding_window, frame_tim
     current_window = 0
     average_acceleration = np.zeros(len(positions[0][joint_idx]))
     for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1  < 0 or i + j + 1 >= len(positions):
+        if i + j - 1 < 0 or i + j + 1 >= len(positions):
             continue
-        v2 = (positions[i+j+1][joint_idx] - positions[i+j  ][joint_idx])/frame_time
-        v1 = positions[i+j  ][joint_idx] - positions[i+j-1][joint_idx]/frame_time
-        average_acceleration += (v2 - v1)/frame_time
+        v2 = (
+            positions[i + j + 1][joint_idx] - positions[i + j][joint_idx]
+        ) / frame_time
+        v1 = positions[i + j][joint_idx] - positions[i + j - 1][joint_idx] / frame_time
+        average_acceleration += (v2 - v1) / frame_time
         current_window += 1
     return np.linalg.norm(average_acceleration / current_window)
-    
 
-def calc_average_velocity_horizontal(positions, i, joint_idx, sliding_window, frame_time, up_vec="z"):
+
+def calc_average_velocity_horizontal(
+    positions, i, joint_idx, sliding_window, frame_time, up_vec="z"
+):
     current_window = 0
     average_velocity = np.zeros(len(positions[0][joint_idx]))
     for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1  < 0 or i + j >= len(positions):
+        if i + j - 1 < 0 or i + j >= len(positions):
             continue
-        average_velocity += positions[i+j][joint_idx] - positions[i+j-1][joint_idx]
+        average_velocity += (
+            positions[i + j][joint_idx] - positions[i + j - 1][joint_idx]
+        )
         current_window += 1
-    if up_vec=="y":
-        average_velocity = np.array([average_velocity[0],average_velocity[2]])/(current_window * frame_time)
-    elif up_vec=="z":
-        average_velocity = np.array([average_velocity[0],average_velocity[1]])/(current_window * frame_time)
+    if up_vec == "y":
+        average_velocity = np.array([average_velocity[0], average_velocity[2]]) / (
+            current_window * frame_time
+        )
+    elif up_vec == "z":
+        average_velocity = np.array([average_velocity[0], average_velocity[1]]) / (
+            current_window * frame_time
+        )
     else:
         raise NotImplementedError
     return np.linalg.norm(average_velocity)
 
 
-def calc_average_velocity_vertical(positions, i, joint_idx, sliding_window, frame_time, up_vec):
+def calc_average_velocity_vertical(
+    positions, i, joint_idx, sliding_window, frame_time, up_vec
+):
     current_window = 0
     average_velocity = np.zeros(len(positions[0][joint_idx]))
     for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1  < 0 or i + j >= len(positions):
+        if i + j - 1 < 0 or i + j >= len(positions):
             continue
-        average_velocity += positions[i+j][joint_idx] - positions[i+j-1][joint_idx]
+        average_velocity += (
+            positions[i + j][joint_idx] - positions[i + j - 1][joint_idx]
+        )
         current_window += 1
-    if up_vec=="y":
-        average_velocity = np.array([average_velocity[1]])/(current_window * frame_time)
-    elif up_vec=="z":
-        average_velocity = np.array([average_velocity[2]])/(current_window * frame_time)
+    if up_vec == "y":
+        average_velocity = np.array([average_velocity[1]]) / (
+            current_window * frame_time
+        )
+    elif up_vec == "z":
+        average_velocity = np.array([average_velocity[2]]) / (
+            current_window * frame_time
+        )
     else:
         raise NotImplementedError
     return np.linalg.norm(average_velocity)
@@ -172,29 +192,31 @@ class P95Thresholds:
             for filename in tqdm.tqdm(files):
                 anim, joints, time_per_frame = BVH.load(os.path.join(root, filename))
                 self.joints = joints
-                self._update_velocities(Animation.positions_global(anim), time_per_frame)
+                self._update_velocities(
+                    Animation.positions_global(anim), time_per_frame
+                )
         self.thresholds = self._compute_p95_thresholds()
-
 
     def _update_velocities(self, positions, frame_time):
         for i in range(1, len(positions)):
             for joint_idx in range(len(self.joints)):
-                velocity = calc_average_velocity(positions, i, joint_idx, self.sliding_window, frame_time)
+                velocity = calc_average_velocity(
+                    positions, i, joint_idx, self.sliding_window, frame_time
+                )
                 self.velocities[self.joints[joint_idx]].append(velocity)
 
-
     def _compute_p95_thresholds(self):
-        return {joint: np.percentile(self.velocities[joint], 95) for joint in self.joints}
+        return {
+            joint: np.percentile(self.velocities[joint], 95) for joint in self.joints
+        }
 
-    
     def get_threshold(self, joint_idx):
         return self.thresholds[self.joints[joint_idx]]
-
 
     def __str__(self):
         print_str = ""
         for key, value in self.thresholds.items():
-            print_str += "%s: %f\n"%(key,value)
+            print_str += "%s: %f\n" % (key, value)
         return print_str
 
 
@@ -203,8 +225,10 @@ class KineticFeatures:
         self.local_positions = anim.positions
         global_positions = Animation.positions_global(anim)
         for joint in range(len(joints) - 1, 0, -1):
-            global_positions[:,joint] =  global_positions[:,joint] - global_positions[:,anim.parents[joint]]
-        self.positions = global_positions 
+            global_positions[:, joint] = (
+                global_positions[:, joint] - global_positions[:, anim.parents[joint]]
+            )
+        self.positions = global_positions
         self.joints = joints
         self.frame_time = frame_time
         self.thresholds = thresholds
@@ -214,46 +238,57 @@ class KineticFeatures:
     def average_kinetic_energy(self, joint):
         average_kinetic_energy = 0
         for i in range(1, len(self.positions)):
-            average_velocity = calc_average_velocity(self.positions, i, joint, self.sliding_window, self.frame_time)
+            average_velocity = calc_average_velocity(
+                self.positions, i, joint, self.sliding_window, self.frame_time
+            )
             average_kinetic_energy += average_velocity ** 2
-        average_kinetic_energy = average_kinetic_energy / (
-            len(self.positions) - 1.0
-        )
-        return average_kinetic_energy 
-
+        average_kinetic_energy = average_kinetic_energy / (len(self.positions) - 1.0)
+        return average_kinetic_energy
 
     def average_kinetic_energy_horizontal(self, joint):
         val = 0
         for i in range(1, len(self.positions)):
-            average_velocity = calc_average_velocity_horizontal(self.positions, i, joint, self.sliding_window, self.frame_time, self.up_vec)
+            average_velocity = calc_average_velocity_horizontal(
+                self.positions,
+                i,
+                joint,
+                self.sliding_window,
+                self.frame_time,
+                self.up_vec,
+            )
             val += average_velocity ** 2
-        val = val / (
-            len(self.positions) - 1.0
-        )
+        val = val / (len(self.positions) - 1.0)
         return val
-
 
     def average_kinetic_energy_vertical(self, joint):
         val = 0
         for i in range(1, len(self.positions)):
-            average_velocity = calc_average_velocity_vertical(self.positions, i, joint, self.sliding_window, self.frame_time, self.up_vec)
+            average_velocity = calc_average_velocity_vertical(
+                self.positions,
+                i,
+                joint,
+                self.sliding_window,
+                self.frame_time,
+                self.up_vec,
+            )
             val += average_velocity ** 2
-        val = val / (
-            len(self.positions) - 1.0
-        )
+        val = val / (len(self.positions) - 1.0)
         return val
-
 
     def average_energy_expenditure(self, joint):
         val = 0.0
         for i in range(1, len(self.positions)):
-            val += calc_average_acceleration(self.positions, i, joint, self.sliding_window, self.frame_time)
+            val += calc_average_acceleration(
+                self.positions, i, joint, self.sliding_window, self.frame_time
+            )
         val = val / (len(self.positions) - 1.0)
         return val
 
-
     def local_position_stats(self, joint):
-        return np.mean(self.local_positions[:, joint], axis=0), np.std(self.local_positions[:, joint], axis=0)
+        return (
+            np.mean(self.local_positions[:, joint], axis=0),
+            np.std(self.local_positions[:, joint], axis=0),
+        )
 
 
 class ManualFeatures:
@@ -425,11 +460,13 @@ def extract_kinetic_features(anim, joints, time_per_frame, thresholds, up_vec):
     kinetic_feature_vector = []
     for i in range(len(joints)):
         positions_mean, positions_stddev = features.local_position_stats(i)
-        feature_vector = np.hstack([
-            features.average_kinetic_energy_horizontal(i),
-            features.average_kinetic_energy_vertical(i),
-            features.average_energy_expenditure(i),
-        ])
+        feature_vector = np.hstack(
+            [
+                features.average_kinetic_energy_horizontal(i),
+                features.average_kinetic_energy_vertical(i),
+                features.average_energy_expenditure(i),
+            ]
+        )
         kinetic_feature_vector.extend(feature_vector)
     return kinetic_feature_vector
 
@@ -439,8 +476,9 @@ def extract_features(filepath, feature_type, thresholds=None, up_vec="z"):
     if feature_type == "manual":
         return extract_manual_features(anim, joints, time_per_frame)
     else:
-        return extract_kinetic_features(anim, joints, time_per_frame, thresholds, up_vec)
-
+        return extract_kinetic_features(
+            anim, joints, time_per_frame, thresholds, up_vec
+        )
 
 
 def wrapper_extract_features(inputs):
@@ -454,7 +492,8 @@ def wrapper_extract_features(inputs):
     with open(os.path.join(args.output_folder, "features.tsv"), "a") as all_features:
         if args.type == "manual":
             all_features.write(
-                filename + ":"
+                filename
+                + ":"
                 + "\t".join(
                     [
                         str(int(datapoint))
@@ -470,21 +509,34 @@ def wrapper_extract_features(inputs):
             )
     print("Finished " + filepath)
 
+
 def main(args):
     global thresholds
     thresholds = None
     pool = Pool(args.cpu)
     for root, _, files in os.walk(args.folder, topdown=False):
-        pool.map(wrapper_extract_features, [(os.path.join(root, filename), args.type, args.up_vec) for filename in files])
+        pool.map(
+            wrapper_extract_features,
+            [
+                (os.path.join(root, filename), args.type, args.up_vec)
+                for filename in files
+            ],
+        )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract features from BVH files")
     parser.add_argument(
-        "--type", nargs="?", choices=["manual", "kinetic", "distribution"], default="manual"
+        "--type",
+        nargs="?",
+        choices=["manual", "kinetic", "distribution"],
+        default="manual",
     )
     parser.add_argument(
-        "--folder", type=str, help="Folder with files to extract features from", required=True,
+        "--folder",
+        type=str,
+        help="Folder with files to extract features from",
+        required=True,
     )
     parser.add_argument("--output-folder", type=str, required=True)
     parser.add_argument("--up-vec", nargs="?", choices=["y", "z"], default="z")

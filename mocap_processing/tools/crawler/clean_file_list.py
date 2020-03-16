@@ -1,6 +1,8 @@
 import argparse
+
 # pip install c3d
 import c3d
+
 # pip install bvh
 from bvh import Bvh
 from enum import Enum
@@ -12,8 +14,17 @@ class MocapFormat(Enum):
 
 
 def filter_file_list(csv_file):
-    DOES_NOT_CONTAIN = ["$RECYCLE.BIN", "Program Files", "Seagate Desktop Drive/Adithya_arm_test/", "Program Files/Vicon", "SnakeBot", "L/H/Robots"]
-    with open(csv_file) as file, open(f"{args.file.split('.')[0]}_clean.csv", "w") as output_file:
+    DOES_NOT_CONTAIN = [
+        "$RECYCLE.BIN",
+        "Program Files",
+        "Seagate Desktop Drive/Adithya_arm_test/",
+        "Program Files/Vicon",
+        "SnakeBot",
+        "L/H/Robots",
+    ]
+    with open(csv_file) as file, open(
+        f"{args.file.split('.')[0]}_clean.csv", "w"
+    ) as output_file:
         for line in file:
             file_path = line.split(",")[0]
             # Conditions to clean
@@ -50,7 +61,7 @@ def print_stats(csv_file, mocap_format):
     )
 
 
-def get_c3d_time(filename:str):
+def get_c3d_time(filename: str):
     try:
         c3d_header = c3d.Header(open(f"{modify_filename(filename)}.c3d", "rb"))
     except Exception as e:
@@ -60,7 +71,7 @@ def get_c3d_time(filename:str):
     return (c3d_header.last_frame + 1) / frame_rate
 
 
-def get_bvh_time(filename:str):
+def get_bvh_time(filename: str):
     with open(f"{modify_filename(filename)}.bvh") as f:
         try:
             bvh_file = Bvh(f.read())
@@ -74,9 +85,9 @@ def get_bvh_time(filename:str):
             print(e, filename)
         return time
 
-            
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Clean files in output of crawler')
+    parser = argparse.ArgumentParser(description="Clean files in output of crawler")
     parser.add_argument("--task", type=str)
     parser.add_argument("--file", type=str, required=False)
     args = parser.parse_args()

@@ -2,29 +2,29 @@ import os
 from os import path
 import argparse
 
-parser = argparse.ArgumentParser(description='Devfair Utilities')
-parser.add_argument('--zip_data', action='store_true')
-parser.add_argument('--copy_data', action='store_true')
-parser.add_argument('--unzip_data', action='store_true')
-parser.add_argument('--copy_net', action='store_true')
-parser.add_argument('--ext_net', action='store_true')
-parser.add_argument('--name', type=str, default="net")
+parser = argparse.ArgumentParser(description="Devfair Utilities")
+parser.add_argument("--zip_data", action="store_true")
+parser.add_argument("--copy_data", action="store_true")
+parser.add_argument("--unzip_data", action="store_true")
+parser.add_argument("--copy_net", action="store_true")
+parser.add_argument("--ext_net", action="store_true")
+parser.add_argument("--name", type=str, default="net")
 args = parser.parse_args()
 print(args)
 
 policy_dirs = [
     "ScaDive/data/learning/mimicpfnn_composite_old3_new1_exp1/",
     "ScaDive/data/learning/mimicpfnn_composite_old4_new1_exp3/",
-    ]
+]
 
 policy_nets = [
     "network300",
     "network5300",
-    ]
+]
 
 log_dir = "log/"
 
-''' Copy Training Logs (done in Local Side) '''
+""" Copy Training Logs (done in Local Side) """
 
 # if args.copy_rew:
 #     # for d in policy_dirs:
@@ -54,26 +54,26 @@ log_dir = "log/"
 #     for d in policy_dirs:
 #         os.system("subl %s/log.txt"%d)
 
-''' Compress data (network, log), which should be done in server side '''
+""" Compress data (network, log), which should be done in server side """
 
 if args.zip_data:
-    cmd = "tar -cvzf %s.tar.gz "% args.name
+    cmd = "tar -cvzf %s.tar.gz " % args.name
     for i in range(len(policy_dirs)):
-        cmd += "%s%s "%(policy_dirs[i], policy_nets[i])
-        cmd += "%s%s "%(policy_dirs[i], "log.txt")
+        cmd += "%s%s " % (policy_dirs[i], policy_nets[i])
+        cmd += "%s%s " % (policy_dirs[i], "log.txt")
     os.system(cmd)
 
-''' Copy data (network, log), which should be done in local side '''
+""" Copy data (network, log), which should be done in local side """
 
 if args.copy_data:
-    os.system("scp -T devfair:~/Research/%s.tar.gz ~/Research"%args.name)
+    os.system("scp -T devfair:~/Research/%s.tar.gz ~/Research" % args.name)
 
-''' Extract data (network, log), which should be done in local side '''
+""" Extract data (network, log), which should be done in local side """
 
 if args.unzip_data:
     for d in policy_dirs:
         os.makedirs(d, exist_ok=True)
-    cmd = "tar -xvzf %s.tar.gz"%args.name
+    cmd = "tar -xvzf %s.tar.gz" % args.name
     os.system(cmd)
     for d in policy_dirs:
-        os.system("subl %s/log.txt"%d)
+        os.system("subl %s/log.txt" % d)

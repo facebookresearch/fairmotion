@@ -41,7 +41,9 @@ def calculate_cluster_centroids(features, labels):
         cluster_centroids[label] += np.array(features[num])
     # Average sum of points to get centroids
     for cluster in cluster_centroids:
-        cluster_centroids[cluster] = cluster_centroids[cluster]/len(cluster_centroids[cluster])
+        cluster_centroids[cluster] = cluster_centroids[cluster] / len(
+            cluster_centroids[cluster]
+        )
     return cluster_centroids
 
 
@@ -50,8 +52,10 @@ def run_dbscan_clustering(features, names, args):
     cluster_centroids = calculate_cluster_centroids(features, dbscan.labels_)
     clusters = defaultdict(list)
     for num, label in enumerate(dbscan.labels_):
-        clusters[label].append((names[num], calculate_score(cluster_centroids[label], features[num])))
-    return clusters    
+        clusters[label].append(
+            (names[num], calculate_score(cluster_centroids[label], features[num]))
+        )
+    return clusters
 
 
 def run_optics_clustering(features, names, args):
@@ -59,7 +63,9 @@ def run_optics_clustering(features, names, args):
     cluster_centroids = calculate_cluster_centroids(features, optics.labels_)
     clusters = defaultdict(list)
     for num, label in enumerate(optics.labels_):
-        clusters[label].append((names[num], calculate_score(cluster_centroids[label], features[num])))
+        clusters[label].append(
+            (names[num], calculate_score(cluster_centroids[label], features[num]))
+        )
     return clusters
 
 
@@ -74,11 +80,15 @@ def run_kmeans_clustering(features, names, args):
 
 
 def run_hierarchical_clustering(features, names, args):
-    hierarchical = AgglomerativeClustering(args.num_clusters, linkage=args.linkage).fit(features)
+    hierarchical = AgglomerativeClustering(args.num_clusters, linkage=args.linkage).fit(
+        features
+    )
     cluster_centroids = calculate_cluster_centroids(features, hierarchical.labels_)
     clusters = defaultdict(list)
     for num, label in enumerate(hierarchical.labels_):
-        clusters[label].append((names[num], calculate_score(cluster_centroids[label], features[num])))
+        clusters[label].append(
+            (names[num], calculate_score(cluster_centroids[label], features[num]))
+        )
 
     return clusters
 
@@ -106,18 +116,23 @@ def main(args):
     if args.type == "kmeans":
         clusters = run_kmeans_clustering(features, names, args)
     elif args.type == "hierarchical":
-        clusters =  run_hierarchical_clustering(features, names, args)
+        clusters = run_hierarchical_clustering(features, names, args)
     elif args.type == "optics":
         clusters = run_optics_clustering(features, names, args)
     elif args.type == "dbscan":
         clusters = run_dbscan_clustering(features, names, args)
-    
+
     ranked_clusters = get_ranked_clusters(clusters)
-    
+
     with open(args.output_file, "w") as f:
         for cluster in ranked_clusters:
             for (name, rank, score) in ranked_clusters[cluster]:
-                f.write(",".join([str(cluster), str(rank), str(score)]) + ":" + str(name) + "\n")
+                f.write(
+                    ",".join([str(cluster), str(rank), str(score)])
+                    + ":"
+                    + str(name)
+                    + "\n"
+                )
 
 
 if __name__ == "__main__":
@@ -127,24 +142,28 @@ if __name__ == "__main__":
         "--output-file", type=str, help="File to store information about clusters"
     )
     parser.add_argument(
-        "--type", type=str, required=True,
+        "--type",
+        type=str,
+        required=True,
         choices=["kmeans", "hierarchical", "optics", "dbscan"],
-        help="Clustering technique to be used, one of kmeans and hierarchical", 
+        help="Clustering technique to be used, one of kmeans and hierarchical",
     )
     parser.add_argument(
         "--num-clusters", type=int, help="Number of clusters",
     )
     parser.add_argument(
-        "--linkage", type=str, help="Type of linkage in agglomerative clusering",
-        default="average"
+        "--linkage",
+        type=str,
+        help="Type of linkage in agglomerative clusering",
+        default="average",
     )
     parser.add_argument(
-        "--normalize-features", action='store_true', 
+        "--normalize-features",
+        action="store_true",
         help="Perform feature normalization",
     )
     parser.add_argument(
-        "--clip-features", type=float, help="Clip feature by percentile",
-        default=95
+        "--clip-features", type=float, help="Clip feature by percentile", default=95
     )
     args = parser.parse_args()
     main(args)

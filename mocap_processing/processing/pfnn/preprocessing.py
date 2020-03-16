@@ -11,7 +11,9 @@ def positions_wrt_base(anim):
     transforms_wrt_root = Animation.transforms_blank(anim)
 
     for i in range(1, anim.shape[1]):  # modifies all joints except root/base
-        transforms_wrt_root[:, i] = Animation.transforms_multiply(Animation.transforms_inv(globals[:, 0]), globals[:, i])
+        transforms_wrt_root[:, i] = Animation.transforms_multiply(
+            Animation.transforms_inv(globals[:, 0]), globals[:, i]
+        )
     transforms_wrt_root[:, 0] = globals[:, 0]  # root/base joint retains global position
 
     positions_wrt_root = transforms_wrt_root[:, :, 0:3, 3]
@@ -20,20 +22,31 @@ def positions_wrt_base(anim):
     return rotations_wrt_root, positions_wrt_root
 
 
-def extract_sequences(joint_rotations, joint_positions, frametime, stride=0.25, downsampled_hertz=30, window_length=5.0):
+def extract_sequences(
+    joint_rotations,
+    joint_positions,
+    frametime,
+    stride=0.25,
+    downsampled_hertz=30,
+    window_length=5.0,
+):
 
     # initialize data structs, using CNN-like computation of size of input
-    J_p, J_r = joint_positions.shape[1], joint_rotations.shape[1],  # num of joints
+    J_p, J_r = (
+        joint_positions.shape[1],
+        joint_rotations.shape[1],
+    )  # num of joints
     animation_time = len(joint_rotations) * frametime
     n = int(np.trunc((animation_time - window_length) / stride)) + 1  # sample size
     num_joint_coordinates = joint_rotations.shape[2] + joint_positions.shape[2]
-    num_posture_dimensions = (J_p * joint_positions.shape[2]) + (J_r * joint_rotations.shape[2])  #J * num_joint_coordinates
+    num_posture_dimensions = (J_p * joint_positions.shape[2]) + (
+        J_r * joint_rotations.shape[2]
+    )  # J * num_joint_coordinates
     T = int(np.trunc(downsampled_hertz * window_length))
 
     datapoint_size = num_posture_dimensions * T
     datapoints = np.zeros((n, datapoint_size), dtype=float)
     datapoints_temporal = np.zeros((n, T, num_posture_dimensions), dtype=float)
-
 
     current_frame_iterator = 0
     input_hertz = int(np.trunc(1.0 / frametime))
@@ -45,11 +58,13 @@ def extract_sequences(joint_rotations, joint_positions, frametime, stride=0.25, 
         # retrieve downsampled set of frames, for extracting character body posture over duration of sequence
         posture_sequence_concatenated = []
         posture_sequence_by_time = np.zeros((T, num_posture_dimensions))
-        for t in range(current_frame_iterator, (T * step_size + current_frame_iterator), step_size):
+        for t in range(
+            current_frame_iterator, (T * step_size + current_frame_iterator), step_size
+        ):
 
             # get posture information for given (target) frame
             posture = []
-            t_downsampled = int((t - current_frame_iterator)/float(step_size))
+            t_downsampled = int((t - current_frame_iterator) / float(step_size))
 
             if J_p == J_r:
                 J = J_p
@@ -66,19 +81,27 @@ def extract_sequences(joint_rotations, joint_positions, frametime, stride=0.25, 
                 J = joints_pos | joints_rot  # union of sets
                 for j in J:
                     if j in joints_pos:  # joints considered for position data
-                        sample_joint_positions[i][t_downsampled][j] = joint_positions[t][j]
+                        sample_joint_positions[i][t_downsampled][j] = joint_positions[
+                            t
+                        ][j]
                         posture.extend(joint_positions[t][j])
                     if j in joints_rot:  # joints considered for rotation data
-                        sample_joint_rotations[i][t_downsampled][j] = joint_rotations[t][j]
+                        sample_joint_rotations[i][t_downsampled][j] = joint_rotations[
+                            t
+                        ][j]
                         posture.extend(joint_rotations[t][j])
 
             posture_sequence_concatenated.extend(posture)
             posture_sequence_by_time[t_downsampled] = posture
-
 
         # update datapoints struct with current iteration input
         datapoints[i] = posture_sequence_concatenated
         datapoints_temporal[i] = posture_sequence_by_time
         current_frame_iterator += int(np.trunc(stride * input_hertz))
 
-    return datapoints, datapoints_temporal, sample_joint_rotations, sample_joint_positions
+    return (
+        datapoints,
+        datapoints_temporal,
+        sample_joint_rotations,
+        sample_joint_positions,
+    )

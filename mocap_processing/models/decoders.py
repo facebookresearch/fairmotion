@@ -23,12 +23,10 @@ class DecoderStep(nn.Module):
 
 
 class LSTMDecoder(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dim, device='cuda'):
+    def __init__(self, input_dim, output_dim, hidden_dim, device="cuda"):
         super(LSTMDecoder, self).__init__()
         self.decoder_step = DecoderStep(
-            input_dim=input_dim,
-            output_dim=output_dim,
-            hidden_dim=hidden_dim
+            input_dim=input_dim, output_dim=output_dim, hidden_dim=hidden_dim
         )
         self.device = device
 
@@ -38,15 +36,15 @@ class LSTMDecoder(nn.Module):
         hidden=None,
         cell=None,
         encoder_outputs=None,
-        teacher_forcing_ratio=0.5
+        teacher_forcing_ratio=0.5,
     ):
         max_len = trg.shape[0]
         batch_size = trg.shape[1]
 
         input = trg[0, :]
-        outputs = torch.zeros(
-            max_len, batch_size, self.decoder_step.input_dim,
-        ).to(self.device)
+        outputs = torch.zeros(max_len, batch_size, self.decoder_step.input_dim,).to(
+            self.device
+        )
         for t in range(max_len):
             input = input.unsqueeze(0)
             output, hidden, cell = self.decoder_step(input, hidden, cell)
@@ -60,12 +58,7 @@ class LSTMDecoder(nn.Module):
 
 class DecoderStepWithAttention(nn.Module):
     def __init__(
-        self,
-        input_dim,
-        output_dim,
-        hidden_dim,
-        source_length,
-        device="cuda",
+        self, input_dim, output_dim, hidden_dim, source_length, device="cuda",
     ):
         super(DecoderStepWithAttention, self).__init__()
         self.input_dim = input_dim
@@ -74,22 +67,13 @@ class DecoderStepWithAttention(nn.Module):
         self.source_length = source_length
         self.device = device
 
-        self.attn = nn.Linear(
-            self.hidden_dim + self.input_dim,
-            self.source_length,
-        )
-        self.attn_combine = nn.Linear(
-            self.hidden_dim + self.input_dim,
-            self.input_dim,
-        )
+        self.attn = nn.Linear(self.hidden_dim + self.input_dim, self.source_length,)
+        self.attn_combine = nn.Linear(self.hidden_dim + self.input_dim, self.input_dim,)
         self.lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim)
         self.out = nn.Linear(self.hidden_dim, self.output_dim)
 
     def forward(self, input, hidden, cell, encoder_outputs):
-        attn_weights = F.softmax(
-            self.attn(torch.cat((input, hidden), 2)),
-            dim=2,
-        )
+        attn_weights = F.softmax(self.attn(torch.cat((input, hidden), 2)), dim=2,)
         attn_applied = torch.bmm(attn_weights.transpose(0, 1), encoder_outputs)
 
         output = torch.cat((input, attn_applied.transpose(0, 1)), 2)
@@ -107,23 +91,12 @@ class DecoderStepWithAttention(nn.Module):
 
 class LSTMDecoderWithAttention(LSTMDecoder):
     def __init__(
-        self,
-        input_dim,
-        output_dim,
-        max_source_length,
-        hidden_dim=128,
-        device='cuda'
+        self, input_dim, output_dim, max_source_length, hidden_dim=128, device="cuda"
     ):
         super(LSTMDecoderWithAttention, self).__init__(
-            input_dim,
-            output_dim,
-            hidden_dim,
-            device
+            input_dim, output_dim, hidden_dim, device
         )
         self.decoder_step = DecoderStepWithAttention(
-            input_dim,
-            output_dim,
-            hidden_dim,
-            max_source_length
+            input_dim, output_dim, hidden_dim, max_source_length
         )
         self.device = device

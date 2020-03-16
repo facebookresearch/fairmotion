@@ -52,14 +52,11 @@ class TestMotion(unittest.TestCase):
 
     def test_matrix_representation(self):
         ref_motion = bvh.load(file="tests/data/sinusoidal.bvh")
-        test_motion = bvh.load(
-            file="tests/data/sinusoidal.bvh",
-            load_motion=False
-        )
+        test_motion = bvh.load(file="tests/data/sinusoidal.bvh", load_motion=False)
         matrix = ref_motion.to_matrix()
         test_motion.from_matrix(matrix)
         self.assert_motion_equal(ref_motion, test_motion)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -34,15 +34,25 @@ def A2R(A):
     if theta == 0:
         return constants.eye_R
     # normalize axes
-    A = A/theta
+    A = A / theta
     x, y, z = A
     c = np.cos(theta)
     s = np.sin(theta)
-    R = np.array([
-        [c + (1.0-c)*x*x,   (1.0-c)*x*y - s*z,  (1-c)*x*z + s*y],
-        [(1.0-c)*x*y + s*z, c + (1.0-c)*y*y,    (1.0-c)*y*z - s*x],
-        [(1.0-c)*z*x - s*y, (1.0-c)*z*y + s*x,  c + (1.0-c)*z*z],
-    ])
+    R = np.array(
+        [
+            [c + (1.0 - c) * x * x, (1.0 - c) * x * y - s * z, (1 - c) * x * z + s * y],
+            [
+                (1.0 - c) * x * y + s * z,
+                c + (1.0 - c) * y * y,
+                (1.0 - c) * y * z - s * x,
+            ],
+            [
+                (1.0 - c) * z * x - s * y,
+                (1.0 - c) * z * y + s * x,
+                c + (1.0 - c) * z * z,
+            ],
+        ]
+    )
     return R
 
 
@@ -101,8 +111,8 @@ def R2E(R):
     is_special = np.logical_or(is_one, is_minus_one)
 
     e1[is_special] = np.arctan2(rs[is_special, 0, 1], rs[is_special, 0, 2])
-    e2[is_minus_one] = np.pi/2
-    e2[is_one] = -np.pi/2
+    e2[is_minus_one] = np.pi / 2
+    e2[is_one] = -np.pi / 2
 
     # normal cases
     is_normal = ~np.logical_or(is_one, is_minus_one)
@@ -110,10 +120,12 @@ def R2E(R):
     in_ = np.clip(rs[is_normal, 0, 2], -1, 1)
     e2[is_normal] = -np.arcsin(in_)
     e2_cos = np.cos(e2[is_normal])
-    e1[is_normal] = np.arctan2(rs[is_normal, 1, 2]/e2_cos,
-                               rs[is_normal, 2, 2]/e2_cos)
-    e3[is_normal] = np.arctan2(rs[is_normal, 0, 1]/e2_cos,
-                               rs[is_normal, 0, 0]/e2_cos)
+    e1[is_normal] = np.arctan2(
+        rs[is_normal, 1, 2] / e2_cos, rs[is_normal, 2, 2] / e2_cos
+    )
+    e3[is_normal] = np.arctan2(
+        rs[is_normal, 0, 1] / e2_cos, rs[is_normal, 0, 0] / e2_cos
+    )
 
     eul = np.stack([e1, e2, e3], axis=-1)
     eul = np.reshape(eul, np.concatenate([orig_shape, eul.shape[1:]]))
@@ -131,12 +143,14 @@ def R2Q(R):
     R21 = R[2, 1]
     R22 = R[2, 2]
     # symmetric matrix K
-    K = np.array([
-        [R00 - R11 - R22, 0.0, 0.0, 0.0],
-        [R01 + R10, R11 - R00 - R22, 0.0, 0.0],
-        [R02 + R20, R12 + R21, R22 - R00 - R11, 0.0],
-        [R21 - R12, R02 - R20, R10 - R01, R00 + R11 + R22]
-    ])
+    K = np.array(
+        [
+            [R00 - R11 - R22, 0.0, 0.0, 0.0],
+            [R01 + R10, R11 - R00 - R22, 0.0, 0.0],
+            [R02 + R20, R12 + R21, R22 - R00 - R11, 0.0],
+            [R21 - R12, R02 - R20, R10 - R01, R00 + R11 + R22],
+        ]
+    )
     K /= 3.0
     # quaternion is eigenvector of K that corresponds to largest eigenvalue
     w, V = np.linalg.eigh(K)
@@ -153,11 +167,13 @@ def Q2R(Q):
         return np.identity(4)
     q *= np.sqrt(2.0 / n)
     q = np.outer(q, q)
-    return np.array([
-        [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0]],
-        [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0]],
-        [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2]],
-    ])
+    return np.array(
+        [
+            [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0]],
+            [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0]],
+            [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2]],
+        ]
+    )
 
 
 def Q2A(Q):
@@ -182,8 +198,8 @@ def A2Q(A):
     A = A.reshape(-1, 3)
 
     theta = np.linalg.norm(A, axis=1).reshape(-1, 1)
-    w = np.cos(0.5*theta).reshape(-1, 1)
-    xyz = 0.5*np.sinc(0.5*theta/np.pi)*A
+    w = np.cos(0.5 * theta).reshape(-1, 1)
+    xyz = 0.5 * np.sinc(0.5 * theta / np.pi) * A
     return np.concatenate((w, xyz), axis=1).reshape(original_shape)
 
 
@@ -207,9 +223,9 @@ def Q2E(Q, epsilon=0):
     q2 = Q[:, 2]
     q3 = Q[:, 3]
 
-    x = np.arctan2(2 * (q0 * q1 - q2 * q3), 1 - 2*(q1 * q1 + q2 * q2))
+    x = np.arctan2(2 * (q0 * q1 - q2 * q3), 1 - 2 * (q1 * q1 + q2 * q2))
     y = np.arcsin(np.clip(2 * (q1 * q3 + q0 * q2), -1 + epsilon, 1 - epsilon))
-    z = np.arctan2(2 * (q0 * q3 - q1 * q2), 1 - 2*(q2 * q2 + q3 * q3))
+    z = np.arctan2(2 * (q0 * q3 - q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3))
 
     E = np.stack([x, y, z], axis=-1)
     return np.reshape(E, original_shape)

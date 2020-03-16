@@ -41,8 +41,7 @@ class Joint(object):
         assert isinstance(joint, Joint)
         self.parent_joint = joint
         self.xform_global = np.dot(
-            self.parent_joint.xform_global,
-            self.xform_from_parent_joint,
+            self.parent_joint.xform_global, self.xform_from_parent_joint,
         )
 
 
@@ -81,7 +80,7 @@ class Skeleton(object):
             parent_joint.add_child_joint(joint)
         self.index_joint[joint.name] = len(self.joints)
         self.joints.append(joint)
-        self.num_dofs += joint.info['dof']
+        self.num_dofs += joint.info["dof"]
 
     def num_joints(self):
         return len(self.joints)
@@ -106,12 +105,13 @@ class Pose(object):
             return self.data[skel.get_index_joint(key)]
         else:
             joint = skel.get_joint(key)
-            T = np.dot(joint.xform_from_parent_joint,
-                       self.data[skel.get_index_joint(joint)])
+            T = np.dot(
+                joint.xform_from_parent_joint, self.data[skel.get_index_joint(joint)]
+            )
             while joint.parent_joint is not None:
                 T_j = np.dot(
                     joint.parent_joint.xform_from_parent_joint,
-                    self.data[skel.get_index_joint(joint.parent_joint)]
+                    self.data[skel.get_index_joint(joint.parent_joint)],
                 )
                 T = np.dot(T_j, T)
                 joint = joint.parent_joint
@@ -161,7 +161,7 @@ class Pose(object):
         d = np.dot(R, self.skel.v_face)
         d = d - mmMath.projectionOnVector(d, self.skel.v_up_env)
         p = p - mmMath.projectionOnVector(p, self.skel.v_up_env)
-        return d/np.linalg.norm(d), p
+        return d / np.linalg.norm(d), p
 
     def to_matrix(self, local=True):
         """
@@ -179,9 +179,7 @@ class Pose(object):
         (num_joints, 4, 4)
         """
         num_joints, T_0, T_1 = data.shape
-        assert num_joints == self.skel.num_joints(), (
-            "Data for all joints not provided"
-        )
+        assert num_joints == self.skel.num_joints(), "Data for all joints not provided"
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
             "mocap_processing.utils.constants.eye_T for template identity "
@@ -197,19 +195,14 @@ def interpolate_pose(alpha, pose1, pose2):
     for j in skel.joints:
         R1, p1 = mmMath.T2Rp(pose1.get_transform(j, local=True))
         R2, p2 = mmMath.T2Rp(pose2.get_transform(j, local=True))
-        R, p = (
-            mmMath.slerp(R1, R2, alpha),
-            mmMath.linearInterpol(p1, p2, alpha)
-        )
+        R, p = (mmMath.slerp(R1, R2, alpha), mmMath.linearInterpol(p1, p2, alpha))
         data.append(mmMath.Rp2T(R, p))
     return Pose(pose1.skel, data)
 
 
 class Motion(object):
     def __init__(
-        self,
-        name="motion",
-        skel=None,
+        self, name="motion", skel=None,
     ):
         self.name = name
         self.skel = skel
@@ -246,7 +239,7 @@ class Motion(object):
     def get_pose_by_time(self, time):
         time = basics.clamp(time, self.times[0], self.times[-1])
         frame1 = self.time_to_frame(time)
-        frame2 = min(frame1+1, self.num_frames()-1)
+        frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
             return self.poses[frame1]
         t1 = self.times[frame1]
@@ -255,17 +248,15 @@ class Motion(object):
             return self.poses[frame1]
         if time == t2:
             return self.poses[frame2]
-        assert (t2-t1) > 1.0e-5
-        alpha = basics.clamp((time-t1)/(t2-t1), 0.0, 1.0)
-        return interpolate_pose(
-            alpha, self.poses[frame1], self.poses[frame2]
-        )
+        assert (t2 - t1) > 1.0e-5
+        alpha = basics.clamp((time - t1) / (t2 - t1), 0.0, 1.0)
+        return interpolate_pose(alpha, self.poses[frame1], self.poses[frame2])
 
     def num_frames(self):
         return len(self.times)
 
     def length(self):
-        return self.times[-1]-self.times[0]
+        return self.times[-1] - self.times[0]
 
     def to_matrix(self, local=True):
         """
@@ -287,9 +278,7 @@ class Motion(object):
             " (seq_len, num_joints, 4, 4)"
         )
         seq_len, num_joints, T_0, T_1 = data.shape
-        assert num_joints == self.skel.num_joints(), (
-            "Data for all joints not provided"
-        )
+        assert num_joints == self.skel.num_joints(), "Data for all joints not provided"
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
             "mocap_processing.utils.constants.eye_T for template identity "
@@ -298,7 +287,7 @@ class Motion(object):
         self.clear()
         if fps is None:
             fps = 60.0
-        self.times = (1/fps) * np.arange(seq_len)
+        self.times = (1 / fps) * np.arange(seq_len)
         for pose_data in data:
             pose = Pose(skel=self.skel)
             pose.from_matrix(pose_data, local)

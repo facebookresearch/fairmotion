@@ -5,7 +5,7 @@ from mocap_processing.utils import conversions
 
 def get_random_Q():
     Q = np.random.rand(4)
-    Q = Q/np.linalg.norm(Q)
+    Q = Q / np.linalg.norm(Q)
     return Q
 
 

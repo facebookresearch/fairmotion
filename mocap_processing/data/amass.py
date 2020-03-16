@@ -60,7 +60,7 @@ def get_dfs_order(parents):
 
 
 def create_skeleton_from_amass_bodymodel(bm, betas, num_joints, joint_names):
-    pose_body_zeros = torch.zeros((1, 3*(num_joints)-1))
+    pose_body_zeros = torch.zeros((1, 3 * (num_joints) - 1))
     body = bm(pose_body=pose_body_zeros, betas=betas)
     base_position = body.Jtr.detach().numpy()[0, 0:num_joints]
     parents = bm.kintree_table[0].long()[:num_joints]
@@ -69,10 +69,10 @@ def create_skeleton_from_amass_bodymodel(bm, betas, num_joints, joint_names):
     for i in range(num_joints):
         joint = motion_class.Joint(name=joint_names[i])
         if i == 0:
-            joint.info['dof'] = 6
+            joint.info["dof"] = 6
             joint.xform_from_parent_joint = mmMath.p2T(np.zeros(3))
         else:
-            joint.info['dof'] = 3
+            joint.info["dof"] = 3
             joint.xform_from_parent_joint = mmMath.p2T(
                 base_position[i] - base_position[parents[i]]
             )
@@ -93,17 +93,15 @@ def create_skeleton_from_amass_bodymodel(bm, betas, num_joints, joint_names):
 def create_motion_from_amass_data(filename, bm):
     bdata = np.load(filename)
 
-    betas = torch.Tensor(
-        bdata['betas'][:10][np.newaxis]
-    ).to("cpu")
+    betas = torch.Tensor(bdata["betas"][:10][np.newaxis]).to("cpu")
     skel = create_skeleton_from_amass_bodymodel(
         bm, betas, len(joint_names), joint_names,
     )
 
-    fps = float(bdata['mocap_framerate'])
-    root_orient = bdata['poses'][:, :3]  # controls the global root orientation
-    pose_body = bdata['poses'][:, 3:66]  # controls 156 body
-    trans = bdata['trans'][:, :3]  # controls the finger articulation
+    fps = float(bdata["mocap_framerate"])
+    root_orient = bdata["poses"][:, :3]  # controls the global root orientation
+    pose_body = bdata["poses"][:, 3:66]  # controls 156 body
+    trans = bdata["trans"][:, :3]  # controls the finger articulation
 
     motion = motion_class.Motion(skel=skel)
 
@@ -118,14 +116,13 @@ def create_motion_from_amass_data(filename, bm):
         pose_data = []
         for j in dfs_joint_order:
             if j == 0:
-                T = mmMath.Rp2T(
-                    mmMath.exp(root_orient_frame),
-                    root_trans_frame,
-                )
+                T = mmMath.Rp2T(mmMath.exp(root_orient_frame), root_trans_frame,)
             else:
-                T = mmMath.R2T(mmMath.exp(pose_body_frame[(j-1)*3:(j-1)*3+3]))
+                T = mmMath.R2T(
+                    mmMath.exp(pose_body_frame[(j - 1) * 3 : (j - 1) * 3 + 3])
+                )
             pose_data.append(T)
-        motion.add_one_frame(frame/fps, pose_data)
+        motion.add_one_frame(frame / fps, pose_data)
 
     return motion
 

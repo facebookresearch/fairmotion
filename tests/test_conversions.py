@@ -35,5 +35,5 @@ class TestConversions(unittest.TestCase):
             self.assertAlmostEqual(t, t_test)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
