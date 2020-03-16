@@ -30,18 +30,20 @@ class Joint(object):
             joints += j.get_all_child_joint()
         return joints
 
-    def set_parent_joint(self, joint):
-        assert isinstance(joint, Joint)
-        self.parent_joint = joint
-        self.xform_global = np.dot(self.parent_joint.xform_global,
-                                   self.xform_from_parent_joint)
-
     def add_child_joint(self, joint):
         assert isinstance(joint, Joint)
         assert joint.name not in self.index_child_joint.keys()
         self.index_child_joint[joint.name] = len(self.child_joint)
         self.child_joint.append(joint)
         joint.set_parent_joint(self)
+
+    def set_parent_joint(self, joint):
+        assert isinstance(joint, Joint)
+        self.parent_joint = joint
+        self.xform_global = np.dot(
+            self.parent_joint.xform_global,
+            self.xform_from_parent_joint,
+        )
 
 
 class Skeleton(object):
@@ -87,6 +89,10 @@ class Skeleton(object):
 
 class Pose(object):
     def __init__(self, skel, data=None):
+        """
+        Construct Pose for a given skeleton and pose data.
+        Pose data must be provided with an np.array of shape (num_joints, 4, 4)
+        """
         assert isinstance(skel, Skeleton)
         if data is None:
             data = [constants.eye_T for _ in range(skel.num_joint())]
@@ -204,12 +210,6 @@ class Motion(object):
         self,
         name="motion",
         skel=None,
-        scale=1.0,
-        load_skel=True,
-        load_motion=True,
-        v_up_skel=np.array([0.0, 1.0, 0.0]),
-        v_face_skel=np.array([0.0, 0.0, 1.0]),
-        v_up_env=np.array([0.0, 1.0, 0.0]),
     ):
         self.name = name
         self.skel = skel
@@ -267,49 +267,6 @@ class Motion(object):
     def length(self):
         return self.times[-1]-self.times[0]
 
-    # translate, rotate, transform gets inputs represented in world space
-    def translate(self, v):
-        for pose in self.poses:
-            pose.translate(v, local=False)
-
-    def rotate(self, R, anchor_frame=0):
-        T = mmMath.R2T(R)
-        self.transform(T, anchor_frame)
-
-    def transform(self, T, anchor_frame=0):
-        """ Change poses """
-        T_from_anchor_pose = []
-        pose_anchor = self.get_pose_by_frame(anchor_frame)
-        T_root = pose_anchor.get_root_transform()
-        T_root_inv = mmMath.invertSE3(T_root)
-        for i in range(self.num_frames()):
-            pose = self.get_pose_by_frame(i)
-            T_rel = np.dot(T_root_inv, pose.get_root_transform())
-            T_from_anchor_pose.append(T_rel)
-        pose_anchor.transform(T, local=False)
-        T_root_new = pose_anchor.get_root_transform()
-        for i in range(self.num_frames()):
-            T_rel = T_from_anchor_pose[i]
-            T_new = np.dot(T_root_new, T_rel)
-            self.get_pose_by_frame(i).set_root_transform(T_new, local=False)
-
-    def resample(self, fps):
-        times_new = []
-        poses_new = []
-
-        dt = 1.0/fps
-        t = self.times[0]
-        while t < self.times[-1]:
-            pose = self.get_pose_by_time(t)
-            pose.skel = self.skel
-            times_new.append(t)
-            poses_new.append(pose)
-            t += dt
-
-        self.times = times_new
-        self.poses = poses_new
-        self.fps = fps
-
     def to_matrix(self, local=True):
         """
         Returns pose data in transformation matrix format, with shape
@@ -326,8 +283,8 @@ class Motion(object):
         (seq_len, num_joints, 4, 4)
         """
         assert data.ndim == 4, (
-            "Data must be provided in transformation matrix format, with shape "
-            "(seq_len, num_joints, 4, 4)"
+            "Data must be provided in transformation matrix format, with shape"
+            " (seq_len, num_joints, 4, 4)"
         )
         seq_len, num_joints, T_0, T_1 = data.shape
         assert num_joints == self.skel.num_joints(), (
