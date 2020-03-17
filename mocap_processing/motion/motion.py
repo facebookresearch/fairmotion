@@ -173,20 +173,25 @@ class Pose(object):
             transforms.append(self.get_transform(joint, local))
         return np.array(transforms)
 
-    def from_matrix(self, data, local=True):
+    @classmethod
+    def from_matrix(cls, data, skel, local=True):
         """
         Expects pose data in transformation matrix format, with shape
         (num_joints, 4, 4)
         """
         num_joints, T_0, T_1 = data.shape
-        assert num_joints == self.skel.num_joints(), "Data for all joints not provided"
+        assert num_joints == skel.num_joints(), (
+            "Data for all joints not provided"
+        )
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
             "mocap_processing.utils.constants.eye_T for template identity "
             "matrix"
         )
-        for joint_id in range(len(self.skel.joints)):
-            self.set_transform(joint_id, data[joint_id], local)
+        pose = cls(skel)
+        for joint_id in range(len(skel.joints)):
+            pose.set_transform(joint_id, data[joint_id], local)
+        return pose
 
 
 def interpolate_pose(alpha, pose1, pose2):
@@ -195,7 +200,10 @@ def interpolate_pose(alpha, pose1, pose2):
     for j in skel.joints:
         R1, p1 = mmMath.T2Rp(pose1.get_transform(j, local=True))
         R2, p2 = mmMath.T2Rp(pose2.get_transform(j, local=True))
-        R, p = (mmMath.slerp(R1, R2, alpha), mmMath.linearInterpol(p1, p2, alpha))
+        R, p = (
+            mmMath.slerp(R1, R2, alpha), 
+            mmMath.linearInterpol(p1, p2, alpha),
+        )
         data.append(mmMath.Rp2T(R, p))
     return Pose(pose1.skel, data)
 
@@ -268,7 +276,21 @@ class Motion(object):
             data.append(pose.to_matrix(local))
         return np.array(data)
 
-    def from_matrix(self, data, local=True, fps=None):
+    def rotations(self, local=True):
+        """
+        Returns joint rotations in rotation matrix format, with shape
+        (seq_len, num_joints, 3, 3)
+        """
+        return self.to_matrix(local)[..., :3, :3]
+
+    def positions(self, local=True):
+        """
+        Returns joint positions with shape (seq_len, num_joints, 3)
+        """
+        return self.to_matrix(local)[..., :3, 3]
+
+    @classmethod
+    def from_matrix(cls, data, skel, local=True, fps=None):
         """
         Expects pose data in transformation matrix format, with shape
         (seq_len, num_joints, 4, 4)
@@ -278,17 +300,19 @@ class Motion(object):
             " (seq_len, num_joints, 4, 4)"
         )
         seq_len, num_joints, T_0, T_1 = data.shape
-        assert num_joints == self.skel.num_joints(), "Data for all joints not provided"
+        assert num_joints == skel.num_joints(), (
+            "Data for all joints not provided"
+        )
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
             "mocap_processing.utils.constants.eye_T for template identity "
             "matrix"
         )
-        self.clear()
         if fps is None:
             fps = 60.0
-        self.times = (1 / fps) * np.arange(seq_len)
+        motion = cls(skel)
+        motion.times = (1 / fps) * np.arange(seq_len)
         for pose_data in data:
-            pose = Pose(skel=self.skel)
-            pose.from_matrix(pose_data, local)
-            self.poses.append(pose)
+            pose = Pose.from_matrix(pose_data, skel, local)
+            motion.poses.append(pose)
+        return motion

@@ -1,7 +1,7 @@
-import copy
 import tempfile
 import unittest
 import mocap_processing.motion.kinematics as kinematics
+from mocap_processing.motion import motion as  motion_class
 from mocap_processing.data import bvh
 from basecode.math import mmMath
 
@@ -52,9 +52,14 @@ class TestMotion(unittest.TestCase):
 
     def test_matrix_representation(self):
         ref_motion = bvh.load(file="tests/data/sinusoidal.bvh")
-        test_motion = bvh.load(file="tests/data/sinusoidal.bvh", load_motion=False)
-        matrix = ref_motion.to_matrix()
-        test_motion.from_matrix(matrix)
+        test_motion = bvh.load(
+            file="tests/data/sinusoidal.bvh",
+            load_motion=False,
+        )
+        ref_matrix = ref_motion.to_matrix()
+        test_motion = motion_class.Motion.from_matrix(
+            ref_matrix, ref_motion.skel,
+        )
         self.assert_motion_equal(ref_motion, test_motion)
 
 
