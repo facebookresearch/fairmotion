@@ -30,30 +30,36 @@ def deg2rad(deg):
 
 
 def A2R(A):
-    theta = np.linalg.norm(A)
-    if theta == 0:
-        return constants.eye_R
-    # normalize axes
-    A = A / theta
-    x, y, z = A
-    c = np.cos(theta)
-    s = np.sin(theta)
-    R = np.array(
-        [
-            [c + (1.0 - c) * x * x, (1.0 - c) * x * y - s * z, (1 - c) * x * z + s * y],
+    # TODO: Write batched version of this method
+    input_shape = A.shape
+    A_flat = A.reshape((-1, 3))
+    R = []
+    for A in A_flat:
+        theta = np.linalg.norm(A)
+        if theta == 0:
+            return constants.eye_R
+        # normalize axes
+        A = A / theta
+        x, y, z = A
+        c = np.cos(theta)
+        s = np.sin(theta)
+        r = np.array(
             [
-                (1.0 - c) * x * y + s * z,
-                c + (1.0 - c) * y * y,
-                (1.0 - c) * y * z - s * x,
-            ],
-            [
-                (1.0 - c) * z * x - s * y,
-                (1.0 - c) * z * y + s * x,
-                c + (1.0 - c) * z * z,
-            ],
-        ]
-    )
-    return R
+                [c + (1.0 - c) * x * x, (1.0 - c) * x * y - s * z, (1 - c) * x * z + s * y],
+                [
+                    (1.0 - c) * x * y + s * z,
+                    c + (1.0 - c) * y * y,
+                    (1.0 - c) * y * z - s * x,
+                ],
+                [
+                    (1.0 - c) * z * x - s * y,
+                    (1.0 - c) * z * y + s * x,
+                    c + (1.0 - c) * z * z,
+                ],
+            ]
+        )
+        R.append(r)
+    return np.array(R).reshape(list(input_shape[:-1]) + [3, 3])
 
 
 def R2A(R):
@@ -133,47 +139,61 @@ def R2E(R):
 
 
 def R2Q(R):
-    R00 = R[0, 0]
-    R01 = R[0, 1]
-    R02 = R[0, 2]
-    R10 = R[1, 0]
-    R11 = R[1, 1]
-    R12 = R[1, 2]
-    R20 = R[2, 0]
-    R21 = R[2, 1]
-    R22 = R[2, 2]
-    # symmetric matrix K
-    K = np.array(
-        [
-            [R00 - R11 - R22, 0.0, 0.0, 0.0],
-            [R01 + R10, R11 - R00 - R22, 0.0, 0.0],
-            [R02 + R20, R12 + R21, R22 - R00 - R11, 0.0],
-            [R21 - R12, R02 - R20, R10 - R01, R00 + R11 + R22],
-        ]
-    )
-    K /= 3.0
-    # quaternion is eigenvector of K that corresponds to largest eigenvalue
-    w, V = np.linalg.eigh(K)
-    q = V[[3, 0, 1, 2], np.argmax(w)]
-    if q[0] < 0.0:
-        np.negative(q, q)
-    return q
+    # TODO: Write batched version of R2Q. Implemented here is iterative version
+    input_shape = R.shape
+    R_flat = R.reshape((-1, 3, 3))
+    Q = []
+    for R in R_flat:
+        R00 = R[0, 0]
+        R01 = R[0, 1]
+        R02 = R[0, 2]
+        R10 = R[1, 0]
+        R11 = R[1, 1]
+        R12 = R[1, 2]
+        R20 = R[2, 0]
+        R21 = R[2, 1]
+        R22 = R[2, 2]
+        # symmetric matrix K
+        K = np.array(
+            [
+                [R00 - R11 - R22, 0.0, 0.0, 0.0],
+                [R01 + R10, R11 - R00 - R22, 0.0, 0.0],
+                [R02 + R20, R12 + R21, R22 - R00 - R11, 0.0],
+                [R21 - R12, R02 - R20, R10 - R01, R00 + R11 + R22],
+            ]
+        )
+        K /= 3.0
+        # quaternion is eigenvector of K that corresponds to largest eigenvalue
+        w, V = np.linalg.eigh(K)
+        q = V[[3, 0, 1, 2], np.argmax(w)]
+        if q[0] < 0.0:
+            np.negative(q, q)
+        Q.append(q)
+    Q = np.array(Q)
+    return Q.reshape(list(input_shape[:-2]) + [4])
 
 
 def Q2R(Q):
-    q = np.array(Q, dtype=np.float64, copy=True)
-    n = np.dot(q, q)
-    if n < constants.EPSILON:
-        return np.identity(4)
-    q *= np.sqrt(2.0 / n)
-    q = np.outer(q, q)
-    return np.array(
-        [
-            [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0]],
-            [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0]],
-            [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2]],
-        ]
-    )
+    # TODO: Write batched version of R2Q. Implemented here is iterative version
+    input_shape = Q.shape
+    Q_flat = Q.reshape((-1, 4))
+    R = []
+    for Q in Q_flat:
+        q = np.array(Q, dtype=np.float64, copy=True)
+        n = np.dot(q, q)
+        if n < constants.EPSILON:
+            return np.identity(4)
+        q *= np.sqrt(2.0 / n)
+        q = np.outer(q, q)
+        R.append(
+            np.array([
+                [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0]],
+                [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0]],
+                [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2]],
+            ])
+        )
+    R = np.array(R)
+    return R.reshape(list(input_shape[:-1]) + [3, 3])
 
 
 def Q2A(Q):
@@ -232,20 +252,24 @@ def Q2E(Q, epsilon=0):
 
 
 def T2Rp(T):
-    R = T[:3, :3]
-    p = T[:3, 3]
+    R = T[..., :3, :3]
+    p = T[..., :3, 3]
     return R, p
 
 
 def Rp2T(R, p):
-    T = constants.eye_T.copy()
-    T[:3, :3] = R
-    T[:3, 3] = p
-    return T
+    input_shape = R.shape[:-2] if R.ndim > 2 else p.shape[:-1]
+    R_flat = R.reshape((-1, 3, 3))
+    p_flat = p.reshape((-1, 3))
+    T = np.zeros((int(np.prod(input_shape)), 4, 4))
+    T[...] = constants.eye_T.copy()
+    T[..., :3, :3] = R_flat
+    T[..., :3, 3] = p_flat
+    return T.reshape(list(input_shape) + [4, 4])
 
 
 def p2T(p):
-    return Rp2T(constants.eye_R, p)
+    return Rp2T(constants.eye_R, np.array(p))
 
 
 def R2T(R):

@@ -20,6 +20,12 @@ class TestConversions(unittest.TestCase):
         for q, q_test in zip(Q, Q_test):
             self.assertAlmostEqual(q, q_test)
 
+        # Test if batched input conversion is same as single input
+        R_batched = np.array([test_utils.get_random_R() for _ in range(2)])
+        Q_batched = conversions.R2Q(R_batched)
+        for R, Q in zip(R_batched, Q_batched):
+            np.testing.assert_array_equal(conversions.R2Q(R), Q)
+
     def test_R2A(self):
         R = test_utils.get_random_R()
         A = conversions.R2A(np.array([R]))
