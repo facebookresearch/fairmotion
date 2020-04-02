@@ -42,7 +42,7 @@ def load(
             if word == "root" or word == "joint":
                 parent_joint_list.append(joint_cur)
                 name = words[cnt + 1]
-                joint = motion_classes.Joint(name)
+                joint = motion_classes.Joint(name=name)
                 joint_stack.append(joint)
                 joint_list.append(joint)
                 cnt += 2
@@ -71,7 +71,7 @@ def load(
                     joint_cur.info["bvh_channels"].append(words[cnt + 2 + i].lower())
                 cnt += ndofs + 2
             elif word == "end":
-                joint_dummy = motion_classes.Joint("END")
+                joint_dummy = motion_classes.Joint(name="END")
                 joint_stack.append(joint_dummy)
                 cnt += 2
             elif word == "{":
@@ -146,6 +146,7 @@ def load(
 
 
 def _write_hierarchy(motion, file, joint, scale=1.0, tab=""):
+    joint_order = [joint.name]
     is_root_joint = joint.parent_joint is None
     if is_root_joint:
         file.write(tab + "ROOT %s\n" % joint.name)
@@ -163,13 +164,15 @@ def _write_hierarchy(motion, file, joint, scale=1.0, tab=""):
     else:
         file.write(tab + "\tCHANNELS 3 Zrotation Yrotation Xrotation\n")
     for child_joint in joint.child_joint:
-        _write_hierarchy(motion, file, child_joint, scale, tab + "\t")
+        child_joint_order = _write_hierarchy(motion, file, child_joint, scale, tab + "\t")
+        joint_order.extend(child_joint_order)
     if len(joint.child_joint) == 0:
         file.write(tab + "\tEnd Site\n")
         file.write(tab + "\t{\n")
         file.write(tab + "\t\tOFFSET %f %f %f\n" % (0.0, 0.0, 0.0))
         file.write(tab + "\t}\n")
     file.write(tab + "}\n")
+    return joint_order
 
 
 def save(motion, filename, scale=1.0, verbose=False):
@@ -180,18 +183,19 @@ def save(motion, filename, scale=1.0, verbose=False):
         if verbose:
             print(" >  >  >  >  Write BVH hierarchy")
         f.write("HIERARCHY\n")
-        _write_hierarchy(motion, f, motion.skel.root_joint, scale)
+        joint_order = _write_hierarchy(motion, f, motion.skel.root_joint, scale)
         """ Write data """
         if verbose:
             print(" >  >  >  >  Write BVH data")
         t_start = motion.times[0]
         t_end = motion.times[-1]
         dt = 1.0 / motion.fps
-        num_frames = round((t_end - t_start) * motion.fps) + 1
+        num_frames = int(round((t_end - t_start) * motion.fps) + 1)
         f.write("MOTION\n")
         f.write("Frames: %d\n" % num_frames)
         f.write("Frame Time: %f\n" % dt)
         t = t_start
+
         for i in range(num_frames):
             if verbose and i % motion.fps == 0:
                 print(
@@ -200,7 +204,9 @@ def save(motion, filename, scale=1.0, verbose=False):
                     end=" ",
                 )
             pose = motion.get_pose_by_time(t)
-            for joint in motion.skel.joints:
+
+            for joint_name in joint_order:
+                joint = motion.skel.get_joint(joint_name)
                 R, p = conversions.T2Rp(pose.get_transform(joint, local=True))
                 p *= scale
                 v = conversions.R2E(np.array([R]))
