@@ -103,25 +103,31 @@ def load(
     v_up_env=np.array([0.0, 1.0, 0.0]),
 ):
     if not motion:
-        motion = motion_class.Motion()
+        motion = motion_class.Motion(fps=60)
 
     if load_skel:
         skel = motion_class.Skeleton(
             v_up=v_up_skel, v_face=v_face_skel, v_up_env=v_up_env,
         )
-        for joint_name, parent_joint, offset in zip(SMPL_JOINTS, SMPL_PARENTS, OFFSETS):
+        smpl_offsets = np.zeros([24, 3])
+        smpl_offsets[0] = OFFSETS[0]
+        for idx, pid in enumerate(SMPL_PARENTS[1:]):
+            smpl_offsets[idx+1] = OFFSETS[idx + 1] - OFFSETS[pid]
+        for joint_name, parent_joint, offset in zip(SMPL_JOINTS, SMPL_PARENTS, smpl_offsets):
             joint = motion_class.Joint(name=joint_name)
-            T1 = conversions.p2T(scale * offset)
-            joint.xform_from_parent_joint = T1
             if parent_joint == -1:
                 parent_joint_name = None
-                joint["dof"] = 6  # root joint is free
+                joint.info["dof"] = 6  # root joint is free
+                offset -= offset
             else:
                 parent_joint_name = SMPL_JOINTS[parent_joint]
+            offset = offset / np.linalg.norm(smpl_offsets[4])
+            T1 = conversions.p2T(scale * offset)
+            joint.xform_from_parent_joint = T1
             skel.add_joint(joint, parent_joint_name)
         motion.skel = skel
     else:
-        motion.skel is not None
+        assert motion.skel is not None
 
     if load_motion:
         assert motion.skel is not None
@@ -135,14 +141,14 @@ def load(
             poses = poses.reshape((-1, len(SMPL_MAJOR_JOINTS), 3, 3))
 
             for pose_id, pose in enumerate(poses):
-                pose_data = []
+                pose_data = [constants.eye_T for _ in range(len(SMPL_JOINTS))]
                 major_joint_id = 0
-                for joint_id in range(len(SMPL_JOINTS)):
+                for joint_id, joint_name in enumerate(SMPL_JOINTS):
                     if joint_id in SMPL_MAJOR_JOINTS:
-                        pose_data.append(conversions.R2T(pose[major_joint_id]))
+                        pose_data[
+                            motion.skel.get_index_joint(joint_name)
+                        ] = conversions.R2T(pose[major_joint_id])
                         major_joint_id += 1
-                    else:
-                        pose_data.append(constants.eye_T)
                 motion.add_one_frame(pose_id * dt, pose_data)
 
     return motion
