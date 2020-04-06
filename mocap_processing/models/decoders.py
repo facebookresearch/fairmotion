@@ -32,16 +32,18 @@ class LSTMDecoder(nn.Module):
 
     def forward(
         self,
-        trg,
+        tgt,
         hidden=None,
         cell=None,
         encoder_outputs=None,
+        max_len=None,
         teacher_forcing_ratio=0.5,
     ):
-        max_len = trg.shape[0]
-        batch_size = trg.shape[1]
+        tgt = tgt.transpose(0, 1)
+        max_len = max_len if max_len is not None else tgt.shape[0]
+        batch_size = tgt.shape[1]
 
-        input = trg[0, :]
+        input = tgt[0, :]
         outputs = torch.zeros(max_len, batch_size, self.decoder_step.input_dim,).to(
             self.device
         )
@@ -50,7 +52,7 @@ class LSTMDecoder(nn.Module):
             output, hidden, cell = self.decoder_step(input, hidden, cell)
             outputs[t] = output
             teacher_force = random.random() < teacher_forcing_ratio
-            input = trg[t] if teacher_force else output
+            input = tgt[t] if teacher_force else output
 
         outputs = outputs.transpose(0, 1)
         return outputs
