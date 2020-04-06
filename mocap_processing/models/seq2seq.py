@@ -7,7 +7,9 @@ class Seq2Seq(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
-    def forward(self, src, trg, teacher_forcing_ratio=0.5):
+    def forward(self, src, tgt, max_len=None, teacher_forcing_ratio=0.5):
         hidden, cell, outputs = self.encoder(src)
-        outputs = self.decoder(trg, hidden, cell, outputs)
+        outputs = self.decoder(
+            tgt, hidden, cell, outputs, max_len, teacher_forcing_ratio,
+        )
         return outputs
