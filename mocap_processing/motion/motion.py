@@ -211,12 +211,13 @@ def interpolate_pose(alpha, pose1, pose2):
 
 class Motion(object):
     def __init__(
-        self, name="motion", skel=None,
+        self, name="motion", skel=None, fps=60,
     ):
         self.name = name
         self.skel = skel
         self.times = []
         self.poses = []
+        self.fps = fps
         self.info = {}
 
     def clear(self):
@@ -310,9 +311,9 @@ class Motion(object):
             "matrix"
         )
         if fps is None:
-            fps = 60.0
-        motion = cls(skel)
-        motion.times = (1 / fps) * np.arange(seq_len)
+            fps = 60
+        motion = cls(skel=skel, fps=fps)
+        motion.times = (1.0 / fps) * np.arange(seq_len)
         for pose_data in data:
             pose = Pose.from_matrix(pose_data, skel, local)
             motion.poses.append(pose)
