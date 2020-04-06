@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 from basecode.utils import basics
 from basecode.math import mmMath
@@ -8,8 +9,8 @@ from mocap_processing.utils import utils
 
 
 class Joint(object):
-    def __init__(self, name="joint", dof=3):
-        self.name = name
+    def __init__(self, name=None, dof=3):
+        self.name = name if name else f"joint_{random.getrandbits(32)}"
         self.parent_joint = None
         self.child_joint = []
         self.index_child_joint = {}
