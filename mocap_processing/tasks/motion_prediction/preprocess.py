@@ -1,11 +1,20 @@
 import argparse
+import logging
 import numpy as np
 import os
 import pickle
 
 from mocap_processing.data import amass_dip
 from mocap_processing.processing import operations
-from mocap_processing.utils import conversions
+from mocap_processing.tasks.motion_prediction import utils
+from multiprocessing import Pool
+
+
+logging.basicConfig(
+    format="[%(asctime)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
 
 
 def split_into_windows(motion, window_size, stride):
@@ -21,8 +30,34 @@ def split_into_windows(motion, window_size, stride):
     return motion_ws
 
 
+def process_file(ftuple, create_windows, convert_fn, lengths):
+    src_len, tgt_len = lengths
+    root_dir, f, file_id = ftuple
+    motion = amass_dip.load(os.path.join(root_dir, f))
+    motion.name = file_id
+
+    if create_windows is not None:
+        window_size, window_stride = create_windows
+        if motion.num_frames() < window_size:
+            return [], []
+        matrices = [
+            convert_fn(motion.rotations()) for motion in
+            split_into_windows(motion, window_size, window_stride)
+        ]
+    else:
+        matrices = [convert_fn(motion.rotations())]
+
+    return (
+        [matrix[:src_len, ...].reshape((src_len, -1)) for matrix in matrices],
+        [
+            matrix[src_len:src_len + tgt_len, ...].reshape((tgt_len, -1))
+            for matrix in matrices
+        ],
+    )
+
+
 def process_split(
-    all_fnames, output_path, compute_stats, rep, create_windows=None,
+    all_fnames, output_path, rep, src_len, tgt_len, create_windows=None,
 ):
     """
     Process data into numpy arrays.
@@ -30,7 +65,6 @@ def process_split(
     Args:
         all_fnames: List of filenames that should be processed.
         output_path: Where to store numpy files.
-        compute_stats: Whether to compute and store normalization statistics.
         rep: If the output data should be rotation matrices, quaternions or
             axis angle.
         create_windows: Tuple (size, stride) of windows that should be
@@ -40,83 +74,64 @@ def process_split(
         Some meta statistics (how many sequences processed etc.).
     """
     assert rep in ["aa", "rotmat", "quat"]
-    if rep == "aa":
-        convert_fn = conversions.R2A
-    elif rep == "quat":
-        convert_fn = conversions.R2Q
-    elif rep == "rotmat":
-        convert_fn = lambda x: x
+    convert_fn = utils.convert_fn_from_R(rep)
 
-    print(
-        "storing into {} computing stats {}".format(
-            output_path, "YES" if compute_stats else "NO"
-        )
-    )
-
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-    src = []
-    tgt = []
-    for idx in range(len(all_fnames)):
-        root_dir, f, file_id = all_fnames[idx]
-        motion = amass_dip.load(os.path.join(root_dir, f))
-        motion.name = file_id
-        # db_name = file_id.split("/")[0]
-
-        if create_windows is not None:
-            window_size, window_stride = create_windows
-            if motion.num_frames() < window_size:
-                continue
-            matrices = [
-                convert_fn(motion.to_matrix()) for motion in
-                split_into_windows(motion, window_size, window_stride)
-            ]
-        else:
-            matrices = [convert_fn(motion.to_matrix())]
-        src.extend(
-            [matrix[window_stride, ...] for matrix in matrices]
-        )
-        tgt.extend(
-            [
-                motion.to_matrix()[window_size - window_stride, ...]
-                for matrix in matrices
-            ]
-        )
-    pickle.dump((src, tgt), open(output_path, "wb"))
+    pool = Pool(40)
+    data = list(pool.starmap(
+        process_file,
+        [
+            (ftuple, create_windows, convert_fn, (src_len, tgt_len))
+            for ftuple in all_fnames
+        ],
+    ))
+    src_seqs, tgt_seqs = [], []
+    for worker_data in data:
+        s, t = worker_data
+        src_seqs.extend(s)
+        tgt_seqs.extend(t)
+    logging.info(f"Processed {len(src_seqs)} sequences")
+    pickle.dump((src_seqs, tgt_seqs), open(output_path, "wb"))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--input_dir",
+        "--input-dir",
         required=True,
         help="Location of the downloaded and unpacked zip file.",
     )
     parser.add_argument(
-        "--output_dir", required=True, help="Where to store the tfrecords."
+        "--output-dir", required=True, help="Where to store pickle files."
     )
     parser.add_argument(
-        "--split_dir",
+        "--split-dir",
         default="./data",
         help="Where the text files defining the data splits are stored.",
     )
     parser.add_argument(
-        "--as_quat", action="store_true", help="Whether to convert data to "
-        "quaternions."
+        "--rep", type=str, help="Angle representation to convert data to",
+        choices=["aa", "quat", "rotmat"]
     )
     parser.add_argument(
-        "--as_aa", action="store_true", help="Whether to convert data to "
-        "angle-axis."
+        "--src-len",
+        type=int,
+        default=120,
+        help="Number of frames fed as input motion to the model",
     )
     parser.add_argument(
-        "--window_size",
+        "--tgt-len",
+        type=int,
+        default=24,
+        help="Number of frames to be predicted by the model",
+    )
+    parser.add_argument(
+        "--window-size",
         type=int,
         default=180,
         help="Window size for test and val, in frames.",
     )
     parser.add_argument(
-        "--window_stride",
+        "--window-stride",
         type=int,
         default=120,
         help="Window stride for test and val, in frames. This is also used as "
@@ -124,10 +139,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    assert not (
-        args.as_quat and args.as_aa
-    ), "must choose between quaternion or angle-axis representation"
 
     # Load training, validation and test split.
     def _read_fnames(from_):
@@ -145,7 +156,7 @@ if __name__ == "__main__":
         os.path.join(args.split_dir, "test_fnames.txt")
     )
 
-    print(
+    logging.info(
         f"Pre-determined splits: {len(train_fnames)} train, "
         f"{len(valid_fnames)} valid, {len(test_fnames)} test."
     )
@@ -185,35 +196,39 @@ if __name__ == "__main__":
         len(train_fnames_avail) + len(test_fnames_avail)
         + len(valid_fnames_avail)
     )
-    print(f"found {len(train_fnames_avail)} training files")
-    print(f"found {len(valid_fnames_avail)} validation files")
-    print(f"found {len(test_fnames_avail)} test files")
+    logging.info(f"found {len(train_fnames_avail)} training files")
+    logging.info(f"found {len(valid_fnames_avail)} validation files")
+    logging.info(f"found {len(test_fnames_avail)} test files")
 
-    print("process training data ...")
-    rep = "quat" if args.as_quat else "aa" if args.as_aa else "rotmat"
+    output_path = os.path.join(args.output_dir, args.rep)
+    utils.create_dir_if_absent(output_path)
 
+    logging.info("Processing training data ...")
     train_dataset = process_split(
         train_fnames_avail,
-        os.path.join(args.output_dir, rep, "training"),
-        compute_stats=True,
-        rep=rep,
-        create_windows=None
-    )
-
-    print("Processing validation data ...")
-    process_split(
-        valid_fnames_avail,
-        os.path.join(args.output_dir, rep, "validation"),
-        compute_stats=False,
-        rep=rep,
+        os.path.join(output_path, "train.pkl"),
+        rep=args.rep,
+        src_len=args.src_len,
+        tgt_len=args.tgt_len,
         create_windows=(args.window_size, args.window_stride),
     )
 
-    print("Processing test data ...")
+    logging.info("Processing validation data ...")
+    process_split(
+        valid_fnames_avail,
+        os.path.join(output_path, "validation.pkl"),
+        rep=args.rep,
+        src_len=args.src_len,
+        tgt_len=args.tgt_len,
+        create_windows=(args.window_size, args.window_stride),
+    )
+
+    logging.info("Processing test data ...")
     process_split(
         test_fnames_avail,
-        os.path.join(args.output_dir, rep, "test"),
-        compute_stats=False,
-        rep=rep,
+        os.path.join(output_path, "test.pkl"),
+        rep=args.rep,
+        src_len=args.src_len,
+        tgt_len=args.tgt_len,
         create_windows=(args.window_size, args.window_stride),
     )

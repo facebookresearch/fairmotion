@@ -1,4 +1,5 @@
 import argparse
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -7,30 +8,14 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from mocap_processing.models import seq2seq
-from mocap_processing.tasks.motion_prediction import dataset as motion_dataset
-from mocap_processing.tasks.motion_prediction import generate
+from mocap_processing.tasks.motion_prediction import generate, utils
 
 
-def prepare_dataset(train_path, valid_path, test_path, batch_size):
-    dataset = {}
-    for split, split_path in zip(
-        ["train", "test", "valid"],
-        [train_path, valid_path, test_path]
-    ):
-        dataset[split] = motion_dataset.get_loader(split_path, batch_size)
-    return dataset
-
-
-def prepare_model(input_dim, hidden_dim, device):
-    enc = seq2seq.LSTMEncoder(input_dim=input_dim, hidden_dim=hidden_dim)
-    dec = seq2seq.LSTMDecoder(
-        input_dim=input_dim, hidden_dim=hidden_dim, output_dim=input_dim
-    )
-    model = seq2seq.Seq2Seq(enc, dec).to(device)
-    model.zero_grad()
-    model.double()
-    return model
+logging.basicConfig(
+    format="[%(asctime)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
 
 
 def init_weights(m):
@@ -48,24 +33,27 @@ def set_seeds():
 
 def train(args):
     set_seeds()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = args.device if args.device else device
 
-    dataset = prepare_dataset(
+    logging.info("Preparing dataset...")
+    dataset, mean, std = utils.prepare_dataset(
         *[
-            os.path.join(args.processed_data, f"{split}.pkl")
-            for split in ["train", "test", "valid"]
+            os.path.join(args.preprocessed_path, f"{split}.pkl")
+            for split in ["train", "test", "validation"]
         ],
         args.batch_size,
+        device,
     )
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # number of predictions per time step = num_joints * angle representation
-    data_shape = next(iter(dataset["train"])).shape
-    num_predictions = data_shape[-2] * data_shape[-1]
+    data_shape = next(iter(dataset["train"]))[0].shape
+    num_predictions = data_shape[-1]
 
-    model = prepare_model(
+    model = utils.prepare_model(
         input_dim=num_predictions, hidden_dim=args.hidden_dim, device=device
     )
+    utils.create_dir_if_absent(args.save_model_path)
 
     criterion = nn.MSELoss()
     model.apply(init_weights)
@@ -76,31 +64,42 @@ def train(args):
     )
     training_losses, val_losses = [], []
 
+    logging.info("Training model...")
     for epoch in range(args.epochs):
-        print(f"Epoch {epoch}")
         epoch_loss = 0
         model.train()
-        iterations = 0
+        teacher_forcing_ratio = np.clip(
+            (1 - 2*epoch/args.epochs),
+            a_min=0,
+            a_max=1,
+        )
+        logging.info(
+            f"Running epoch {epoch} | "
+            f"teacher_forcing_ratio={teacher_forcing_ratio}"
+        )
         for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
             optimizer.zero_grad()
             src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
-            outputs = model(src_seqs, tgt_seqs)
-            outputs = outputs.to(dtype=torch.double)
+            outputs = model(
+                src_seqs, tgt_seqs, teacher_forcing_ratio=teacher_forcing_ratio
+            )
+            outputs = outputs.double()
             loss = criterion(outputs, tgt_seqs)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
             optimizer.step()
             epoch_loss += loss.item()
-
-        epoch_loss = epoch_loss / (iterations * args.batch_size)
+        epoch_loss = epoch_loss / ((iterations + 1) * args.batch_size)
         training_losses.append(epoch_loss)
-        print(f"Training loss {epoch_loss}")
-
         val_loss = generate.eval(
-            model, criterion, dataset["valid"], args.batch_size, device,
+            model, criterion, dataset["validation"], args.batch_size, device,
         )
         val_losses.append(val_loss)
-        print(f"Validation loss {val_loss}")
+        logging.info(
+            f"Training loss {epoch_loss} | "
+            f"Validation loss {val_loss} | "
+            f"Iterations {iterations + 1}"
+        )
 
         scheduler.step(val_loss)
         if epoch % args.save_model_frequency == 0:
@@ -108,6 +107,11 @@ def train(args):
                 model.state_dict(),
                 f"{args.save_model_path}/{epoch}.model"
             )
+            if len(val_losses) == 0 or val_loss <= min(val_losses):
+                torch.save(
+                    model.state_dict(),
+                    f"{args.save_model_path}/best.model"
+                )
     return training_losses, val_losses
 
 
@@ -129,7 +133,7 @@ if __name__ == "__main__":
         description="Sequence to sequence motion prediction training"
     )
     parser.add_argument(
-        "--processed-path", type=str, help="Path to folder containing pickled "
+        "--preprocessed-path", type=str, help="Path to folder with pickled "
         "files", required=True
     )
     parser.add_argument(
@@ -154,6 +158,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--epochs", type=int, help="Number of training epochs", default=200
+    )
+    parser.add_argument(
+        "--device", type=str, help="Training device", default=None,
+        choices=["cpu", "cuda"]
     )
     args = parser.parse_args()
     main(args)
