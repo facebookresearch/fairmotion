@@ -30,36 +30,22 @@ def deg2rad(deg):
 
 
 def A2R(A):
-    # TODO: Write batched version of this method
-    input_shape = A.shape
-    A_flat = A.reshape((-1, 3))
-    R = []
-    for A in A_flat:
-        theta = np.linalg.norm(A)
-        if theta == 0:
-            return constants.eye_R
-        # normalize axes
-        A = A / theta
-        x, y, z = A
-        c = np.cos(theta)
-        s = np.sin(theta)
-        r = np.array(
-            [
-                [c + (1.0 - c) * x * x, (1.0 - c) * x * y - s * z, (1 - c) * x * z + s * y],
-                [
-                    (1.0 - c) * x * y + s * z,
-                    c + (1.0 - c) * y * y,
-                    (1.0 - c) * y * z - s * x,
-                ],
-                [
-                    (1.0 - c) * z * x - s * y,
-                    (1.0 - c) * z * y + s * x,
-                    c + (1.0 - c) * z * z,
-                ],
-            ]
-        )
-        R.append(r)
-    return np.array(R).reshape(list(input_shape[:-1]) + [3, 3])
+    """
+    Adopted from https://github.com/eth-ait/spl/blob/master/common/
+    conversions.py#L155
+    Convert angle-axis to rotation matrices using opencv's Rodrigues formula.
+    Args:
+        angle_axes: A np array of shape (..., 3)
+
+    Returns:
+        A np array of shape (..., 3, 3)
+    """
+    orig_shape = A.shape[:-1]
+    aas = np.reshape(A, [-1, 3])
+    rots = np.zeros([aas.shape[0], 3, 3])
+    for i in range(aas.shape[0]):
+        rots[i] = cv2.Rodrigues(aas[i])[0]
+    return np.reshape(rots, orig_shape + (3, 3))
 
 
 def R2A(R):
@@ -98,7 +84,6 @@ def R2E(R):
         An np array of shape (..., 3) containing the Euler angles for each
         rotation matrix in `R`
     """
-    R = np.swapaxes(R, R.ndim - 1, R.ndim - 2)
 
     # Rest of the method assumes row-wise arrangement of rotation matrix R
     assert R.shape[-1] == 3 and R.shape[-2] == 3
