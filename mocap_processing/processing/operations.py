@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 
 from mocap_processing.motion import motion as motion_class
@@ -6,14 +7,18 @@ from mocap_processing.utils import conversions
 
 def append(motion1, motion2):
     assert isinstance(motion1, motion_class.Motion)
-    assert motion1.skel.num_joint() == motion2.skel.num_joint()
+    assert isinstance(motion2, motion_class.Motion)
+    assert motion1.skel.num_joints() == motion2.skel.num_joints()
 
-    motion1.name = f"{motion1.name}+{motion2.name}"
-    motion1.postures.extend(motion2.postures)
+    combined_motion = copy.deepcopy(motion1)
+    combined_motion.name = f"{motion1.name}+{motion2.name}"
+    combined_motion.poses.extend(motion2.poses)
 
-    for i in range(motion2.num_frame()):
-        motion1.times.append(motion2.times[i] + motion1.times[-1])
-    return motion1
+    combined_motion.times = list(np.append(
+        combined_motion.times,
+        np.array(motion2.times) + combined_motion.times[-1] + 1.0/combined_motion.fps
+    ))
+    return combined_motion
 
 
 def transform(motion, T, local=False):
@@ -24,7 +29,10 @@ def transform(motion, T, local=False):
             R, p = np.dot(R0, R1), p0 + np.dot(R0, p1)
         else:
             R, p = np.dot(R1, R0), p0 + p1
-        motion.poses[pose_id].set_root_transform(conversions.Rp2T(R, p), local=False)
+        motion.poses[pose_id].set_root_transform(
+            conversions.Rp2T(R, p),
+            local=False,
+        )
     return motion
 
 
@@ -38,18 +46,18 @@ def rotate(motion, R, local=False):
 
 def cut(motion, frame_start, frame_end):
     """
-    Returns motion object with poses from (frame_start, frame_end) only
+    Returns motion object with poses from [frame_start, frame_end) only
     """
     cut_motion = motion_class.Motion(skel=motion.skel)
     cut_motion.name = f"{motion.name}_{frame_start}_{frame_end}"
-    cut_motion.times = motion.times[frame_start : frame_end + 1]
-    cut_motion.poses = motion.poses[frame_start : frame_end + 1]
+    cut_motion.times = motion.times[frame_start: frame_end]
+    cut_motion.poses = motion.poses[frame_start: frame_end]
 
     t_init = cut_motion.times[0]
     for i in range(cut_motion.num_frames()):
         cut_motion.times[i] -= t_init
 
-    return motion
+    return cut_motion
 
 
 def resample(motion, fps):
