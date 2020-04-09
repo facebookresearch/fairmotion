@@ -1,4 +1,5 @@
 import numpy as np
+from basecode.math import mmMath
 from basecode.utils import multiprocessing as mp
 from mocap_processing.motion import motion as motion_classes
 from mocap_processing.utils import constants
@@ -209,9 +210,9 @@ def save(motion, filename, scale=1.0, verbose=False):
                 joint = motion.skel.get_joint(joint_name)
                 R, p = conversions.T2Rp(pose.get_transform(joint, local=True))
                 p *= scale
-                v = conversions.R2E(np.array([R]))
-                v = v[0] * 180.0 / np.pi
-                Rx, Ry, Rz = v[0], v[1], v[2]
+                v = mmMath.R2ZYX(R)
+                v = v * 180.0 / np.pi
+                Rz, Ry, Rx = v[0], v[1], v[2]
                 if joint == motion.skel.root_joint:
                     f.write("%f %f %f %f %f %f " % (p[0], p[1], p[2], Rz, Ry, Rx))
                 else:
