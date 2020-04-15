@@ -1,4 +1,5 @@
 import argparse
+from functools import partial
 import numpy as np
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -7,14 +8,18 @@ from OpenGL.GLUT import *
 from basecode.math import mmMath
 from basecode.render import camera, gl_render, glut_viewer as viewer
 from basecode.utils import basics
-from mocap_processing.motion import kinematics
+from mocap_processing.data import bvh
+from mocap_processing.processing import operations
+from mocap_processing.utils import utils
 
 
-def keyboard_callback(key):
-    global viewer, motions, cur_time, w
-    global time_checker_auto_play
-    global args, file_idx
-    global play_speed
+def keyboard_callback(state, key):
+    cur_time = state["cur_time"]
+    time_checker_auto_play = state["time_checker_auto_play"]
+    motions = state["motions"]
+    play_speed = state["play_speed"]
+    args = state["args"]
+    file_idx = state["file_idx"]
 
     motion = motions[file_idx]
 
@@ -23,8 +28,6 @@ def keyboard_callback(key):
         time_checker_auto_play.begin()
         time_checker_global.begin()
     elif key == b"]":
-        # print("---------")
-        # print(cur_time, motion.time_to_frame(cur_time))
         pose1 = motion.get_pose_by_frame(motion.time_to_frame(cur_time))
         vel1 = motion.get_velocity_by_frame(motion.time_to_frame(cur_time))
         next_frame = min(motion.num_frame() - 1, motion.time_to_frame(cur_time) + 1)
@@ -36,10 +39,8 @@ def keyboard_callback(key):
         cur_time = motion.frame_to_time(prev_frame)
     elif key == b"+":
         play_speed = min(play_speed + 0.2, 5.0)
-        # print("play_speed:", play_speed)
     elif key == b"-":
         play_speed = max(play_speed - 0.2, 0.2)
-        # print("play_speed:", play_speed)
     elif key == b"h":
         pose = motion.get_pose_by_frame(motion.time_to_frame(cur_time))
         heights = []
@@ -61,8 +62,10 @@ def keyboard_callback(key):
     elif key == b"c":
         start_time = 0.0
         end_time = input("Enter end time (s): ")
+        fps = input("Enter fps (Hz): ")
         try:
             end_time = float(end_time)
+            fps = float(fps)
         except ValueError:
             print("That is not a number!")
             return
@@ -77,18 +80,26 @@ def keyboard_callback(key):
 
         cnt_screenshot = 0
         time_processed = start_time
-        cur_time = start_time
-        dt = 1 / 30.0
-        while cur_time <= end_time:
+        state["cur_time"] = start_time
+        dt = 1 / fps
+        while state["cur_time"] <= end_time:
             name = "screenshot_%04d" % (cnt_screenshot)
             p = mmMath.T2p(motion.get_pose_by_time(cur_time).get_root_transform())
             viewer.drawGL()
             viewer.save_screen(dir=save_dir, name=name)
-            print("\rtime_elased:", cur_time, "(", name, ")", end=" ")
-            cur_time += dt
+            print("\rtime_elased:", state["cur_time"], "(", name, ")", end=" ")
+            state["cur_time"] += dt
             cnt_screenshot += 1
     else:
         return False
+
+    state["cur_time"] = cur_time
+    state["time_checker_auto_play"] = time_checker_auto_play
+    state["motions"] = motions
+    state["play_speed"] = play_speed
+    state["args"] = args
+    state["file_idx"] = file_idx
+
     return True
 
 
@@ -105,12 +116,10 @@ def render_pose(pose, body_model, color):
             l = np.linalg.norm(pos_parent - pos)
             r = 0.05
             R = mmMath.getSO3FromVectors(np.array([0, 0, 1]), pos_parent - pos)
-            gl_render.render_capsule(mmMath.Rp2T(R, p), l, r, color=color, slice=16)
+            gl_render.render_capsule(mmMath.Rp2T(R, p), l, r, color=color, slice=8)
 
 
 def render_characters(motions, cur_time, colors):
-    global v_up_env
-    # glRotatef(90, 1, 0, 0)
     for i, motion in enumerate(motions):
         time_offset = 0.0
         t = (cur_time + time_offset) % motion.length()
@@ -125,40 +134,72 @@ def render_characters(motions, cur_time, colors):
         render_pose(pose, "stick_figure2", color)
 
 
-def render_callback():
-    global motions, cur_time
-    global tex_id_ground
+def render_callback(state):
+    cur_time = state["cur_time"]
+    motions = state["motions"]
+    v_up_env = state["v_up_env"]
+    hide_origin = state["args"].hide_origin
 
     gl_render.render_ground(
-        size=[100, 100], color=[0.8, 0.8, 0.8], axis="z", origin=True, use_arrow=True
+        size=[100, 100], color=[0.8, 0.8, 0.8], axis=utils.axis_to_str(v_up_env), origin=not hide_origin, use_arrow=True
     )
     colors = [
         np.array([123, 174, 85, 255]) / 255.0,  # green
+        np.array([220, 220, 220, 120]) / 255.0,  # grey
         np.array([85, 160, 173, 255]) / 255.0,  # blue
     ]
     render_characters(motions, cur_time, colors)
 
 
-def idle_callback():
-    global viewer, cur_time
-    global time_checker_auto_play
-    global motions
-    global play_speed
+def idle_callback(state):
+    cur_time = state["cur_time"]
+    time_checker_auto_play = state["time_checker_auto_play"]
+    play_speed = state["play_speed"]
 
     time_elapsed = time_checker_auto_play.get_time(restart=False)
     cur_time += play_speed * time_elapsed
     time_checker_auto_play.begin()
 
+    state.update({
+        "cur_time": cur_time,
+        "time_checker_auto_play": time_checker_auto_play,
+    })
+
+
+def overlay_callback(state):
+    if state["args"].render_overlay:
+        w, h = viewer.window_size
+        # print(state["cur_time"])
+        # print(state["motions"][0].length())
+        t = state["cur_time"] % state["motions"][0].length()
+        frame = state['motions'][0].time_to_frame(t)
+        status = "SEED SEQUENCE" if frame < 120 else "PREDICTION SEQUENCE"
+        gl_render.render_text(
+            f"Frame number: {frame} | {status}",
+            pos=[0.05*w, 0.95*h],
+            font=GLUT_BITMAP_TIMES_ROMAN_24,
+        )
+
 
 def main(args):
-    global motions, cur_time, v_up_env, time_checker_auto_play, play_speed, file_idx
+    state = {
+        "motions": [],
+        "v_up_env": utils.str_to_axis(args.axis_up),
+        "time_checker_auto_play": basics.TimeChecker(),
+        "cur_time": 0.0,
+        "play_speed": 1,
+        "file_idx": 0,
+        "time_checker_global": basics.TimeChecker(),
+        "args": args,
+    }
 
-    v_up_env = kinematics.str_to_axis("z")
+    v_up_env = state["v_up_env"]
+
     motions = [
-        kinematics.Motion(
+        bvh.load(
             file=filename,
-            v_up_skel=kinematics.str_to_axis(args.axis_up),
-            v_face_skel=kinematics.str_to_axis(args.axis_face),
+            v_up_skel=utils.str_to_axis(args.axis_up),
+            v_face_skel=utils.str_to_axis(args.axis_face),
             v_up_env=v_up_env,
             scale=args.scale,
         )
@@ -166,27 +207,24 @@ def main(args):
     ]
 
     for i in range(len(motions)):
-        motions[i].translate([args.x_offset * i, 0, 0])
+        operations.translate(motions[i], [args.x_offset * i, 0, 0])
 
-    cur_time = 0.0
-    play_speed = 1.0
-    file_idx = 0
-    time_checker_auto_play = basics.TimeChecker()
-    time_checker_global = basics.TimeChecker()
+    state["motions"] = motions
 
     cam = camera.Camera(
-        pos=np.array([0, 4, 0.5]),
+        pos=2 * utils.str_to_axis(args.axis_face) + 1 * utils.str_to_axis(args.axis_up),
         origin=np.array([0, 0, 0]),
-        vup=np.array([0.0, 0.0, 1.0]),
+        vup=v_up_env,
         fov=45.0,
     )
     viewer.run(
         title="Motion Graph Viewer",
         cam=cam,
         size=(1280, 720),
-        keyboard_callback=keyboard_callback,
-        render_callback=render_callback,
-        idle_callback=idle_callback,
+        keyboard_callback=partial(keyboard_callback, state),
+        render_callback=partial(render_callback, state),
+        idle_callback=partial(idle_callback, state),
+        overlay_callback=partial(overlay_callback, state),
     )
 
 
@@ -196,6 +234,8 @@ if __name__ == "__main__":
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--axis-up", type=str, choices=["x", "y", "z"], default="z")
     parser.add_argument("--axis-face", type=str, choices=["x", "y", "z"], default="y")
+    parser.add_argument("--hide-origin", action="store_true")
+    parser.add_argument("--render-overlay", action="store_true")
     parser.add_argument(
         "--x-offset",
         type=int,

@@ -12,6 +12,17 @@ def str_to_axis(s):
         raise Exception
 
 
+def axis_to_str(a):
+    if np.array_equal(a, [1.0, 0.0, 0.0]):
+        return "x"
+    elif np.array_equal(a, [0.0, 1.0, 0.0]):
+        return "y"
+    elif np.array_equal(a, [0.0, 0.0, 1.0]):
+        return "z"
+    else:
+        raise Exception
+
+
 def get_index(index_dict, key):
     if isinstance(key, int):
         return key
