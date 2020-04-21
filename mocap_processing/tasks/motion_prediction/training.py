@@ -32,6 +32,7 @@ def set_seeds():
 
 
 def train(args):
+    logging.info(args._get_kwargs())
     set_seeds()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = args.device if args.device else device
@@ -51,17 +52,24 @@ def train(args):
     num_predictions = data_shape[-1]
 
     model = utils.prepare_model(
-        input_dim=num_predictions, hidden_dim=args.hidden_dim, device=device
+        input_dim=num_predictions,
+        hidden_dim=args.hidden_dim,
+        device=device,
+        architecture=args.architecture,
     )
     utils.create_dir_if_absent(args.save_model_path)
 
     criterion = nn.MSELoss()
     model.apply(init_weights)
 
-    optimizer = optim.SGD(model.parameters(), lr=0.5)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, "min", factor=0.1, patience=5
-    )
+    if args.optimizer == "sgd":
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, "min", factor=0.1, patience=5
+        )
+    elif args.optimizer == "adam":
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+        scheduler = None
     training_losses, val_losses = [], []
 
     logging.info("Training model...")
@@ -100,8 +108,8 @@ def train(args):
             f"Validation loss {val_loss} | "
             f"Iterations {iterations + 1}"
         )
-
-        scheduler.step(val_loss)
+        if scheduler:
+            scheduler.step(val_loss)
         if epoch % args.save_model_frequency == 0:
             torch.save(
                 model.state_dict(),
@@ -143,7 +151,7 @@ if __name__ == "__main__":
         "--hidden-dim",
         type=int,
         help="Hidden size of LSTM units in encoder/decoder",
-        default=128,
+        default=1024,
     )
     parser.add_argument(
         "--save-model-path", type=str, help="Path to store saved models",
@@ -162,6 +170,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device", type=str, help="Training device", default=None,
         choices=["cpu", "cuda"]
+    )
+    parser.add_argument(
+        "--architecture", type=str, help="Seq2Seq archtiecture to be used",
+        default="seq2seq",
+        choices=[
+            "seq2seq", "tied_seq2seq", "transformer", "transformer_encoder",
+        ]
+    )
+    parser.add_argument(
+        "--lr", type=float, help="Learning rate", default=0.5,
+    )
+    parser.add_argument(
+        "--optimizer", type=str, help="Torch optimizer",
+        default="sgd", choices=["adam", "sgd"]
     )
     args = parser.parse_args()
     main(args)

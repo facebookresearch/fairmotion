@@ -50,6 +50,6 @@ def get_loader(dataset_path, batch_size=100, device='cuda', mean=None, std=None)
     data_loader = data.DataLoader(
         dataset=dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=True,
     )
     return data_loader

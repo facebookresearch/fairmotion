@@ -21,7 +21,10 @@ logging.basicConfig(
 
 def prepare_model(path, num_predictions, args, device):
     model = utils.prepare_model(
-        input_dim=num_predictions, hidden_dim=args.hidden_dim, device=device
+        input_dim=num_predictions,
+        hidden_dim=args.hidden_dim,
+        device=device,
+        architecture=args.architecture,
     )
     model.load_state_dict(torch.load(path))
     model.eval()
@@ -74,7 +77,7 @@ def convert_to_T(pred_seqs, src_seqs, tgt_seqs, rep):
 
 
 def save_motion_files(seqs_T, args):
-    idxs_to_save = [i for i in range(0, len(seqs_T[0]), len(seqs_T[0])/10)]
+    idxs_to_save = [i for i in range(0, len(seqs_T[0]), len(seqs_T[0])//10)]
     amass_dip_motion = amass_dip.load(
         file=None, load_skel=True, load_motion=False,
     )
@@ -128,7 +131,7 @@ def main(args):
         f"{args.save_model_path}/{args.epoch if args.epoch else 'best'}.model",
         num_predictions,
         args,
-        device
+        device,
     )
 
     logging.info("Running model")
@@ -181,6 +184,10 @@ if __name__ == "__main__":
         "--epoch", type=int, help="Model from epoch to test, will test on best"
         " model if not specified",
         default=None,
+    )
+    parser.add_argument(
+        "--architecture", type=str, help="Seq2Seq archtiecture to be used",
+        default="seq2seq", choices=["seq2seq", "tied_seq2seq", "transformer"]
     )
 
     args = parser.parse_args()

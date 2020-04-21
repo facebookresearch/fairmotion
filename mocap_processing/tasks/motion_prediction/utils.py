@@ -99,17 +99,27 @@ def prepare_dataset(train_path, valid_path, test_path, batch_size, device):
     return dataset, mean, std
 
 
-def prepare_model(input_dim, hidden_dim, device):
-    enc = encoders.LSTMEncoder(input_dim=input_dim, hidden_dim=hidden_dim).to(
-        device
-    )
-    dec = decoders.LSTMDecoder(
-        input_dim=input_dim,
-        hidden_dim=hidden_dim,
-        output_dim=input_dim,
-        device=device,
-    ).to(device)
-    model = seq2seq.Seq2Seq(enc, dec).to(device)
+def prepare_model(input_dim, hidden_dim, device, architecture="seq2seq"):
+    if architecture == "seq2seq":
+        enc = encoders.LSTMEncoder(
+            input_dim=input_dim, hidden_dim=hidden_dim
+        ).to(device)
+        dec = decoders.LSTMDecoder(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            output_dim=input_dim,
+            device=device,
+        ).to(device)
+        model = seq2seq.Seq2Seq(enc, dec)
+    elif architecture == "tied_seq2seq":
+        model = seq2seq.TiedSeq2Seq(input_dim, hidden_dim, 1, device)
+    elif architecture == "transformer_encoder":
+        model = seq2seq.TransformerModel(input_dim, hidden_dim, 4, hidden_dim, 4)
+    elif architecture == "transformer":
+        model = seq2seq.FullTransformerModel(
+            input_dim, hidden_dim, 4, hidden_dim, 4,
+        )
+    model = model.to(device)
     model.zero_grad()
     model.double()
     return model
