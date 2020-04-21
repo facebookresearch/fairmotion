@@ -5,11 +5,12 @@ import random
 
 
 class DecoderStep(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dim):
+    def __init__(self, input_dim, output_dim, hidden_dim, lstm=None):
         super(DecoderStep, self).__init__()
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim)
+        self.lstm = (
+            nn.LSTM(input_size=input_dim, hidden_size=hidden_dim)
+            if not lstm else lstm
+        )
         self.out = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, input, hidden=None, cell=None, encoder_outputs=None):
@@ -23,10 +24,16 @@ class DecoderStep(nn.Module):
 
 
 class LSTMDecoder(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dim, device="cuda"):
+    def __init__(
+        self, input_dim, output_dim, hidden_dim, device="cuda", lstm=None
+    ):
         super(LSTMDecoder, self).__init__()
+        self.input_dim = input_dim
         self.decoder_step = DecoderStep(
-            input_dim=input_dim, output_dim=output_dim, hidden_dim=hidden_dim
+            input_dim=input_dim,
+            output_dim=output_dim,
+            hidden_dim=hidden_dim,
+            lstm=lstm
         )
         self.device = device
 
@@ -44,7 +51,7 @@ class LSTMDecoder(nn.Module):
         batch_size = tgt.shape[1]
 
         input = tgt[0, :]
-        outputs = torch.zeros(max_len, batch_size, self.decoder_step.input_dim,).to(
+        outputs = torch.zeros(max_len, batch_size, self.input_dim,).to(
             self.device
         )
         for t in range(max_len):
