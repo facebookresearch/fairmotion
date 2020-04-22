@@ -24,6 +24,7 @@ def prepare_model(path, num_predictions, args, device):
         input_dim=num_predictions,
         hidden_dim=args.hidden_dim,
         device=device,
+        num_layers=args.num_layers,
         architecture=args.architecture,
     )
     model.load_state_dict(torch.load(path))
@@ -173,6 +174,12 @@ if __name__ == "__main__":
         type=int,
         help="Hidden size of LSTM units in encoder/decoder",
         default=128,
+    )
+    parser.add_argument(
+        "--num-layers",
+        type=int,
+        help="Number of layers of LSTM/Transformer in encoder/decoder",
+        default=1,
     )
     parser.add_argument(
         "--max-len", type=int, help="Length of seq to generate", default=None,

@@ -55,6 +55,7 @@ def train(args):
         input_dim=num_predictions,
         hidden_dim=args.hidden_dim,
         device=device,
+        num_layers=args.num_layers,
         architecture=args.architecture,
     )
     utils.create_dir_if_absent(args.save_model_path)
@@ -152,6 +153,12 @@ if __name__ == "__main__":
         type=int,
         help="Hidden size of LSTM units in encoder/decoder",
         default=1024,
+    )
+    parser.add_argument(
+        "--num-layers",
+        type=int,
+        help="Number of layers of LSTM/Transformer in encoder/decoder",
+        default=1,
     )
     parser.add_argument(
         "--save-model-path", type=str, help="Path to store saved models",
