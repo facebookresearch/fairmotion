@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.nn import LayerNorm
 from torch.nn.init import xavier_uniform_
 
 from mocap_processing.models import decoders, encoders
@@ -127,10 +128,18 @@ class FullTransformerModel(nn.Module):
         self.src_mask = None
 
         self.pos_encoder = PositionalEncoding(ninp, dropout)
-        encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
-        decoder_layers = TransformerDecoderLayer(ninp, nhead, nhid, dropout)
-        self.transformer_decoder = TransformerDecoder(decoder_layers, nlayers)
+        encoder_layer = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
+        self.transformer_encoder = TransformerEncoder(
+            encoder_layer=encoder_layer,
+            num_layers=nlayers,
+            norm=LayerNorm(ninp),
+        )
+        decoder_layer = TransformerDecoderLayer(ninp, nhead, nhid, dropout)
+        self.transformer_decoder = TransformerDecoder(
+            decoder_layer=decoder_layer,
+            num_layers=nlayers,
+            norm=LayerNorm(ninp),
+        )
 
         # Use Linear instead of Embedding for continuous valued input
         self.encoder = nn.Linear(ntoken, ninp)
