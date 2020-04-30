@@ -36,6 +36,7 @@ def train(args):
     set_seeds()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = args.device if args.device else device
+    logging.info(f"Using device: {device}")
 
     logging.info("Preparing dataset...")
     dataset, mean, std = utils.prepare_dataset(
