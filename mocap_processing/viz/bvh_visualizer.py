@@ -187,7 +187,7 @@ def main(args):
         "v_up_env": utils.str_to_axis(args.axis_up),
         "time_checker_auto_play": basics.TimeChecker(),
         "cur_time": 0.0,
-        "play_speed": 1,
+        "play_speed": args.speed,
         "file_idx": 0,
         "time_checker_global": basics.TimeChecker(),
         "args": args,
@@ -232,6 +232,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Visualize BVH file with block body")
     parser.add_argument("--bvh-files", type=str, nargs="+", required=True)
     parser.add_argument("--scale", type=float, default=1.0)
+    parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--axis-up", type=str, choices=["x", "y", "z"], default="z")
     parser.add_argument("--axis-face", type=str, choices=["x", "y", "z"], default="y")
     parser.add_argument("--hide-origin", action="store_true")
