@@ -33,7 +33,10 @@ class Dataset(data.Dataset):
         return self.num_total_seqs
 
 
-def get_loader(dataset_path, batch_size=100, device='cuda', mean=None, std=None):
+def get_loader(
+    dataset_path, batch_size=100, device='cuda', mean=None, std=None,
+    shuffle=True,
+):
     """Returns data loader for custom dataset.
     Args:
         dataset_path: path to pickled numpy dataset
@@ -50,6 +53,6 @@ def get_loader(dataset_path, batch_size=100, device='cuda', mean=None, std=None)
     data_loader = data.DataLoader(
         dataset=dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle,
     )
     return data_loader

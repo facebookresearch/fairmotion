@@ -83,7 +83,9 @@ def create_dir_if_absent(path):
         os.makedirs(path)
 
 
-def prepare_dataset(train_path, valid_path, test_path, batch_size, device):
+def prepare_dataset(
+    train_path, valid_path, test_path, batch_size, device, shuffle="True",
+):
     dataset = {}
     for split, split_path in zip(
         ["train", "test", "validation"],
@@ -94,7 +96,7 @@ def prepare_dataset(train_path, valid_path, test_path, batch_size, device):
             mean = dataset["train"].dataset.mean
             std = dataset["train"].dataset.std
         dataset[split] = motion_dataset.get_loader(
-            split_path, batch_size, device, mean, std,
+            split_path, batch_size, device, mean, std, shuffle,
         )
     return dataset, mean, std
 

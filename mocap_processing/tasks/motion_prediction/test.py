@@ -120,8 +120,9 @@ def main(args):
             os.path.join(args.preprocessed_path, f"{split}.pkl")
             for split in ["train", "test", "validation"]
         ],
-        args.batch_size,
-        device,
+        batch_size=args.batch_size,
+        device=device,
+        shuffle=False,
     )
     # number of predictions per time step = num_joints * angle representation
     data_shape = next(iter(dataset["train"]))[0].shape
