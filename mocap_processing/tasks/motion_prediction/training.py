@@ -31,7 +31,10 @@ def set_seeds():
 
 
 def train(args):
+    utils.create_dir_if_absent(args.save_model_path)
     logging.info(args._get_kwargs())
+    utils.log_config(args.save_model_path, args)
+
     set_seeds()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = args.device if args.device else device
@@ -58,7 +61,6 @@ def train(args):
         num_layers=args.num_layers,
         architecture=args.architecture,
     )
-    utils.create_dir_if_absent(args.save_model_path)
 
     criterion = nn.MSELoss()
     model.apply(init_weights)
