@@ -6,7 +6,6 @@ import os
 import random
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
 from mocap_processing.tasks.motion_prediction import generate, utils
 
@@ -63,18 +62,31 @@ def train(args):
 
     criterion = nn.MSELoss()
     model.apply(init_weights)
-
-    if args.optimizer == "sgd":
-        optimizer = optim.SGD(model.parameters(), lr=args.lr)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, "min", factor=0.1, patience=5
-        )
-    elif args.optimizer == "adam":
-        optimizer = optim.Adam(model.parameters(), lr=args.lr)
-        scheduler = None
     training_losses, val_losses = [], []
 
+    epoch_loss = 0
+    for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
+        src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
+        outputs = model(
+            src_seqs, tgt_seqs, teacher_forcing_ratio=1,
+        )
+        outputs = outputs.double()
+        # if args.architecture == "rnn":
+        #     tgt_seqs = torch.cat((src_seqs[:, 1:], tgt_seqs), axis=1)
+        loss = criterion(outputs, tgt_seqs)
+        epoch_loss += loss.item()
+    epoch_loss = epoch_loss / (iterations + 1)
+    val_loss = generate.eval(
+        model, criterion, dataset["validation"], args.batch_size, device,
+    )
+    logging.info(
+        "Before training: "
+        f"Training loss {epoch_loss} | "
+        f"Validation loss {val_loss}"
+    )
+
     logging.info("Training model...")
+    opt = utils.prepare_optimizer(model, args.optimizer, args.lr)
     for epoch in range(args.epochs):
         epoch_loss = 0
         model.train()
@@ -88,7 +100,7 @@ def train(args):
             f"teacher_forcing_ratio={teacher_forcing_ratio}"
         )
         for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
-            optimizer.zero_grad()
+            opt.optimizer.zero_grad()
             src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
             outputs = model(
                 src_seqs, tgt_seqs, teacher_forcing_ratio=teacher_forcing_ratio
@@ -96,8 +108,7 @@ def train(args):
             outputs = outputs.double()
             loss = criterion(outputs, tgt_seqs)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-            optimizer.step()
+            opt.step()
             epoch_loss += loss.item()
         epoch_loss = epoch_loss / ((iterations + 1) * args.batch_size)
         training_losses.append(epoch_loss)
@@ -105,13 +116,12 @@ def train(args):
             model, criterion, dataset["validation"], args.batch_size, device,
         )
         val_losses.append(val_loss)
+        opt.epoch_step(val_loss=val_loss)
         logging.info(
             f"Training loss {epoch_loss} | "
             f"Validation loss {val_loss} | "
             f"Iterations {iterations + 1}"
         )
-        if scheduler:
-            scheduler.step(val_loss)
         if epoch % args.save_model_frequency == 0:
             torch.save(
                 model.state_dict(),
@@ -184,14 +194,15 @@ if __name__ == "__main__":
         default="seq2seq",
         choices=[
             "seq2seq", "tied_seq2seq", "transformer", "transformer_encoder",
+            "rnn",
         ]
     )
     parser.add_argument(
-        "--lr", type=float, help="Learning rate", default=0.5,
+        "--lr", type=float, help="Learning rate", default=None,
     )
     parser.add_argument(
         "--optimizer", type=str, help="Torch optimizer",
-        default="sgd", choices=["adam", "sgd"]
+        default="sgd", choices=["adam", "sgd", "noamopt"]
     )
     args = parser.parse_args()
     main(args)

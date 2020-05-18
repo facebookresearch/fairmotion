@@ -129,3 +129,22 @@ def prepare_model(
     model.zero_grad()
     model.double()
     return model
+
+
+def log_config(path, args):
+    with open(os.path.join(path, "config.txt"), "w") as f:
+        for key, value in args._get_kwargs():
+            f.write(f"{key}:{value}\n")
+
+
+def prepare_optimizer(model, opt: str, lr=None):
+    kwargs = {}
+    if lr is not None:
+        kwargs["lr"] = lr
+
+    if opt == "sgd":
+        return optimizer.SGDOpt(model, **kwargs)
+    elif opt == "adam":
+        return optimizer.AdamOpt(model, **kwargs)
+    elif opt == "noamopt":
+        return optimizer.NoamOpt(model)
