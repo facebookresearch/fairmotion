@@ -112,7 +112,7 @@ def train(args):
             loss.backward()
             opt.step()
             epoch_loss += loss.item()
-        epoch_loss = epoch_loss / ((iterations + 1) * args.batch_size)
+        epoch_loss = epoch_loss / (iterations + 1)
         training_losses.append(epoch_loss)
         val_loss = generate.eval(
             model, criterion, dataset["validation"], args.batch_size, device,
