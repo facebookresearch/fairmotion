@@ -195,7 +195,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--architecture", type=str, help="Seq2Seq archtiecture to be used",
-        default="seq2seq", choices=["seq2seq", "tied_seq2seq", "transformer"]
+        default="seq2seq",
+        choices=[
+            "seq2seq", "tied_seq2seq", "transformer", "transformer_encoder",
+            "rnn",
+        ]
     )
 
     args = parser.parse_args()

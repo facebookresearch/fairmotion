@@ -3,7 +3,7 @@ import os
 from functools import partial
 from multiprocessing import Pool
 
-from mocap_processing.models import decoders, encoders, seq2seq
+from mocap_processing.models import decoders, encoders, optimizer, rnn, seq2seq
 from mocap_processing.tasks.motion_prediction import dataset as motion_dataset
 from mocap_processing.utils import constants, conversions
 
@@ -104,6 +104,8 @@ def prepare_dataset(
 def prepare_model(
     input_dim, hidden_dim, device, num_layers=1, architecture="seq2seq"
 ):
+    if architecture == "rnn":
+        model = rnn.RNN(input_dim, hidden_dim, num_layers)
     if architecture == "seq2seq":
         enc = encoders.LSTMEncoder(
             input_dim=input_dim, hidden_dim=hidden_dim

@@ -73,8 +73,6 @@ def train(args):
             src_seqs, tgt_seqs, teacher_forcing_ratio=1,
         )
         outputs = outputs.double()
-        # if args.architecture == "rnn":
-        #     tgt_seqs = torch.cat((src_seqs[:, 1:], tgt_seqs), axis=1)
         loss = criterion(outputs, tgt_seqs)
         epoch_loss += loss.item()
     epoch_loss = epoch_loss / (iterations + 1)
