@@ -18,6 +18,10 @@ class RNN(nn.Module):
         )
         self.project_to_output = nn.Linear(hidden_dim, input_dim)
 
+    def init_weights(self):
+        for name, param in self.named_parameters():
+            nn.init.uniform_(param.data, -0.08, 0.08)
+
     def forward(self, src, tgt, max_len=None, teacher_forcing_ratio=0.5):
         # convert src, tgt to (T, B, E) format
         src = src.transpose(0, 1)

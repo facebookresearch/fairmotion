@@ -13,6 +13,10 @@ class Seq2Seq(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
+    def init_weights(self):
+        for name, param in self.named_parameters():
+            nn.init.uniform_(param.data, -0.08, 0.08)
+
     def forward(self, src, tgt, max_len=None, teacher_forcing_ratio=0.5):
         hidden, cell, outputs = self.encoder(src)
         outputs = self.decoder(
@@ -40,6 +44,10 @@ class TiedSeq2Seq(nn.Module):
             device=device,
             lstm=tied_lstm,
         ).to(device)
+
+    def init_weights(self):
+        for name, param in self.named_parameters():
+            nn.init.uniform_(param.data, -0.08, 0.08)
 
     def forward(self, src, tgt, max_len=None, teacher_forcing_ratio=0.5):
         hidden, cell, outputs = self.encoder(src)
@@ -157,7 +165,7 @@ class FullTransformerModel(nn.Module):
         )
         return mask
 
-    def _init_weights(self):
+    def init_weights(self):
         """Initiate parameters in the transformer model."""
         for p in self.parameters():
             if p.dim() > 1:
