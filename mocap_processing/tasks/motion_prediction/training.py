@@ -67,6 +67,9 @@ def train(args):
         outputs = model(
             src_seqs, tgt_seqs, teacher_forcing_ratio=1,
         )
+        tgt_seqs = utils.prepare_tgt_seqs(
+            args.architecture, src_seqs, tgt_seqs,
+        )
         outputs = outputs.double()
         loss = criterion(outputs, tgt_seqs)
         epoch_loss += loss.item()
@@ -95,12 +98,17 @@ def train(args):
             f"teacher_forcing_ratio={teacher_forcing_ratio}"
         )
         for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
+            print(iterations)
+            torch.autograd.set_detect_anomaly(True)
             opt.optimizer.zero_grad()
             src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
             outputs = model(
                 src_seqs, tgt_seqs, teacher_forcing_ratio=teacher_forcing_ratio
             )
             outputs = outputs.double()
+            tgt_seqs = utils.prepare_tgt_seqs(
+                args.architecture, src_seqs, tgt_seqs,
+            )
             loss = criterion(outputs, tgt_seqs)
             loss.backward()
             opt.step()
@@ -189,7 +197,7 @@ if __name__ == "__main__":
         default="seq2seq",
         choices=[
             "seq2seq", "tied_seq2seq", "transformer", "transformer_encoder",
-            "rnn",
+            "rnn", "st_transformer",
         ]
     )
     parser.add_argument(

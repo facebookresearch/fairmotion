@@ -1,9 +1,12 @@
 import numpy as np
 import os
+import torch
 from functools import partial
 from multiprocessing import Pool
 
-from mocap_processing.models import decoders, encoders, optimizer, rnn, seq2seq
+from mocap_processing.models import (
+    decoders, encoders, optimizer, rnn, seq2seq, transformer
+)
 from mocap_processing.tasks.motion_prediction import dataset as motion_dataset
 from mocap_processing.utils import constants, conversions
 
@@ -127,6 +130,11 @@ def prepare_model(
         model = seq2seq.FullTransformerModel(
             input_dim, hidden_dim, 4, hidden_dim, num_layers,
         )
+    elif architecture == "st_transformer":
+        model = transformer.STTransformer(
+            input_dim=input_dim, hidden_dim=hidden_dim, num_layers=num_layers,
+            device=device,
+        )
     model = model.to(device)
     model.zero_grad()
     model.double()
@@ -150,3 +158,10 @@ def prepare_optimizer(model, opt: str, lr=None):
         return optimizer.AdamOpt(model, **kwargs)
     elif opt == "noamopt":
         return optimizer.NoamOpt(model)
+
+
+def prepare_tgt_seqs(architecture, src_seqs, tgt_seqs):
+    if architecture == "st_transformer" or architecture == "rnn":
+        return torch.cat((src_seqs[:, 1:], tgt_seqs), axis=1)
+    else:
+        return tgt_seqs

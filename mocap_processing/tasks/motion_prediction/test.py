@@ -198,7 +198,7 @@ if __name__ == "__main__":
         default="seq2seq",
         choices=[
             "seq2seq", "tied_seq2seq", "transformer", "transformer_encoder",
-            "rnn",
+            "rnn", "st_transformer",
         ]
     )
 
