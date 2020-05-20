@@ -62,6 +62,7 @@ def train(args):
 
     epoch_loss = 0
     for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
+        model.eval()
         src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
         outputs = model(
             src_seqs, tgt_seqs, teacher_forcing_ratio=1,
