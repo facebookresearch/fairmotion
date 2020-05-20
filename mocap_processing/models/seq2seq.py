@@ -5,6 +5,7 @@ from torch.nn import LayerNorm
 from torch.nn.init import xavier_uniform_
 
 from mocap_processing.models import decoders, encoders
+from mocap_processing.models import positional_encoding as pe
 
 
 class Seq2Seq(nn.Module):
@@ -57,25 +58,6 @@ class TiedSeq2Seq(nn.Module):
         return outputs
 
 
-class PositionalEncoding(nn.Module):
-
-    def __init__(self, d_model, dropout=0.5, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
-
-
 class TransformerModel(nn.Module):
     def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
         super(TransformerModel, self).__init__()
@@ -83,7 +65,7 @@ class TransformerModel(nn.Module):
         # from torch.nn import TransformerDecoder, TransformerDecoderLayer
         self.model_type = 'Transformer'
         self.src_mask = None
-        self.pos_encoder = PositionalEncoding(ninp, dropout)
+        self.pos_encoder = pe.PositionalEncoding(ninp, dropout)
         encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         # Use Linear instead of Embedding for continuous valued input
@@ -135,7 +117,7 @@ class FullTransformerModel(nn.Module):
         self.model_type = 'Transformer'
         self.src_mask = None
 
-        self.pos_encoder = PositionalEncoding(ninp, dropout)
+        self.pos_encoder = pe.PositionalEncoding(ninp, dropout)
         encoder_layer = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
         self.transformer_encoder = TransformerEncoder(
             encoder_layer=encoder_layer,
