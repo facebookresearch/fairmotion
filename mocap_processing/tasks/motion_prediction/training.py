@@ -16,12 +16,64 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
+
 def set_seeds():
     torch.manual_seed(1)
     np.random.seed(1)
     random.seed(1)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def seq2seq_step(
+    model, src_seqs, tgt_seqs, criterion, opt, teacher_forcing_ratio,
+):
+    outputs = model(
+        src_seqs, tgt_seqs, teacher_forcing_ratio=teacher_forcing_ratio
+    )
+    outputs = outputs.double()
+    tgt_seqs = utils.prepare_tgt_seqs(
+        args.architecture, src_seqs, tgt_seqs,
+    )
+    loss = criterion(outputs, tgt_seqs)
+    loss.backward()
+    opt.step()
+    return float(loss)
+
+
+def sim_step(model, src_seqs, tgt_seqs, criterion, opt):
+    seqs = torch.cat((src_seqs, tgt_seqs), axis=1)
+    tgt_seqs = utils.prepare_tgt_seqs(
+        args.architecture, src_seqs, tgt_seqs,
+    )
+    total_time = seqs.shape[1]
+    total_loss = 0
+    import time
+    prev = time.time()
+    for t in range(total_time - 1):
+        input_seq = seqs[:, :t+1]
+        output = model(input_seq, t)
+        output = output.double()
+        loss = criterion(output, tgt_seqs[:, t])
+        loss.backward()
+        opt.step()
+        total_loss += float(loss)
+    print("Loss ", total_loss)
+    print("Time taken ", time.time() - prev)
+    return total_loss/(total_time - 1)
+
+
+def train_step(
+    architecture, model, src_seqs, tgt_seqs, criterion, opt,
+    teacher_forcing_ratio,
+):
+    if architecture == "st_transformer":
+        loss = sim_step(model, src_seqs, tgt_seqs, criterion, opt)
+    else:
+        loss = seq2seq_step(
+            model, src_seqs, tgt_seqs, criterion, opt, teacher_forcing_ratio,
+        )
+    return float(loss)
 
 
 def train(args):
@@ -61,27 +113,27 @@ def train(args):
     training_losses, val_losses = [], []
 
     epoch_loss = 0
-    for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
-        model.eval()
-        src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
-        outputs = model(
-            src_seqs, tgt_seqs, teacher_forcing_ratio=1,
-        )
-        tgt_seqs = utils.prepare_tgt_seqs(
-            args.architecture, src_seqs, tgt_seqs,
-        )
-        outputs = outputs.double()
-        loss = criterion(outputs, tgt_seqs)
-        epoch_loss += loss.item()
-    epoch_loss = epoch_loss / (iterations + 1)
-    val_loss = generate.eval(
-        model, criterion, dataset["validation"], args.batch_size, device,
-    )
-    logging.info(
-        "Before training: "
-        f"Training loss {epoch_loss} | "
-        f"Validation loss {val_loss}"
-    )
+    # for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
+    #     model.eval()
+    #     src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
+    #     outputs = model(
+    #         src_seqs, tgt_seqs, teacher_forcing_ratio=1,
+    #     )
+    #     tgt_seqs = utils.prepare_tgt_seqs(
+    #         args.architecture, src_seqs, tgt_seqs,
+    #     )
+    #     outputs = outputs.double()
+    #     loss = criterion(outputs, tgt_seqs)
+    #     epoch_loss += loss.item()
+    # epoch_loss = epoch_loss / (iterations + 1)
+    # val_loss = generate.eval(
+    #     model, criterion, dataset["validation"], args.batch_size, device,
+    # )
+    # logging.info(
+    #     "Before training: "
+    #     f"Training loss {epoch_loss} | "
+    #     f"Validation loss {val_loss}"
+    # )
 
     logging.info("Training model...")
     opt = utils.prepare_optimizer(model, args.optimizer, args.lr)
@@ -102,17 +154,12 @@ def train(args):
             torch.autograd.set_detect_anomaly(True)
             opt.optimizer.zero_grad()
             src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
-            outputs = model(
-                src_seqs, tgt_seqs, teacher_forcing_ratio=teacher_forcing_ratio
+            loss = train_step(
+                args.architecture, model, src_seqs, tgt_seqs, criterion, opt,
+                teacher_forcing_ratio,
             )
-            outputs = outputs.double()
-            tgt_seqs = utils.prepare_tgt_seqs(
-                args.architecture, src_seqs, tgt_seqs,
-            )
-            loss = criterion(outputs, tgt_seqs)
-            loss.backward()
-            opt.step()
-            epoch_loss += loss.item()
+            epoch_loss += loss
+            print(epoch_loss)
         epoch_loss = epoch_loss / (iterations + 1)
         training_losses.append(epoch_loss)
         val_loss = generate.eval(
