@@ -44,6 +44,7 @@ def A2R(A):
     aas = np.reshape(A, [-1, 3])
     rots = np.zeros([aas.shape[0], 3, 3])
     for i in range(aas.shape[0]):
+        # TODO: Remove dependence on cv2
         rots[i] = cv2.Rodrigues(aas[i])[0]
     return np.reshape(rots, orig_shape + (3, 3))
 
@@ -58,9 +59,7 @@ def R2A(R):
     Returns:
         A np array of shape (..., 3)
     """
-    assert (
-        R.shape[-1] == 3 and R.shape[-2] == 3 and len(R.shape) >= 3
-    ), "Invalid input dimension"
+    assert R.shape[-1] == 3 and R.shape[-2] == 3, "Invalid input dimension"
     orig_shape = R.shape[:-2]
     rots = np.reshape(R, [-1, 3, 3])
     aas = np.zeros([rots.shape[0], 3])
@@ -119,7 +118,11 @@ def R2E(R):
     )
 
     eul = np.stack([e1, e2, e3], axis=-1)
-    eul = np.reshape(eul, np.concatenate([orig_shape, eul.shape[1:]]))
+    # Using astype(int) since np.concatenate inadvertently converts elements to
+    # float64
+    eul = np.reshape(
+        eul, np.concatenate([orig_shape, eul.shape[1:]]).astype(int)
+    )
     return eul
 
 
@@ -171,11 +174,25 @@ def Q2R(Q):
         q *= np.sqrt(2.0 / n)
         q = np.outer(q, q)
         R.append(
-            np.array([
-                [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0]],
-                [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0]],
-                [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2]],
-            ])
+            np.array(
+                [
+                    [
+                        1.0 - q[2, 2] - q[3, 3],
+                        q[1, 2] - q[3, 0],
+                        q[1, 3] + q[2, 0],
+                    ],
+                    [
+                        q[1, 2] + q[3, 0],
+                        1.0 - q[1, 1] - q[3, 3],
+                        q[2, 3] - q[1, 0],
+                    ],
+                    [
+                        q[1, 3] - q[2, 0],
+                        q[2, 3] + q[1, 0],
+                        1.0 - q[1, 1] - q[2, 2],
+                    ],
+                ]
+            )
         )
     R = np.array(R)
     return R.reshape(list(input_shape[:-1]) + [3, 3])
