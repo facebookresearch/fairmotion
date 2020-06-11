@@ -2,9 +2,10 @@ import numpy as np
 import random
 
 from basecode.utils import basics
-from basecode.math import mmMath
 
+from mocap_processing.processing import operations
 from mocap_processing.utils import constants
+from mocap_processing.utils import conversions
 from mocap_processing.utils import utils
 
 
@@ -14,8 +15,8 @@ class Joint(object):
         self.parent_joint = None
         self.child_joint = []
         self.index_child_joint = {}
-        self.xform_global = mmMath.I_SE3()
-        self.xform_from_parent_joint = mmMath.I_SE3()
+        self.xform_global = constants.eye_R
+        self.xform_from_parent_joint = constants.eye_R
         self.info = {"dof": dof}  # set ball joint by default
 
     def get_child_joint(self, key):
@@ -123,15 +124,15 @@ class Pose(object):
             T1 = T
         else:
             T0 = self.skel.get_joint(key).xform_global
-            T1 = np.dot(mmMath.invertSE3(T0), T)
+            T1 = np.dot(operations.invertT(T0), T)
         if do_ortho_norm:
             """
             This insures that the rotation part of
             the given transformation is valid
             """
-            Q, p = mmMath.T2Qp(T1)
-            Q = mmMath.post_process_Q(Q, normalize=True, half_space=False)
-            T1 = mmMath.Qp2T(Q, p)
+            Q, p = conversions.T2Qp(T1)
+            Q = operations.post_process_Q(Q, normalize=True, half_space=False)
+            T1 = conversions.Qp2T(Q, p)
         self.data[self.skel.get_index_joint(key)] = T1
 
     def get_root_transform(self):
@@ -147,7 +148,7 @@ class Pose(object):
         z = d
         y = self.skel.v_up_env
         x = np.cross(y, z)
-        return mmMath.Rp2T(np.array([x, y, z]).transpose(), p)
+        return conversions.Rp2T(np.array([x, y, z]).transpose(), p)
 
     def get_facing_position(self):
         d, p = self.get_facing_direction_position()
@@ -158,10 +159,10 @@ class Pose(object):
         return d
 
     def get_facing_direction_position(self):
-        R, p = mmMath.T2Rp(self.get_root_transform())
+        R, p = conversions.T2Rp(self.get_root_transform())
         d = np.dot(R, self.skel.v_face)
-        d = d - mmMath.projectionOnVector(d, self.skel.v_up_env)
-        p = p - mmMath.projectionOnVector(p, self.skel.v_up_env)
+        d = d - operations.projectionOnVector(d, self.skel.v_up_env)
+        p = p - operations.projectionOnVector(p, self.skel.v_up_env)
         return d / np.linalg.norm(d), p
 
     def to_matrix(self, local=True):
@@ -181,9 +182,7 @@ class Pose(object):
         (num_joints, 4, 4)
         """
         num_joints, T_0, T_1 = data.shape
-        assert num_joints == skel.num_joints(), (
-            "Data for all joints not provided"
-        )
+        assert num_joints == skel.num_joints(), "Data for all joints not provided"
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
             "mocap_processing.utils.constants.eye_T for template identity "
@@ -199,13 +198,13 @@ def interpolate_pose(alpha, pose1, pose2):
     skel = pose1.skel
     data = []
     for j in skel.joints:
-        R1, p1 = mmMath.T2Rp(pose1.get_transform(j, local=True))
-        R2, p2 = mmMath.T2Rp(pose2.get_transform(j, local=True))
+        R1, p1 = conversions.T2Rp(pose1.get_transform(j, local=True))
+        R2, p2 = conversions.T2Rp(pose2.get_transform(j, local=True))
         R, p = (
-            mmMath.slerp(R1, R2, alpha), 
-            mmMath.linearInterpol(p1, p2, alpha),
+            operations.slerp(R1, R2, alpha),
+            operations.linearInterpol(p1, p2, alpha),
         )
-        data.append(mmMath.Rp2T(R, p))
+        data.append(conversions.Rp2T(R, p))
     return Pose(pose1.skel, data)
 
 
@@ -302,9 +301,7 @@ class Motion(object):
             " (seq_len, num_joints, 4, 4)"
         )
         seq_len, num_joints, T_0, T_1 = data.shape
-        assert num_joints == skel.num_joints(), (
-            "Data for all joints not provided"
-        )
+        assert num_joints == skel.num_joints(), "Data for all joints not provided"
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
             "mocap_processing.utils.constants.eye_T for template identity "
