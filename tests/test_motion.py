@@ -1,9 +1,11 @@
 import tempfile
 import unittest
+
 import mocap_processing.motion.kinematics as kinematics
-from mocap_processing.motion import motion as  motion_class
+
 from mocap_processing.data import bvh
-from basecode.math import mmMath
+from mocap_processing.motion import motion as motion_class
+from mocap_processing.utils import conversions
 
 
 class TestMotion(unittest.TestCase):
@@ -28,15 +30,15 @@ class TestMotion(unittest.TestCase):
         motion = kinematics.Motion(file="tests/data/sinusoidal.bvh")
         # Inspect 0th frame, root joint
         T = motion.get_pose_by_frame(0).get_transform(0, local=False)
-        _, p = mmMath.T2Rp(T)
+        _, p = conversions.T2Rp(T)
         self.assertListEqual(list(p), [-3, 6, 5])
         # Inspect 100th frame, root joint
         T = motion.get_pose_by_frame(100).get_transform(0, local=False)
-        _, p = mmMath.T2Rp(T)
+        _, p = conversions.T2Rp(T)
         self.assertListEqual(list(p), [-3, 6, 5])
         # Inspect 100th frame, "child2" joint
         T = motion.get_pose_by_frame(100).get_transform("child2", local=False)
-        _, p = mmMath.T2Rp(T)
+        _, p = conversions.T2Rp(T)
         self.assertListEqual(list(p), [-8, 11, 5])
 
     def test_save_motion(self):

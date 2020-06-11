@@ -1,8 +1,6 @@
 import numpy as np
 import random
 
-from basecode.utils import basics
-
 from mocap_processing.processing import operations
 from mocap_processing.utils import constants
 from mocap_processing.utils import conversions
@@ -214,13 +212,11 @@ class Motion(object):
     ):
         self.name = name
         self.skel = skel
-        self.times = []
         self.poses = []
         self.fps = fps
         self.info = {}
 
     def clear(self):
-        self.times = []
         self.poses = []
         self.info = {}
 
@@ -228,44 +224,38 @@ class Motion(object):
         self.skel = skel
 
     def add_one_frame(self, t, pose_data):
-        self.times.append(t)
         self.poses.append(Pose(self.skel, pose_data))
 
     def frame_to_time(self, frame):
-        return self.times[frame]
+        frame = np.clip(frame, 0, len(self.poses - 1))
+        return self.fps * frame
 
     def time_to_frame(self, time):
-        return basics.bisect(self.times, time)
-
-    def get_time_by_frame(self, frame):
-        assert frame < self.num_frames()
-        return self.times[frame]
+        return int(time / self.fps)
 
     def get_pose_by_frame(self, frame):
         assert frame < self.num_frames()
         return self.poses[frame]
 
     def get_pose_by_time(self, time):
-        time = basics.clamp(time, self.times[0], self.times[-1])
+        time = np.clip(time, 0, self.length)
         frame1 = self.time_to_frame(time)
         frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
             return self.poses[frame1]
-        t1 = self.times[frame1]
-        t2 = self.times[frame2]
-        if time == t1:
+        if np.isclose(time % (1.0/self.fps), 0):
             return self.poses[frame1]
-        if time == t2:
-            return self.poses[frame2]
-        assert (t2 - t1) > 1.0e-5
-        alpha = basics.clamp((time - t1) / (t2 - t1), 0.0, 1.0)
+
+        t1 = int(time/self.fps)*float(1/self.fps)
+        t2 = t1 + float(1/self.fps)
+        alpha = np.clip((time - t1) / (t2 - t1), 0.0, 1.0)
         return interpolate_pose(alpha, self.poses[frame1], self.poses[frame2])
 
     def num_frames(self):
-        return len(self.times)
+        return len(self.poses)
 
     def length(self):
-        return self.times[-1] - self.times[0]
+        return self.fps * len(self.poses)
 
     def to_matrix(self, local=True):
         """
@@ -310,7 +300,6 @@ class Motion(object):
         if fps is None:
             fps = 60
         motion = cls(skel=skel, fps=fps)
-        motion.times = (1.0 / fps) * np.arange(seq_len)
         for pose_data in data:
             pose = Pose.from_matrix(pose_data, skel, local)
             motion.poses.append(pose)

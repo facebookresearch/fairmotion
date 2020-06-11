@@ -188,10 +188,9 @@ def save(motion, filename, scale=1.0, verbose=False):
         """ Write data """
         if verbose:
             print(" >  >  >  >  Write BVH data")
-        t_start = motion.times[0]
-        t_end = motion.times[-1]
+        t_start = 0
         dt = 1.0 / motion.fps
-        num_frames = int(round((t_end - t_start) * motion.fps) + 1)
+        num_frames = motion.num_frames()
         f.write("MOTION\n")
         f.write("Frames: %d\n" % num_frames)
         f.write("Frame Time: %f\n" % dt)

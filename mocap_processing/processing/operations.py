@@ -14,14 +14,6 @@ def append(motion1, motion2):
     combined_motion.name = f"{motion1.name}+{motion2.name}"
     combined_motion.poses.extend(motion2.poses)
 
-    combined_motion.times = list(
-        np.append(
-            combined_motion.times,
-            np.array(motion2.times)
-            + combined_motion.times[-1]
-            + 1.0 / combined_motion.fps,
-        )
-    )
     return combined_motion
 
 
@@ -53,12 +45,7 @@ def cut(motion, frame_start, frame_end):
     """
     cut_motion = motion_class.Motion(skel=motion.skel)
     cut_motion.name = f"{motion.name}_{frame_start}_{frame_end}"
-    cut_motion.times = motion.times[frame_start:frame_end]
     cut_motion.poses = motion.poses[frame_start:frame_end]
-
-    t_init = cut_motion.times[0]
-    for i in range(cut_motion.num_frames()):
-        cut_motion.times[i] -= t_init
 
     return cut_motion
 
@@ -67,19 +54,16 @@ def resample(motion, fps):
     """
     Upsample/downsample frame rate of motion object to `fps` Hz
     """
-    times_new = []
     poses_new = []
 
     dt = 1.0 / fps
-    t = motion.times[0]
-    while t < motion.times[-1]:
+    t = 0
+    while t < motion.fps * len(motion.poses):
         pose = motion.get_pose_by_time(t)
         pose.skel = motion.skel
-        times_new.append(t)
         poses_new.append(pose)
         t += dt
 
-    motion.times = times_new
     motion.poses = poses_new
     motion.fps = fps
     return motion
