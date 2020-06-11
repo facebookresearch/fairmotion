@@ -1,6 +1,4 @@
 import numpy as np
-from basecode.math import mmMath
-from basecode.utils import multiprocessing as mp
 from mocap_processing.motion import motion as motion_classes
 from mocap_processing.utils import constants
 from mocap_processing.utils import conversions
@@ -209,9 +207,9 @@ def save(motion, filename, scale=1.0, verbose=False):
                 joint = motion.skel.get_joint(joint_name)
                 R, p = conversions.T2Rp(pose.get_transform(joint, local=True))
                 p *= scale
-                v = mmMath.R2ZYX(R)
-                v = v * 180.0 / np.pi
-                Rz, Ry, Rx = v[0], v[1], v[2]
+                xyz = conversions.R2E(R.transpose())
+                xyz = xyz * 180.0 / np.pi
+                Rx, Ry, Rz = xyz
                 if joint == motion.skel.root_joint:
                     f.write("%f %f %f %f %f %f " % (p[0], p[1], p[2], Rz, Ry, Rx))
                 else:
@@ -226,60 +224,4 @@ def save(motion, filename, scale=1.0, verbose=False):
         f.close()
 
 
-def _read_motions(job_idx, scale, v_up_skel, v_face_skel, v_up_env):
-    res = []
-    if job_idx[0] >= job_idx[1]:
-        return res
-    for i in range(job_idx[0], job_idx[1]):
-        file = mp.shared_data[i]
-        if file.endswith(".bvh"):
-            motion = load(
-                file=file,
-                scale=scale,
-                v_up_skel=v_up_skel,
-                v_face_skel=v_face_skel,
-                v_up_env=v_up_env,
-            )
-        else:
-            raise Exception("Unknown Motion File Type")
-        res.append(motion)
-    return res
-
-
-def read_motions_parallel(
-    files,
-    num_workers=10,
-    scale=1.0,
-    v_up_skel=np.array([0.0, 1.0, 0.0]),
-    v_face_skel=np.array([0.0, 0.0, 1.0]),
-    v_up_env=np.array([0.0, 1.0, 0.0]),
-):
-    """
-    Load motion files in parallel
-
-    Parameters
-    ----------
-    files : a list of str
-        a list containing motion file names
-    num_worker : int
-        the number of cpus to use
-    scale : float
-        scale for loading motion
-    v_up_skel : numpy array R^3
-        the up vector of skeleton
-    v_face_skel : numpy array R^3
-        the facing vector of skeleton
-    v_up_env : numpy array R^3
-        the up vector of the environment
-    """
-    mp.shared_data = files
-    motions = mp.run_parallel_async_idx(
-        _read_motions,
-        num_workers,
-        len(mp.shared_data),
-        scale,
-        v_up_skel,
-        v_face_skel,
-        v_up_env,
-    )
-    return motions
+# TODO: Add parallel motion file reading feature using multiprocessing

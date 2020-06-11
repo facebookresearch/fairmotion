@@ -78,10 +78,10 @@ def R2E(R):
     https://github.com/una-dinosauria/human-motion-prediction/blob/master/src/
     data_utils.py#L12
     Args:
-        R: An np array of shape (..., 3, 3)
+        R: An np array of shape (..., 3, 3) in row-wise arrangement
     Returns:
         An np array of shape (..., 3) containing the Euler angles for each
-        rotation matrix in `R`
+        rotation matrix in `R`. The Euler angles are in (x, y, z) order
     """
 
     # Rest of the method assumes row-wise arrangement of rotation matrix R
