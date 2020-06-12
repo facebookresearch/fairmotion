@@ -13,8 +13,8 @@ class Joint(object):
         self.parent_joint = None
         self.child_joint = []
         self.index_child_joint = {}
-        self.xform_global = constants.eye_R
-        self.xform_from_parent_joint = constants.eye_R
+        self.xform_global = constants.eye_T
+        self.xform_from_parent_joint = constants.eye_T
         self.info = {"dof": dof}  # set ball joint by default
 
     def get_child_joint(self, key):
