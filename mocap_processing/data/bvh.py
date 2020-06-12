@@ -201,7 +201,7 @@ def save(motion, filename, scale=1.0, verbose=False):
                     % (i + 1, num_frames, motion.fps),
                     end=" ",
                 )
-            pose = motion.get_pose_by_time(t)
+            pose = motion.get_pose_by_frame(i)
 
             for joint_name in joint_order:
                 joint = motion.skel.get_joint(joint_name)

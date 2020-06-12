@@ -17,7 +17,7 @@ from human_body_prior.body_model.body_model import BodyModel
 from human_body_prior.mesh import MeshViewer
 from human_body_prior.tools.omni_tools import copy2cpu as c2c, colors
 from itertools import product
-from mocap_processing.motion.kinematics import Motion
+from mocap_processing.data import bvh
 
 
 def get_dfs_order(parents_np):
@@ -58,7 +58,7 @@ def main(args):
     faces = c2c(bm.f)
 
     img_shape = (1600, 1600)
-    motion = Motion(
+    motion = bvh.load(
         file=args.input_file,
         scale=0.5,
         v_up_skel=np.array([0.0, 1.0, 0.0]),

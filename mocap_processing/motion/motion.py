@@ -231,14 +231,14 @@ class Motion(object):
         return self.fps * frame
 
     def time_to_frame(self, time):
-        return int(time / self.fps)
+        return int(time * self.fps)
 
     def get_pose_by_frame(self, frame):
         assert frame < self.num_frames()
         return self.poses[frame]
 
     def get_pose_by_time(self, time):
-        time = np.clip(time, 0, self.length)
+        time = np.clip(time, 0, self.length())
         frame1 = self.time_to_frame(time)
         frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
