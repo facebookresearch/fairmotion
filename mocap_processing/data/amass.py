@@ -1,8 +1,8 @@
 import torch
 import numpy as np
-from basecode.math import mmMath
 from human_body_prior.body_model.body_model import BodyModel
 from mocap_processing.motion import motion as motion_class
+from mocap_processing.utils import conversions
 
 """
 Structure of npz file in AMASS dataset is as follows.
@@ -70,10 +70,10 @@ def create_skeleton_from_amass_bodymodel(bm, betas, num_joints, joint_names):
         joint = motion_class.Joint(name=joint_names[i])
         if i == 0:
             joint.info["dof"] = 6
-            joint.xform_from_parent_joint = mmMath.p2T(np.zeros(3))
+            joint.xform_from_parent_joint = conversions.p2T(np.zeros(3))
         else:
             joint.info["dof"] = 3
-            joint.xform_from_parent_joint = mmMath.p2T(
+            joint.xform_from_parent_joint = conversions.p2T(
                 base_position[i] - base_position[parents[i]]
             )
         joints.append(joint)
@@ -116,10 +116,14 @@ def create_motion_from_amass_data(filename, bm):
         pose_data = []
         for j in dfs_joint_order:
             if j == 0:
-                T = mmMath.Rp2T(mmMath.exp(root_orient_frame), root_trans_frame,)
+                T = conversions.Rp2T(
+                    conversions.A2R(root_orient_frame), root_trans_frame
+                )
             else:
-                T = mmMath.R2T(
-                    mmMath.exp(pose_body_frame[(j - 1) * 3 : (j - 1) * 3 + 3])
+                T = conversions.R2T(
+                    conversions.A2R(
+                        pose_body_frame[(j - 1) * 3: (j - 1) * 3 + 3]
+                    )
                 )
             pose_data.append(T)
         motion.add_one_frame(frame / fps, pose_data)

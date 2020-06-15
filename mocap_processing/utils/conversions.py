@@ -78,10 +78,10 @@ def R2E(R):
     https://github.com/una-dinosauria/human-motion-prediction/blob/master/src/
     data_utils.py#L12
     Args:
-        R: An np array of shape (..., 3, 3)
+        R: An np array of shape (..., 3, 3) in row-wise arrangement
     Returns:
         An np array of shape (..., 3) containing the Euler angles for each
-        rotation matrix in `R`
+        rotation matrix in `R`. The Euler angles are in (x, y, z) order
     """
 
     # Rest of the method assumes row-wise arrangement of rotation matrix R
@@ -120,9 +120,7 @@ def R2E(R):
     eul = np.stack([e1, e2, e3], axis=-1)
     # Using astype(int) since np.concatenate inadvertently converts elements to
     # float64
-    eul = np.reshape(
-        eul, np.concatenate([orig_shape, eul.shape[1:]]).astype(int)
-    )
+    eul = np.reshape(eul, np.concatenate([orig_shape, eul.shape[1:]]).astype(int))
     return eul
 
 
@@ -176,21 +174,9 @@ def Q2R(Q):
         R.append(
             np.array(
                 [
-                    [
-                        1.0 - q[2, 2] - q[3, 3],
-                        q[1, 2] - q[3, 0],
-                        q[1, 3] + q[2, 0],
-                    ],
-                    [
-                        q[1, 2] + q[3, 0],
-                        1.0 - q[1, 1] - q[3, 3],
-                        q[2, 3] - q[1, 0],
-                    ],
-                    [
-                        q[1, 3] - q[2, 0],
-                        q[2, 3] + q[1, 0],
-                        1.0 - q[1, 1] - q[2, 2],
-                    ],
+                    [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0],],
+                    [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0],],
+                    [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2],],
                 ]
             )
         )
@@ -268,6 +254,17 @@ def Rp2T(R, p):
     T[..., :3, :3] = R_flat
     T[..., :3, 3] = p_flat
     return T.reshape(list(input_shape) + [4, 4])
+
+
+def T2Qp(T):
+    R, p = T2Rp(T)
+    Q = R2Q(R)
+    return Q, p
+
+
+def Qp2T(Q, p):
+    R = Q2R(Q)
+    return Rp2T(R, p)
 
 
 def p2T(p):
