@@ -11,7 +11,8 @@ class TestBVH(unittest.TestCase):
         motion = bvh.load(file="tests/data/sinusoidal.bvh")
 
         # Read pose data from all frames (in Euler angle)
-        file_content = open("tests/data/sinusoidal.bvh").readlines()
+        with open("tests/data/sinusoidal.bvh") as f:
+            file_content = f.readlines()
         for frame_num, line in enumerate(file_content[-motion.num_frames():]):
             # Skip first 3 entries that store translation data, and read the
             # Euler angle data of joints
@@ -33,8 +34,10 @@ class TestBVH(unittest.TestCase):
 
             # Reload saved file and test if it is same as reference file
             # Read pose data from all frames (in Euler angle)
-            orig_file = open("tests/data/sinusoidal.bvh").readlines()
-            saved_file = open(fp.name).readlines()
+            with open("tests/data/sinusoidal.bvh") as f:
+                orig_file = f.readlines()
+            with open(fp.name) as f:
+                saved_file = f.readlines()
             for orig_line, saved_line in zip(
                 orig_file[-motion.num_frames():],
                 saved_file[-motion.num_frames():]
@@ -56,7 +59,8 @@ class TestBVH(unittest.TestCase):
 
             # Reload saved file and test if it has the same data as original
             # motion object
-            file_content = open("tests/data/sinusoidal.bvh").readlines()
+            with open("tests/data/sinusoidal.bvh") as f:
+                file_content = f.readlines()
             for frame_num, line in enumerate(
                 file_content[-motion.num_frames():]
             ):
