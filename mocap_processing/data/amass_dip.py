@@ -141,7 +141,7 @@ def load(
             poses = poses.reshape((-1, len(SMPL_MAJOR_JOINTS), 3, 3))
 
             for pose_id, pose in enumerate(poses):
-                pose_data = [constants.eye_T for _ in range(len(SMPL_JOINTS))]
+                pose_data = [constants.eye_T() for _ in range(len(SMPL_JOINTS))]
                 major_joint_id = 0
                 for joint_id, joint_name in enumerate(SMPL_JOINTS):
                     if joint_id in SMPL_MAJOR_JOINTS:

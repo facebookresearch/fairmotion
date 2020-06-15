@@ -111,7 +111,7 @@ def load(
                     cnt_channel = 0
                     pose_data = []
                     for joint in motion.skel.joints:
-                        T = constants.eye_T
+                        T = constants.eye_T()
                         for channel in joint.info["bvh_channels"]:
                             value = raw_values[cnt_channel]
                             if channel == "xposition":

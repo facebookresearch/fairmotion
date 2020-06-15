@@ -89,7 +89,7 @@ def linearInterpol(v0, v1, t):
 def invertT(T):
     R = T[:3, :3]
     p = T[:3, 3]
-    invT = constants.eye_T
+    invT = constants.eye_T()
     R_trans = R.transpose()
     R_trans_p = np.dot(R_trans, p)
     invT[:3, :3] = R_trans

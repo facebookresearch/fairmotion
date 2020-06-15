@@ -250,7 +250,7 @@ def Rp2T(R, p):
     R_flat = R.reshape((-1, 3, 3))
     p_flat = p.reshape((-1, 3))
     T = np.zeros((int(np.prod(input_shape)), 4, 4))
-    T[...] = constants.eye_T.copy()
+    T[...] = constants.eye_T()
     T[..., :3, :3] = R_flat
     T[..., :3, 3] = p_flat
     return T.reshape(list(input_shape) + [4, 4])
@@ -268,11 +268,11 @@ def Qp2T(Q, p):
 
 
 def p2T(p):
-    return Rp2T(constants.eye_R, np.array(p))
+    return Rp2T(constants.eye_R(), np.array(p))
 
 
 def R2T(R):
-    return Rp2T(R, constants.zero_p)
+    return Rp2T(R, constants.zero_p())
 
 
 def Ax2R(Ax):

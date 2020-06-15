@@ -13,8 +13,8 @@ class Joint(object):
         self.parent_joint = None
         self.child_joint = []
         self.index_child_joint = {}
-        self.xform_global = constants.eye_T
-        self.xform_from_parent_joint = constants.eye_T
+        self.xform_global = constants.eye_T()
+        self.xform_from_parent_joint = constants.eye_T()
         self.info = {"dof": dof}  # set ball joint by default
 
     def get_child_joint(self, key):
@@ -183,7 +183,7 @@ class Pose(object):
         assert num_joints == skel.num_joints(), "Data for all joints not provided"
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
-            "mocap_processing.utils.constants.eye_T for template identity "
+            "mocap_processing.utils.constants.eye_T() for template identity "
             "matrix"
         )
         pose = cls(skel)
@@ -294,7 +294,7 @@ class Motion(object):
         assert num_joints == skel.num_joints(), "Data for all joints not provided"
         assert T_0 == 4 and T_1 == 4, (
             "Data not provided in 4x4 transformation matrix format. Use "
-            "mocap_processing.utils.constants.eye_T for template identity "
+            "mocap_processing.utils.constants.eye_T() for template identity "
             "matrix"
         )
         if fps is None:

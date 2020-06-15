@@ -3,9 +3,9 @@ import numpy as np
 
 EPSILON = np.finfo(float).eps
 
-eye_R = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], float)
+EYE_R = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], float)
 
-eye_T = np.array(
+EYE_T = np.array(
     [
         [1.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 0.0, 0.0],
@@ -15,6 +15,22 @@ eye_T = np.array(
     float,
 )
 
-zero_p = np.array([0.0, 0.0, 0.0], float)
+ZERO_P = np.array([0.0, 0.0, 0.0], float)
 
-zero_R = np.zeros((3, 3))
+ZERO_R = np.zeros((3, 3))
+
+
+def eye_T():
+    return EYE_T.copy()
+
+
+def eye_R():
+    return EYE_R.copy()
+
+
+def zero_p():
+    return ZERO_P.copy()
+
+
+def zero_R():
+    return ZERO_R.copy()

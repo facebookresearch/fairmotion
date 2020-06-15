@@ -17,7 +17,7 @@ def get_random_R():
 def get_random_T():
     R = get_random_R()
     p = np.random.rand(3)
-    T = constants.eye_T
+    T = constants.eye_T()
     T[:3, :3] = R
     T[:3, 3] = p
     return T
