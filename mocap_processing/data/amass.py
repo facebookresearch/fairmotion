@@ -100,21 +100,20 @@ def create_motion_from_amass_data(filename, bm):
 
     fps = float(bdata["mocap_framerate"])
     root_orient = bdata["poses"][:, :3]  # controls the global root orientation
-    pose_body = bdata["poses"][:, 3:66]  # controls 156 body
+    pose_body = bdata["poses"][:, 3:66]  # controls body joint angles
     trans = bdata["trans"][:, :3]  # controls the finger articulation
 
     motion = motion_class.Motion(skel=skel)
 
     num_joints = skel.num_joint()
     parents = bm.kintree_table[0].long()[:num_joints]
-    dfs_joint_order = get_dfs_order(parents)
 
     for frame in range(pose_body.shape[0]):
         pose_body_frame = pose_body[frame]
         root_orient_frame = root_orient[frame]
         root_trans_frame = trans[frame]
         pose_data = []
-        for j in dfs_joint_order:
+        for j in range(num_joints):
             if j == 0:
                 T = conversions.Rp2T(
                     conversions.A2R(root_orient_frame), root_trans_frame
