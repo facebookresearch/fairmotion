@@ -7,6 +7,7 @@ import numpy as np
 
 from fairmotion.utils import constants, utils
 from scipy.spatial.transform import Rotation
+from transforms3d.euler import euler2mat
 
 import warnings
 
@@ -289,7 +290,9 @@ def T2Qp(T):
 def Ap2T(A, p):
     return Rp2T(A2R(A), p)
 
-
+def E2R(theta) :
+    return euler2mat(*theta)
+    
 def Ep2T(E, p, order="xyz", degrees=False):
     return Rp2T(E2R(E, order, degrees), p)
 
