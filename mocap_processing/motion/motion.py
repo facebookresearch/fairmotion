@@ -95,7 +95,7 @@ class Pose(object):
         assert isinstance(skel, Skeleton)
         if data is None:
             data = [constants.eye_T for _ in range(skel.num_joint())]
-        assert skel.num_joint() == len(data)
+        assert skel.num_joint() == len(data), "{} vs. {}".format(skel.num_joint(), len(data))
         self.skel = skel
         self.data = data
 

@@ -1,7 +1,7 @@
 import numpy as np
 import tempfile
 import unittest
-from mocap_processing.data import bvh
+from mocap_processing.data import bvh, asfamc
 from mocap_processing.utils import conversions
 
 
@@ -74,6 +74,10 @@ class TestBVH(unittest.TestCase):
                     E = conversions.rad2deg(conversions.R2E(R.transpose()))
                     np.testing.assert_almost_equal(E, true_E)
 
+class TestASFAMC(unittest.TestCase):
+    def test_load_motion(self):
+        # Load file
+        motion = asfamc.load(file="tests/data/11.asf", motion='tests/data/11_01.amc')
 
 if __name__ == "__main__":
     unittest.main()
