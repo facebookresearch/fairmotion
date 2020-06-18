@@ -275,6 +275,16 @@ def R2T(R):
     return Rp2T(R, constants.zero_p())
 
 
+def T2p(T):
+    _, p = T2Rp(T)
+    return p
+
+
+def T2R(T):
+    R, _ = T2Rp(T)
+    return R
+
+
 def Ax2R(Ax):
     """
     Convert (axis) angle along x axis Ax to rotation matrix R
