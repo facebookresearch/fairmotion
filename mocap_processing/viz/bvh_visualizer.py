@@ -105,12 +105,12 @@ def keyboard_callback(state, key):
     return True
 
 
-def render_pose(pose, body_model, color):
+def render_pose(pose, body_model, color, scale=1.0):
     skel = pose.skel
     for j in skel.joints:
         T = pose.get_transform(j, local=False)
         pos = conversions.T2p(T)
-        gl_render.render_point(pos, radius=0.03, color=color)
+        gl_render.render_point(pos, radius=0.03 * scale, color=color)
         if j.parent_joint is not None:
             # returns X that X dot vec1 = vec2
             pos_parent = conversions.T2p(pose.get_transform(j.parent_joint, local=False))
@@ -118,10 +118,10 @@ def render_pose(pose, body_model, color):
             l = np.linalg.norm(pos_parent - pos)
             r = 0.05
             R = operations.get_R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
-            gl_render.render_capsule(conversions.Rp2T(R, p), l, r, color=color, slice=8)
+            gl_render.render_capsule(conversions.Rp2T(R, p), l, r * scale, color=color, slice=8)
 
 
-def render_characters(motions, cur_time, colors):
+def render_characters(motions, cur_time, colors, scale=1.0):
     for i, motion in enumerate(motions):
         time_offset = 0.0
         t = (cur_time + time_offset) % motion.length()
@@ -133,7 +133,7 @@ def render_characters(motions, cur_time, colors):
         glEnable(GL_DEPTH_TEST)
 
         glEnable(GL_LIGHTING)
-        render_pose(pose, "stick_figure2", color)
+        render_pose(pose, "stick_figure2", color, scale)
 
 
 def render_callback(state):
@@ -141,6 +141,7 @@ def render_callback(state):
     motions = state["motions"]
     v_up_env = state["v_up_env"]
     hide_origin = state["args"].hide_origin
+    scale = state["args"].scale
 
     gl_render.render_ground(
         size=[100, 100], color=[0.8, 0.8, 0.8], axis=utils.axis_to_str(v_up_env), origin=not hide_origin, use_arrow=True
@@ -150,7 +151,7 @@ def render_callback(state):
         np.array([220, 220, 220, 120]) / 255.0,  # grey
         np.array([85, 160, 173, 255]) / 255.0,  # blue
     ]
-    render_characters(motions, cur_time, colors)
+    render_characters(motions, cur_time, colors, scale)
 
 
 def idle_callback(state):
