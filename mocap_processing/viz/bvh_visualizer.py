@@ -5,17 +5,18 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-from basecode.math import mmMath
-from basecode.render import camera, gl_render, glut_viewer as viewer
-from basecode.utils import basics
+from mocap_processing.viz import (
+    camera, gl_render, glut_viewer as viewer, utils as viz_utils
+)
 from mocap_processing.data import bvh
 from mocap_processing.processing import operations
-from mocap_processing.utils import utils
+from mocap_processing.utils import conversions, utils
 
 
 def keyboard_callback(state, key):
     cur_time = state["cur_time"]
     time_checker_auto_play = state["time_checker_auto_play"]
+    time_checker_global = state["time_checker_global"]
     motions = state["motions"]
     play_speed = state["play_speed"]
     args = state["args"]
@@ -45,8 +46,8 @@ def keyboard_callback(state, key):
         pose = motion.get_pose_by_frame(motion.time_to_frame(cur_time))
         heights = []
         for j in pose.skel.joints:
-            p = mmMath.T2p(pose.get_transform(j, local=False))
-            p = mmMath.projectionOnVector(p, pose.skel.v_up_env)
+            p = conversions.T2p(pose.get_transform(j, local=False))
+            p = operations.projectionOnVector(p, pose.skel.v_up_env)
             heights.append(np.linalg.norm(p))
         print(np.min(heights), np.max(heights))
     elif key == b",":
@@ -84,7 +85,7 @@ def keyboard_callback(state, key):
         dt = 1 / fps
         while state["cur_time"] <= end_time:
             name = "screenshot_%04d" % (cnt_screenshot)
-            p = mmMath.T2p(motion.get_pose_by_time(cur_time).get_root_transform())
+            p = conversions.T2p(motion.get_pose_by_time(cur_time).get_root_transform())
             viewer.drawGL()
             viewer.save_screen(dir=save_dir, name=name)
             print("\rtime_elased:", state["cur_time"], "(", name, ")", end=" ")
@@ -95,6 +96,7 @@ def keyboard_callback(state, key):
 
     state["cur_time"] = cur_time
     state["time_checker_auto_play"] = time_checker_auto_play
+    state["time_checker_global"] = time_checker_global
     state["motions"] = motions
     state["play_speed"] = play_speed
     state["args"] = args
@@ -107,16 +109,16 @@ def render_pose(pose, body_model, color):
     skel = pose.skel
     for j in skel.joints:
         T = pose.get_transform(j, local=False)
-        pos = mmMath.T2p(T)
+        pos = conversions.T2p(T)
         gl_render.render_point(pos, radius=0.03, color=color)
         if j.parent_joint is not None:
             # returns X that X dot vec1 = vec2
-            pos_parent = mmMath.T2p(pose.get_transform(j.parent_joint, local=False))
+            pos_parent = conversions.T2p(pose.get_transform(j.parent_joint, local=False))
             p = 0.5 * (pos_parent + pos)
             l = np.linalg.norm(pos_parent - pos)
             r = 0.05
-            R = mmMath.getSO3FromVectors(np.array([0, 0, 1]), pos_parent - pos)
-            gl_render.render_capsule(mmMath.Rp2T(R, p), l, r, color=color, slice=8)
+            R = operations.get_R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
+            gl_render.render_capsule(conversions.Rp2T(R, p), l, r, color=color, slice=8)
 
 
 def render_characters(motions, cur_time, colors):
@@ -185,11 +187,11 @@ def main(args):
     state = {
         "motions": [],
         "v_up_env": utils.str_to_axis(args.axis_up),
-        "time_checker_auto_play": basics.TimeChecker(),
+        "time_checker_auto_play": viz_utils.TimeChecker(),
         "cur_time": 0.0,
         "play_speed": args.speed,
         "file_idx": 0,
-        "time_checker_global": basics.TimeChecker(),
+        "time_checker_global": viz_utils.TimeChecker(),
         "args": args,
     }
 
@@ -241,8 +243,8 @@ if __name__ == "__main__":
         "--x-offset",
         type=int,
         default=2,
-        help="Translates each"
-        " character by x-offset*idx to display them simultaneously side-by-side",
+        help="Translates each character by x-offset*idx to display them "
+        "simultaneously side-by-side",
     )
     args = parser.parse_args()
     main(args)

@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 from mocap_processing.motion import motion as motion_class
-from mocap_processing.utils import constants, conversions
+from mocap_processing.utils import constants, conversions, utils
 
 
 def append(motion1, motion2):
@@ -149,4 +149,29 @@ def rotZ(theta):
     R[0, 1] = -s
     R[1, 0] = s
     R[1, 1] = c
+    return R
+
+
+def get_R_from_vectors(vec1, vec2):
+    """
+    Returns R such that R dot vec1 = vec2
+    """
+    vec1 = utils.normalize(vec1)
+    vec2 = utils.normalize(vec2)
+
+    rot_axis = utils.normalize(np.cross(vec1, vec2))
+    inner = np.inner(vec1, vec2)
+    theta = math.acos(inner)
+
+    if rot_axis[0] == 0 and rot_axis[1] == 0 and rot_axis[2] == 0:
+        rot_axis = [0, 1, 0]
+
+    x, y, z = rot_axis
+    c = inner
+    s = math.sin(theta)
+    R = np.array([
+        [c + (1.0-c)*x*x, (1.0-c)*x*y - s*z, (1-c)*x*z + s*y],
+        [(1.0-c)*x*y + s*z, c + (1.0-c)*y*y, (1.0-c)*y*z - s*x],
+        [(1.0-c)*z*x - s*y, (1.0-c)*z*y + s*x, c + (1.0-c)*z*z]
+    ])   
     return R
