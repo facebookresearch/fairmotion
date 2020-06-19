@@ -45,20 +45,6 @@ joint_names = [
 ]
 
 
-def get_dfs_order(parents):
-    parents_np = parents.detach().numpy()
-    stack = []
-
-    def dfs(stack, joint):
-        stack.append(joint)
-        for i in range(len(parents_np)):
-            if parents_np[i] == joint:
-                dfs(stack, i)
-
-    dfs(stack, 0)
-    return stack
-
-
 def create_skeleton_from_amass_bodymodel(bm, betas, num_joints, joint_names):
     pose_body_zeros = torch.zeros((1, 3 * (num_joints - 1)))
     body = bm(pose_body=pose_body_zeros, betas=betas)
