@@ -9,7 +9,6 @@ setup(
     author_email="dgopinath@fb.com",
     install_requires=[
         "amass @ git+https://github.com/nghorbani/amass#egg=amass",
-        "basecode @ git+https://github.com/Jungdam/basecode#egg=basecode",
         "black",
         "jupyter",
         "matplotlib",

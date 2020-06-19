@@ -12,9 +12,7 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 from mocap_processing.motion.pfnn import Animation, BVH
-from basecode.render import glut_viewer as viewer
-from basecode.render import gl_render
-from basecode.utils import basics
+from mocap_processing.viz import gl_render, glut_viewer as viewer
 
 
 def render(global_positions, frame_num, joint_parents):

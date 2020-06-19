@@ -10,7 +10,7 @@ To run a clean install of the library, first create a virtual environment with P
 virtualenv --python=python3 FOLDER/mocap_processing
 . FOLDER/mocap_processing/bin/activate
 ```
-Now install the project using `pip`. This will also pull in external dependencies [basecode](https://github.com/Jungdam/basecode/) and [amass](https://github.com/nghorbani/amass).
+Now install the project using `pip`. This will also pull in external dependency [amass](https://github.com/nghorbani/amass).
 ```
 pip install -e .
 ```
