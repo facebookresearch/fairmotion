@@ -255,7 +255,7 @@ class Motion(object):
         return len(self.poses)
 
     def length(self):
-        return self.fps * len(self.poses)
+        return  (len(self.poses) - 1)/self.fps
 
     def to_matrix(self, local=True):
         """
