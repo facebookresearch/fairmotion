@@ -172,13 +172,10 @@ def idle_callback(state):
 def overlay_callback(state):
     if state["args"].render_overlay:
         w, h = viewer.window_size
-        # print(state["cur_time"])
-        # print(state["motions"][0].length())
         t = state["cur_time"] % state["motions"][0].length()
         frame = state['motions'][0].time_to_frame(t)
-        status = "SEED SEQUENCE" if frame < 120 else "PREDICTION SEQUENCE"
         gl_render.render_text(
-            f"Frame number: {frame} | {status}",
+            f"Frame number: {frame}",
             pos=[0.05*w, 0.95*h],
             font=GLUT_BITMAP_TIMES_ROMAN_24,
         )
