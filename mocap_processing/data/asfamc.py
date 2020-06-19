@@ -252,7 +252,7 @@ def parse_amc(file_path, joints, skel):
             pose_data.append(constants.eye_T())
     # frames.append(pose_data)
     # TODO:  fps unknown
-    fps = 24
+    fps = 1
     motion.add_one_frame(frame / fps, pose_data)
     frame += 1
   return motion
