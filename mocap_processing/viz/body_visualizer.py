@@ -7,17 +7,17 @@ import argparse
 import cv2
 import numpy as np
 import pyrender
-import sys, os
+import os
 import torch
 import tqdm
 import trimesh
 
-from basecode.math import mmMath
 from human_body_prior.body_model.body_model import BodyModel
 from human_body_prior.mesh import MeshViewer
 from human_body_prior.tools.omni_tools import copy2cpu as c2c, colors
-from itertools import product
 from mocap_processing.data import bvh
+from mocap_processing.processing import operations
+from mocap_processing.utils import conversions
 
 
 def get_dfs_order(parents_np):
@@ -65,7 +65,7 @@ def main(args):
         v_face_skel=np.array([0.0, 0.0, 1.0]),
         v_up_env=np.array([0.0, 0.0, 1.0]),
     )
-    motion.rotate(mmMath.rotX(mmMath.deg2Rad(-90)))
+    motion.rotate(operations.rotX(conversions.deg2Rad(-90)))
     mv = prepare_mesh_viewer(img_shape)
 
     out = cv2.VideoWriter(
@@ -78,8 +78,8 @@ def main(args):
     for frame in tqdm.tqdm(range(motion.num_frame())):
         pose = motion.get_pose_by_frame(frame)
 
-        R, p = mmMath.T2Rp(pose.data[0])
-        root_orient = mmMath.logSO3(R)
+        R, p = conversions.T2Rp(pose.data[0])
+        root_orient = conversions.R2A(R)
         trans = p
 
         num_joints = len(pose.data) - 1
@@ -91,7 +91,7 @@ def main(args):
                 continue
             pose_idx = amass_joint - 1
             # Convert rotation matrix to axis angle
-            axis_angles = mmMath.logSO3(mmMath.T2R(pose.data[motion_joint]))
+            axis_angles = conversions.R2A(conversions.T2R(pose.data[motion_joint]))
             body_model_pose_data[pose_idx * 3 : pose_idx * 3 + 3] = axis_angles
 
         pose_data_t = torch.Tensor(body_model_pose_data).to(comp_device).unsqueeze(0)
