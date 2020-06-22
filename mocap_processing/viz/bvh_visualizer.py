@@ -8,7 +8,7 @@ from OpenGL.GLUT import *
 from mocap_processing.viz import (
     camera, gl_render, glut_viewer as viewer, utils as viz_utils
 )
-from mocap_processing.data import bvh
+from mocap_processing.data import bvh, asfamc
 from mocap_processing.processing import operations
 from mocap_processing.utils import conversions, utils
 
@@ -195,16 +195,23 @@ def main(args):
 
     v_up_env = state["v_up_env"]
 
-    motions = [
-        bvh.load(
-            file=filename,
-            v_up_skel=utils.str_to_axis(args.axis_up),
-            v_face_skel=utils.str_to_axis(args.axis_face),
-            v_up_env=v_up_env,
-            scale=args.scale,
-        )
-        for filename in args.bvh_files
-    ]
+    if args.bvh_files:
+        motions = [
+            bvh.load(
+                file=filename,
+                v_up_skel=utils.str_to_axis(args.axis_up),
+                v_face_skel=utils.str_to_axis(args.axis_face),
+                v_up_env=v_up_env,
+                scale=args.scale,
+            )
+            for filename in args.bvh_files
+        ]
+    else:
+        motions = [
+            asfamc.load(file=f, motion=m)
+            for f, m in zip(args.asf_files, args.amc_files)    
+        ]
+
 
     for i in range(len(motions)):
         operations.translate(motions[i], [args.x_offset * i, 0, 0])
@@ -230,7 +237,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Visualize BVH file with block body")
-    parser.add_argument("--bvh-files", type=str, nargs="+", required=True)
+    parser.add_argument("--bvh-files", type=str, nargs="+", required=False)
+    parser.add_argument("--asf-files", type=str, nargs="+", required=False)
+    parser.add_argument("--amc-files", type=str, nargs="+", required=False)
+    # visualize asfamc example:
+    # python mocap_processing/viz/bvh_visualizer.py --asf-files tests/data/11.asf --amc-files tests/data/11_01.amc    
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--axis-up", type=str, choices=["x", "y", "z"], default="z")
