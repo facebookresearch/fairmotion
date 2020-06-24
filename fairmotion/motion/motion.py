@@ -11,6 +11,7 @@ from fairmotion.utils import constants
 from fairmotion.utils import conversions
 from fairmotion.utils import utils
 
+from transforms3d.euler import euler2mat
 
 class Joint(object):
     """Defines a joint. A hierarchy of joints form a skeleton.
@@ -360,7 +361,7 @@ class Motion(object):
         return int(time * self.fps)
 
     def get_pose_by_frame(self, frame):
-        assert frame < self.num_frames(), f"{frame} vs. {self.num_frames()}"
+        assert frame < self.num_frames()
         return self.poses[frame]
 
     def get_pose_by_time(self, time):
@@ -388,7 +389,6 @@ class Motion(object):
         """
         Returns time length of motion in seconds. The first frame is considered
         to be at time 0, and the last frame at time self.length().
-
         Example: If fps is 60Hz and there are 120 frames, length() returns
         1.9833. In case there are 121 frames, length() is 2.
         """
