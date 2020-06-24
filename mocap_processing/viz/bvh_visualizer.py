@@ -26,7 +26,7 @@ class MocapViewer(glut_viewer.Viewer):
 
     def keyboard_callback(self, key):
         motion = self.motions[self.file_idx]
-        if key == b"r":
+        if key == b"s":
             self.cur_time = 0.0
             self.time_checker.begin()
         elif key == b"]":
@@ -39,34 +39,21 @@ class MocapViewer(glut_viewer.Viewer):
             self.play_speed = min(self.play_speed + 0.2, 5.0)
         elif key == b"-":
             self.play_speed = max(self.play_speed - 0.2, 0.2)
-        elif key == b"c":
+        elif key == b"r":
             start_time = 0.0
-            end_time = input("Enter end time (s): ")
-            fps = input("Enter fps (Hz): ")
-            try:
-                end_time = float(end_time)
-                fps = float(fps)
-            except ValueError:
-                print("That is not a number!")
-                return
-
-            save_dir = input("Enter subdirectory for screenshot file: ")
-
-            try:
-                os.makedirs(save_dir, exist_ok=True)
-            except OSError:
-                print("Invalid Subdirectory")
-                return
-
+            end_time = self.motions[0].length()
+            fps = self.motions[0].fps
+            save_dir = input("Enter directory to store screenshots: ")
+            os.makedirs(save_dir, exist_ok=True)
             cnt_screenshot = 0
             time_processed = start_time
             dt = 1 / fps
             while self.cur_time <= end_time:
+                print(f"Recording progress: {self.cur_time:.2f}s/{end_time:.2f}s ({int(100*self.cur_time/end_time)}%) \r", end="")
                 name = "screenshot_%04d" % (cnt_screenshot)
                 p = conversions.T2p(motion.get_pose_by_time(self.cur_time).get_root_transform())
-                self.drawGL()
+                self.draw_GL()
                 self.save_screen(dir=save_dir, name=name)
-                print(f"Time_elased: {self.cur_time}({name})")
                 self.cur_time += dt
                 cnt_screenshot += 1
         else:
@@ -187,6 +174,5 @@ if __name__ == "__main__":
         help="Translates each character by x-offset*idx to display them "
         "simultaneously side-by-side",
     )
-    parser.add_argument("--record", action="store_true")
     args = parser.parse_args()
     main(args)

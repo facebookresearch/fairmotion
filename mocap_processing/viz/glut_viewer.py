@@ -121,7 +121,7 @@ class Viewer():
         glEnable(GL_COLOR_MATERIAL)
 
 
-    def resize_gl(self, w, h):
+    def resize_GL(self, w, h):
         self.window_size = (w, h)
         glViewport(0, 0, w, h)
         glMatrixMode(GL_PROJECTION)
@@ -130,7 +130,7 @@ class Viewer():
         glMatrixMode(GL_MODELVIEW)
 
 
-    def draw_gl(self):
+    def draw_GL(self):
         # Clear The Screen And The Depth Buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -223,9 +223,9 @@ class Viewer():
 
         # Init functions
         # glutFullScreen()
-        glutDisplayFunc(self.draw_gl)
+        glutDisplayFunc(self.draw_GL)
         glutIdleFunc(self.idle_callback)
-        glutReshapeFunc(self.resize_gl)
+        glutReshapeFunc(self.resize_GL)
         glutKeyboardFunc(self.key_pressed)
         glutMouseFunc(self.mouse_func)
         glutMotionFunc(self.motion_func)
@@ -236,20 +236,9 @@ class Viewer():
         # Run
         glutMainLoop()
 
-
-    def save_cam(self, filename):
-        with gzip.open(filename, "wb") as f:
-            pickle.dump(self.cam_cur, f)
-
-
-    def load_cam(self, filename):
-        with gzip.open(filename, "rb") as f:
-            self.cam_cur = pickle.load(f)
-
-
     def save_screen(self, dir, name, format="png", render=False):
         if render:
-            draw_gl()
+            self.draw_GL()
         x, y, width, height = glGetIntegerv(GL_VIEWPORT)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
         data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
