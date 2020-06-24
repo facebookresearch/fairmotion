@@ -6,9 +6,10 @@ from mocap_processing.utils import constants
 from mocap_processing.utils import conversions
 from mocap_processing.utils import utils
 
+from transforms3d.euler import euler2mat
 
 class Joint(object):
-    def __init__(self, name=None, dof=3):
+    def __init__(self, name=None, dof=3, limits=None, direction=None, length=None, axis=None):
         self.name = name if name else f"joint_{random.getrandbits(32)}"
         self.parent_joint = None
         self.child_joint = []
@@ -16,6 +17,24 @@ class Joint(object):
         self.xform_global = constants.eye_T()
         self.xform_from_parent_joint = constants.eye_T()
         self.info = {"dof": dof}  # set ball joint by default
+
+        self.length = length
+
+        if axis is not None:
+            axis = np.deg2rad(axis)
+            self.C = euler2mat(*axis)
+            self.Cinv = np.linalg.inv(self.C)
+        if direction is not None:      
+            self.direction = np.reshape(direction, [3, 1])
+        if limits is not None:
+            self.limits = np.zeros([3, 2])
+            for lm, nm in zip(limits, dof):
+                if nm == 'rx':
+                    self.limits[0] = lm
+                elif nm == 'ry':
+                    self.limits[1] = lm
+                else:
+                    self.limits[2] = lm
 
     def get_child_joint(self, key):
         return self.child_joint[utils.get_index(self.index_child_joint, key)]
@@ -95,7 +114,7 @@ class Pose(object):
         assert isinstance(skel, Skeleton)
         if data is None:
             data = [constants.eye_T for _ in range(skel.num_joint())]
-        assert skel.num_joint() == len(data), "{} vs. {}".format(skel.num_joint(), len(data))
+        assert skel.num_joint() == len(data), f"{skel.num_joint()} vs. {len(data)}"
         self.skel = skel
         self.data = data
 
@@ -234,7 +253,7 @@ class Motion(object):
         return int(time * self.fps)
 
     def get_pose_by_frame(self, frame):
-        assert frame < self.num_frames(), "{}vs. {}".format(frame, self.num_frames())
+        assert frame < self.num_frames(), f"{frame}vs. {self.num_frames()}"
         return self.poses[frame]
 
     def get_pose_by_time(self, time):
