@@ -44,7 +44,7 @@ def cut(motion, frame_start, frame_end):
     """
     Returns motion object with poses from [frame_start, frame_end) only
     """
-    cut_motion = motion_class.Motion(skel=motion.skel)
+    cut_motion = copy.deepcopy(motion)
     cut_motion.name = f"{motion.name}_{frame_start}_{frame_end}"
     cut_motion.poses = motion.poses[frame_start:frame_end]
 
@@ -73,7 +73,7 @@ def resample(motion, fps):
 def position_wrt_root(motion):
     matrix = motion.to_matrix(local=False)
     # Extract positions
-    matrix = matrix[:, :, 0:2, 3]
+    matrix = matrix[:, :, :3, 3]
     # Subtract root position from all joint positions
     matrix = matrix - matrix[:, np.newaxis, 0]
     return matrix

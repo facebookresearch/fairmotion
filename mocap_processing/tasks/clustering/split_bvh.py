@@ -1,38 +1,28 @@
 import argparse
 import os
-from mocap_processing.motion.pfnn import Quaternions, Animation, BVH
-
-
-def create_anim_from_indices(anim, start, end):
-    if end > len(anim):
-        return None
-    return Animation.Animation(
-        anim.rotations[start:end],
-        anim.positions[start:end],
-        anim.orients,
-        anim.offsets,
-        anim.parents,
-    )
+import tqdm
+from mocap_processing.data import bvh
+from mocap_processing.processing import operations
 
 
 def split_bvh(filepath, time_window, output_folder):
-    anim, joints, time_per_frame = BVH.load(filepath)
-    frames_per_time_window = int(time_window / time_per_frame)
-    for num, i in enumerate(range(0, len(anim), frames_per_time_window / 2)):
-        anim_slice = create_anim_from_indices(anim, i, i + frames_per_time_window)
+    motion = bvh.load(filepath)
+    frames_per_time_window = time_window * motion.fps
+    for num, i in enumerate(
+        range(0, motion.num_frames(), int(frames_per_time_window/2))
+    ):
+        motion_slice = operations.cut(motion, i, i + frames_per_time_window)
         filepath_slice = os.path.join(
             output_folder,
             filepath.split(".")[-2].split("/")[-1] + "_" + str(num) + ".bvh",
         )
-        if anim_slice is not None:
-            BVH.save(
-                filepath_slice, anim_slice, joints, time_per_frame,
-            )
+        bvh.save(motion_slice, filepath_slice)
 
 
 def main(args):
+    os.makedirs(args.output_folder, exist_ok=True)
     for root, _, files in os.walk(args.folder, topdown=False):
-        for filename in files:
+        for filename in tqdm.tqdm(files):
             filepath = os.path.join(root, filename)
             split_bvh(filepath, args.time_window, args.output_folder)
 
