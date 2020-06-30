@@ -1,402 +1,28 @@
 """
 Example command:
-python mocap_processing/tasks/clustering/generate_features.py --type kinetic --folder ~/data/clustering_pfnn/pfnn_bvh_split --output-folder ~/data/clustering_pfnn/pfnn_bvh_split_kinetic_joint_position_features
+python mocap_processing/tasks/clustering/generate_features.py \
+    --type kinetic \
+    --folder $PATH_WITH_BVH_FILES \
+    --output-folder $PATH_TO_STORE_FEATURES \
+    --cpu 10
 """
 
 import argparse
 import numpy as np
 import os
-import tqdm
-from collections import defaultdict
-from enum import Enum
 from multiprocessing import Pool
-from mocap_processing.motion.pfnn import Animation, BVH
+from mocap_processing.tasks.clustering.features import kinetic, manual
+from mocap_processing.tasks.clustering.features import utils as feat_utils
+from mocap_processing.data import bvh
 
-
-GENERIC_TO_PFNN_MAPPING = {
-    "neck": "Neck",
-    "lhip": "LeftUpLeg",
-    "rhip": "RightUpLeg",
-    "lwrist": "LeftHand",
-    "rwrist": "RightHand",
-    "belly": "Spine",
-    "chest": "Spine1",
-    "relbow": "RightForeArm",
-    "rshoulder": "RightArm",
-    "lelbow": "LeftForeArm",
-    "lshoulder": "LeftArm",
-    "lankle": "LeftFoot",
-    "rankle": "RightFoot",
-    "rtoes": "RightToeBase",
-    "ltoes": "LeftToeBase",
-    "rknee": "RightLeg",
-    "lknee": "LeftLeg",
-    "root": "LowerBack",
-}
 
 thresholds = None
 
-GENERIC_TO_CMU_MAPPING = {}
 
-
-class Skeleton(Enum):
-    PFNN = "pfnn"
-    CMU = "cmu"
-
-
-def distance_between_points(a, b):
-    return np.linalg.norm(np.array(a) - np.array(b))
-
-
-def distance_from_plane(a, b, c, p, threshold):
-    ba = np.array(b) - np.array(a)
-    ca = np.array(c) - np.array(a)
-    cross = np.cross(ca, ba)
-
-    pa = np.array(p) - np.array(a)
-    return np.dot(cross, pa) / np.linalg.norm(cross) > threshold
-
-
-def distance_from_plane_normal(n1, n2, a, p, threshold):
-    normal = np.array(n2) - np.array(n1)
-    pa = np.array(p) - np.array(a)
-    return np.dot(normal, pa) / np.linalg.norm(normal) > threshold
-
-
-def angle_within_range(j1, j2, k1, k2, range):
-    j = np.array(j2) - np.array(j1)
-    k = np.array(k2) - np.array(k1)
-
-    angle = np.arccos(np.dot(j, k) / (np.linalg.norm(j) * np.linalg.norm(k)))
-    angle = np.degrees(angle)
-
-    if angle > range[0] and angle < range[1]:
-        return True
-    else:
-        return False
-
-
-def velocity_direction_above_threshold(
-    j1, j1_prev, j2, j2_prev, p, p_prev, threshold, time_per_frame=1 / 120
-):
-    velocity = np.array(p) - np.array(j1) - (np.array(p_prev) - np.array(j1_prev))
-    direction = np.array(j2) - np.array(j1)
-
-    velocity_along_direction = np.dot(velocity, direction) / np.linalg.norm(direction)
-    velocity_along_direction = velocity_along_direction / time_per_frame
-    return velocity_along_direction > threshold
-
-
-def velocity_direction_above_threshold_normal(
-    j1, j1_prev, j2, j3, p, p_prev, threshold, time_per_frame=1 / 120
-):
-    velocity = np.array(p) - np.array(j1) - (np.array(p_prev) - np.array(j1_prev))
-    j31 = np.array(j3) - np.array(j1)
-    j21 = np.array(j2) - np.array(j1)
-    direction = np.cross(j31, j21)
-
-    velocity_along_direction = np.dot(velocity, direction) / np.linalg.norm(direction)
-    velocity_along_direction = velocity_along_direction / time_per_frame
-    return velocity_along_direction > threshold
-
-
-def velocity_above_threshold(p, p_prev, threshold, time_per_frame=1 / 120):
-    velocity = np.linalg.norm(np.array(p) - np.array(p_prev)) / time_per_frame
-    return velocity > threshold
-
-
-def calc_average_velocity(positions, i, joint_idx, sliding_window, frame_time):
-    current_window = 0
-    average_velocity = np.zeros(len(positions[0][joint_idx]))
-    for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1 < 0 or i + j >= len(positions):
-            continue
-        average_velocity += (
-            positions[i + j][joint_idx] - positions[i + j - 1][joint_idx]
-        )
-        current_window += 1
-    return np.linalg.norm(average_velocity / (current_window * frame_time))
-
-
-def calc_average_acceleration(positions, i, joint_idx, sliding_window, frame_time):
-    current_window = 0
-    average_acceleration = np.zeros(len(positions[0][joint_idx]))
-    for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1 < 0 or i + j + 1 >= len(positions):
-            continue
-        v2 = (
-            positions[i + j + 1][joint_idx] - positions[i + j][joint_idx]
-        ) / frame_time
-        v1 = positions[i + j][joint_idx] - positions[i + j - 1][joint_idx] / frame_time
-        average_acceleration += (v2 - v1) / frame_time
-        current_window += 1
-    return np.linalg.norm(average_acceleration / current_window)
-
-
-def calc_average_velocity_horizontal(
-    positions, i, joint_idx, sliding_window, frame_time, up_vec="z"
-):
-    current_window = 0
-    average_velocity = np.zeros(len(positions[0][joint_idx]))
-    for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1 < 0 or i + j >= len(positions):
-            continue
-        average_velocity += (
-            positions[i + j][joint_idx] - positions[i + j - 1][joint_idx]
-        )
-        current_window += 1
-    if up_vec == "y":
-        average_velocity = np.array([average_velocity[0], average_velocity[2]]) / (
-            current_window * frame_time
-        )
-    elif up_vec == "z":
-        average_velocity = np.array([average_velocity[0], average_velocity[1]]) / (
-            current_window * frame_time
-        )
-    else:
-        raise NotImplementedError
-    return np.linalg.norm(average_velocity)
-
-
-def calc_average_velocity_vertical(
-    positions, i, joint_idx, sliding_window, frame_time, up_vec
-):
-    current_window = 0
-    average_velocity = np.zeros(len(positions[0][joint_idx]))
-    for j in range(-sliding_window, sliding_window + 1):
-        if i + j - 1 < 0 or i + j >= len(positions):
-            continue
-        average_velocity += (
-            positions[i + j][joint_idx] - positions[i + j - 1][joint_idx]
-        )
-        current_window += 1
-    if up_vec == "y":
-        average_velocity = np.array([average_velocity[1]]) / (
-            current_window * frame_time
-        )
-    elif up_vec == "z":
-        average_velocity = np.array([average_velocity[2]]) / (
-            current_window * frame_time
-        )
-    else:
-        raise NotImplementedError
-    return np.linalg.norm(average_velocity)
-
-
-class P95Thresholds:
-    def __init__(self, root_folder, sliding_window=2):
-        print("Calculating velocity clipping values")
-        self.velocities = defaultdict(list)
-        self.sliding_window = sliding_window
-        for root, _, files in os.walk(root_folder, topdown=False):
-            for filename in tqdm.tqdm(files):
-                anim, joints, time_per_frame = BVH.load(os.path.join(root, filename))
-                self.joints = joints
-                self._update_velocities(
-                    Animation.positions_global(anim), time_per_frame
-                )
-        self.thresholds = self._compute_p95_thresholds()
-
-    def _update_velocities(self, positions, frame_time):
-        for i in range(1, len(positions)):
-            for joint_idx in range(len(self.joints)):
-                velocity = calc_average_velocity(
-                    positions, i, joint_idx, self.sliding_window, frame_time
-                )
-                self.velocities[self.joints[joint_idx]].append(velocity)
-
-    def _compute_p95_thresholds(self):
-        return {
-            joint: np.percentile(self.velocities[joint], 95) for joint in self.joints
-        }
-
-    def get_threshold(self, joint_idx):
-        return self.thresholds[self.joints[joint_idx]]
-
-    def __str__(self):
-        print_str = ""
-        for key, value in self.thresholds.items():
-            print_str += "%s: %f\n" % (key, value)
-        return print_str
-
-
-class KineticFeatures:
-    def __init__(self, anim, joints, frame_time, thresholds, up_vec, sliding_window=2):
-        self.local_positions = anim.positions
-        global_positions = Animation.positions_global(anim)
-        for joint in range(len(joints) - 1, 0, -1):
-            global_positions[:, joint] = (
-                global_positions[:, joint] - global_positions[:, anim.parents[joint]]
-            )
-        self.positions = global_positions
-        self.joints = joints
-        self.frame_time = frame_time
-        self.thresholds = thresholds
-        self.up_vec = up_vec
-        self.sliding_window = sliding_window
-
-    def average_kinetic_energy(self, joint):
-        average_kinetic_energy = 0
-        for i in range(1, len(self.positions)):
-            average_velocity = calc_average_velocity(
-                self.positions, i, joint, self.sliding_window, self.frame_time
-            )
-            average_kinetic_energy += average_velocity ** 2
-        average_kinetic_energy = average_kinetic_energy / (len(self.positions) - 1.0)
-        return average_kinetic_energy
-
-    def average_kinetic_energy_horizontal(self, joint):
-        val = 0
-        for i in range(1, len(self.positions)):
-            average_velocity = calc_average_velocity_horizontal(
-                self.positions,
-                i,
-                joint,
-                self.sliding_window,
-                self.frame_time,
-                self.up_vec,
-            )
-            val += average_velocity ** 2
-        val = val / (len(self.positions) - 1.0)
-        return val
-
-    def average_kinetic_energy_vertical(self, joint):
-        val = 0
-        for i in range(1, len(self.positions)):
-            average_velocity = calc_average_velocity_vertical(
-                self.positions,
-                i,
-                joint,
-                self.sliding_window,
-                self.frame_time,
-                self.up_vec,
-            )
-            val += average_velocity ** 2
-        val = val / (len(self.positions) - 1.0)
-        return val
-
-    def average_energy_expenditure(self, joint):
-        val = 0.0
-        for i in range(1, len(self.positions)):
-            val += calc_average_acceleration(
-                self.positions, i, joint, self.sliding_window, self.frame_time
-            )
-        val = val / (len(self.positions) - 1.0)
-        return val
-
-    def local_position_stats(self, joint):
-        return (
-            np.mean(self.local_positions[:, joint], axis=0),
-            np.std(self.local_positions[:, joint], axis=0),
-        )
-
-
-class ManualFeatures:
-    def __init__(self, anim, joints, frame_time, skeleton=Skeleton.PFNN):
-        self.global_positions = Animation.positions_global(anim)
-        self.joints = joints
-        self.frame_time = frame_time
-        self.frame_num = 1
-        self.offsets = anim.offsets
-        if skeleton == Skeleton.PFNN:
-            self.joint_mapping = GENERIC_TO_PFNN_MAPPING
-        else:
-            self.joint_mapping = GENERIC_TO_CMU_MAPPING
-
-        # humerus length
-        self.hl = distance_between_points(
-            self.transform_and_fetch_offset("lshoulder"),
-            self.transform_and_fetch_offset("lelbow"),
-        )
-        # shoulder width
-        self.sw = distance_between_points(
-            self.transform_and_fetch_offset("lshoulder"),
-            self.transform_and_fetch_offset("rshoulder"),
-        )
-        # hip width
-        self.hw = distance_between_points(
-            self.transform_and_fetch_offset("lhip"),
-            self.transform_and_fetch_offset("rhip"),
-        )
-
-    def next_frame(self):
-        self.frame_num += 1
-
-    def transform_and_fetch_position(self, j):
-        if j == "y_unit":
-            return [0, 1, 0]
-        elif j == "minus_y_unit":
-            return [0, -1, 0]
-        elif j == "zero":
-            return [0, 0, 0]
-        elif j == "y_min":
-            return [
-                0,
-                min([y for (_, y, _) in self.global_positions[self.frame_num]]),
-                0,
-            ]
-        return self.global_positions[self.frame_num][
-            self.joints.index(self.joint_mapping[j])
-        ]
-
-    def transform_and_fetch_prev_position(self, j):
-        return self.global_positions[self.frame_num - 1][
-            self.joints.index(self.joint_mapping[j])
-        ]
-
-    def transform_and_fetch_offset(self, j):
-        return self.offsets[self.joints.index(self.joint_mapping[j])]
-
-    def f_move(self, j1, j2, j3, j4, range):
-        j1_prev, j2_prev, j3_prev, j4_prev = [
-            self.transform_and_fetch_prev_position(j) for j in [j1, j2, j3, j4]
-        ]
-        j1, j2, j3, j4 = [
-            self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]
-        ]
-        return velocity_direction_above_threshold(
-            j1, j1_prev, j2, j2_prev, j3, j3_prev, range
-        )
-
-    def f_nmove(self, j1, j2, j3, j4, range):
-        j1_prev, j2_prev, j3_prev, j4_prev = [
-            self.transform_and_fetch_prev_position(j) for j in [j1, j2, j3, j4]
-        ]
-        j1, j2, j3, j4 = [
-            self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]
-        ]
-        return velocity_direction_above_threshold_normal(
-            j1, j1_prev, j2, j3, j4, j4_prev, range
-        )
-
-    def f_plane(self, j1, j2, j3, j4, threshold):
-        j1, j2, j3, j4 = [
-            self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]
-        ]
-        return distance_from_plane(j1, j2, j3, j4, threshold)
-
-    def f_nplane(self, j1, j2, j3, j4, threshold):
-        j1, j2, j3, j4 = [
-            self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]
-        ]
-        return distance_from_plane_normal(j1, j2, j3, j4, threshold)
-
-    def f_angle(self, j1, j2, j3, j4, range):
-        j1, j2, j3, j4 = [
-            self.transform_and_fetch_position(j) for j in [j1, j2, j3, j4]
-        ]
-        return angle_within_range(j1, j2, j3, j4, range)
-
-    def f_fast(self, j1, threshold):
-        j1_prev = self.transform_and_fetch_prev_position(j1)
-        j1 = self.transform_and_fetch_position(j1)
-        return velocity_above_threshold(j1, j1_prev, threshold)
-
-
-def extract_manual_features(anim, joints, time_per_frame):
+def extract_manual_features(motion):
     features = []
-    f = ManualFeatures(anim, joints, time_per_frame, Skeleton.PFNN)
-    for i in range(1, len(anim), 30):
+    f = manual.ManualFeatures(motion, feat_utils.Skeleton.PFNN)
+    for _ in range(1, motion.num_frames(), 30):
         pose_features = []
         pose_features.append(f.f_nmove("neck", "rhip", "lhip", "rwrist", 1.8 * f.hl))
         pose_features.append(f.f_nmove("neck", "lhip", "rhip", "lwrist", 1.8 * f.hl))
@@ -455,10 +81,12 @@ def extract_manual_features(anim, joints, time_per_frame):
     return features
 
 
-def extract_kinetic_features(anim, joints, time_per_frame, thresholds, up_vec):
-    features = KineticFeatures(anim, joints, time_per_frame, thresholds, up_vec)
+def extract_kinetic_features(motion, thresholds, up_vec):
+    features = kinetic.KineticFeatures(
+        motion, 1/motion.fps, thresholds, up_vec,
+    )
     kinetic_feature_vector = []
-    for i in range(len(joints)):
+    for i in range(motion.skel.num_joints()):
         positions_mean, positions_stddev = features.local_position_stats(i)
         feature_vector = np.hstack(
             [
@@ -472,12 +100,12 @@ def extract_kinetic_features(anim, joints, time_per_frame, thresholds, up_vec):
 
 
 def extract_features(filepath, feature_type, thresholds=None, up_vec="z"):
-    anim, joints, time_per_frame = BVH.load(filepath)
+    motion = bvh.load(filepath)
     if feature_type == "manual":
-        return extract_manual_features(anim, joints, time_per_frame)
+        return extract_manual_features(motion)
     else:
         return extract_kinetic_features(
-            anim, joints, time_per_frame, thresholds, up_vec
+            motion, thresholds, up_vec
         )
 
 
@@ -489,7 +117,9 @@ def wrapper_extract_features(inputs):
 
     features = extract_features(filepath, feature_type, thresholds, up_vec)
     filename = filepath.split("/")[-1]
-    with open(os.path.join(args.output_folder, "features.tsv"), "a") as all_features:
+    with open(
+        os.path.join(args.output_folder, "features.tsv"), "a",
+    ) as all_features:
         if args.type == "manual":
             all_features.write(
                 filename
@@ -507,12 +137,13 @@ def wrapper_extract_features(inputs):
             all_features.write(
                 filename + ":" + "\t".join([str(f) for f in features]) + "\n"
             )
-    print("Finished " + filepath)
+    print(f"Finished processing {filepath}")
 
 
 def main(args):
     global thresholds
     thresholds = None
+    os.makedirs(args.output_folder, exist_ok=True)
     pool = Pool(args.cpu)
     for root, _, files in os.walk(args.folder, topdown=False):
         pool.map(
@@ -525,11 +156,13 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract features from BVH files")
+    parser = argparse.ArgumentParser(
+        description="Extract features from BVH files"
+    )
     parser.add_argument(
         "--type",
         nargs="?",
-        choices=["manual", "kinetic", "distribution"],
+        choices=["manual", "kinetic"],
         default="manual",
     )
     parser.add_argument(

@@ -1,12 +1,17 @@
 """
 Example command
-python mocap_processing/tasks/clustering/clustering.py --output-file ~/data/clustering_random_pfnn/random_pfnn_translated_kinetic_local_position_features/clusters.tsv --features ~/data/clustering_random_pfnn/random_pfnn_translated_kinetic_local_position_features/features.tsv --num-clusters 10
+python mocap_processing/tasks/clustering/clustering.py \
+    --features $FEATURES_FILE # see generate_features.py \
+    --type kmeans \
+    --num-clusters $NUM_CLUSTERS \
+    --normalize-features \
+    --clip-features 90 \
+    --output-file $OUTPUT_CSV_FILE \
+    --linkage average
 """
 
 import argparse
 import numpy as np
-import os
-from scipy.cluster.hierarchy import dendrogram, linkage
 from sklearn.cluster import AgglomerativeClustering, DBSCAN, KMeans, OPTICS
 from collections import defaultdict
 
@@ -18,7 +23,8 @@ def calculate_score(centroid, features):
 def get_ranked_clusters(clusters):
     """
     Input:
-    clusters: defaultdict where items are in the format cluster_idx: [(name, score)]
+    clusters: defaultdict where items are in the format
+    cluster_idx: [(name, score)]
 
     Output:
     ranked_clusters: defaultdict where key is cluster index, and entry is
@@ -139,7 +145,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Cluster features with kMeans")
     parser.add_argument("--features", type=str, help="Features tsv file")
     parser.add_argument(
-        "--output-file", type=str, help="File to store information about clusters"
+        "--output-csv", type=str,
+        help="File to store information about clusters",
+        required=True,
     )
     parser.add_argument(
         "--type",
@@ -149,13 +157,16 @@ if __name__ == "__main__":
         help="Clustering technique to be used, one of kmeans and hierarchical",
     )
     parser.add_argument(
-        "--num-clusters", type=int, help="Number of clusters",
+        "--num-clusters", type=int, help="Number of clusters", required=True,
     )
     parser.add_argument(
         "--linkage",
         type=str,
-        help="Type of linkage in agglomerative clusering",
-        default="average",
+        help="Type of linkage in agglomerative clusering. See documentation in"
+        " scikit-learn https://scikit-learn.org/stable/modules/generated/"
+        " sklearn.cluster.AgglomerativeClustering.html",
+        choices=["ward", "complete", "average", "single"],
+        default="ward",
     )
     parser.add_argument(
         "--normalize-features",
@@ -163,7 +174,8 @@ if __name__ == "__main__":
         help="Perform feature normalization",
     )
     parser.add_argument(
-        "--clip-features", type=float, help="Clip feature by percentile", default=95
+        "--clip-features", type=float, help="Clip feature by percentile",
+        default=95,
     )
     args = parser.parse_args()
     main(args)
