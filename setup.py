@@ -15,6 +15,7 @@ setup(
         "numpy",
         "pillow",
         "pyglet @ git+https://github.com/mmatl/pyglet#egg=pyglet",
+        "pyquaternion",
         "scipy",
         "torch",
         "tqdm",

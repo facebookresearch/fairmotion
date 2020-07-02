@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from pyquaternion import Quaternion
 
 from mocap_processing.utils import constants
 from mocap_processing.utils import utils
@@ -59,6 +60,7 @@ def R2A(R):
     Returns:
         A np array of shape (..., 3)
     """
+
     assert R.shape[-1] == 3 and R.shape[-2] == 3, "Invalid input dimension"
     orig_shape = R.shape[:-2]
     rots = np.reshape(R, [-1, 3, 3])
@@ -125,79 +127,35 @@ def R2E(R):
 
 
 def R2Q(R):
-    # TODO: Write batched version of R2Q. Implemented here is iterative version
+    # TODO: Write batched version. Implemented here is iterative version
     input_shape = R.shape
     R_flat = R.reshape((-1, 3, 3))
-    Q = []
-    for R in R_flat:
-        R00 = R[0, 0]
-        R01 = R[0, 1]
-        R02 = R[0, 2]
-        R10 = R[1, 0]
-        R11 = R[1, 1]
-        R12 = R[1, 2]
-        R20 = R[2, 0]
-        R21 = R[2, 1]
-        R22 = R[2, 2]
-        # symmetric matrix K
-        K = np.array(
-            [
-                [R00 - R11 - R22, 0.0, 0.0, 0.0],
-                [R01 + R10, R11 - R00 - R22, 0.0, 0.0],
-                [R02 + R20, R12 + R21, R22 - R00 - R11, 0.0],
-                [R21 - R12, R02 - R20, R10 - R01, R00 + R11 + R22],
-            ]
-        )
-        K /= 3.0
-        # quaternion is eigenvector of K that corresponds to largest eigenvalue
-        w, V = np.linalg.eigh(K)
-        q = V[[3, 0, 1, 2], np.argmax(w)]
-        if q[0] < 0.0:
-            np.negative(q, q)
-        Q.append(q)
-    Q = np.array(Q)
+    Q = np.array([Quaternion(matrix=R).elements for R in R_flat])
     return Q.reshape(list(input_shape[:-2]) + [4])
 
 
 def Q2R(Q):
-    # TODO: Write batched version of R2Q. Implemented here is iterative version
+    # TODO: Write batched version. Implemented here is iterative version
     input_shape = Q.shape
     Q_flat = Q.reshape((-1, 4))
-    R = []
-    for Q in Q_flat:
-        q = np.array(Q, dtype=np.float64, copy=True)
-        n = np.dot(q, q)
-        if n < constants.EPSILON:
-            return np.identity(4)
-        q *= np.sqrt(2.0 / n)
-        q = np.outer(q, q)
-        R.append(
-            np.array(
-                [
-                    [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0],],
-                    [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0],],
-                    [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2],],
-                ]
-            )
-        )
-    R = np.array(R)
+    R = np.array([Quaternion(Q).rotation_matrix for Q in Q_flat])
     return R.reshape(list(input_shape[:-1]) + [3, 3])
 
 
 def Q2A(Q):
-    # TODO: Implement quaternion to axis angle conversion
-    raise NotImplementedError("")
+    input_shape = Q.shape
+    Q_flat = Q.reshape((-1, 4))
+    A = []
+    for Q in Q_flat:
+        A.append(Quaternion(Q).axis * Quaternion(Q).angle)
+    A = np.array(A)
+    return A.reshape(list(input_shape[:-1]) + [3])
 
 
 def A2Q(A):
     """
-    Adopted from https://github.com/facebookresearch/QuaterNet/blob/
-    ce2d8016f749d265da9880a8dcb20a9be1a6d69c/common/quaternion.py#L138
-    Convert axis-angle rotations (aka exponential maps) to quaternions.
-    Stable formula from "Practical Parameterization of Rotations Using the
-    Exponential Map".
-    Expects a tensor of shape (*, 3), where * denotes any number of dimensions.
-    Returns a tensor of shape (*, 4).
+    Expects a tensor of shape (..., 3).
+    Returns a tensor of shape (..., 4).
     """
     assert A.shape[-1] == 3
 
@@ -217,14 +175,14 @@ def Q2E(Q, epsilon=0):
     ce2d8016f749d265da9880a8dcb20a9be1a6d69c/common/quaternion.py#L53
     Convert quaternion(s) Q to Euler angles.
     Order is expected to be "wxyz"
-    Expects a tensor of shape (*, 4), where * denotes any number of dimensions.
-    Returns a tensor of shape (*, 3).
+    Expects a tensor of shape (..., 4).
+    Returns a tensor of shape (..., 3) in xyz order.
     """
     assert Q.shape[-1] == 4
 
     original_shape = list(Q.shape)
     original_shape[-1] = 3
-    Q = Q.view(-1, 4)
+    Q = Q.reshape(-1, 4)
 
     q0 = Q[:, 0]
     q1 = Q[:, 1]
