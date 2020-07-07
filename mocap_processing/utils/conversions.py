@@ -3,6 +3,9 @@ import quaternion
 
 from mocap_processing.utils import constants, utils
 
+import warnings
+
+import cv2
 
 """
 Glossary:
@@ -17,6 +20,10 @@ T: Transition matrix (4,4)
 """
 # TODO: Add batched input support to all conversion methods
 
+def _apply_fn_agnostic_to_vec_mat(input, fn):
+    output = np.array([input]) if input.ndim == 1 else input
+    output = np.apply_along_axis(fn, 1, output)
+    return output[0] if input.ndim == 1 else output
 
 def rad2deg(rad):
     """Convert from radians to degrees."""
@@ -28,12 +35,36 @@ def deg2rad(deg):
     return deg * np.pi / 180.0
 
 
+def A2A(A):
+    """
+    The same 3D orientation could be represented by
+    the two different axis-angle representatons;
+    (axis, angle) and (-axis, 2pi - angle) where 
+    we assume 0 <= angle <= pi. This function forces
+    that it only uses an angle between 0 and 2pi.
+    """
+    def a2a(a):
+        angle = np.linalg.norm(a)
+        if angle <= constants.EPSILON:
+            return a
+        if angle > 2*np.pi:
+            angle = angle%2*np.pi
+            warnings.warn('!!!Angle is larger than 2PI!!!')
+        if angle > np.pi:
+            return (-a/angle) * (2*np.pi-angle)
+        else:
+            return a
+    
+    return _apply_fn_agnostic_to_vec_mat(A, a2a)
+    
+
 def A2R(A):
     return quaternion.as_rotation_matrix(quaternion.from_rotation_vector(A))
 
 
 def R2A(R):
-    return quaternion.as_rotation_vector(quaternion.from_rotation_matrix(R))
+    result = quaternion.as_rotation_vector(quaternion.from_rotation_matrix(R))
+    return A2A(result)
 
 
 def R2E(R):
@@ -101,7 +132,8 @@ def Q2R(Q):
 
 
 def Q2A(Q):
-    return quaternion.as_rotation_vector(quaternion.as_quat_array(Q))
+    result = quaternion.as_rotation_vector(quaternion.as_quat_array(Q))
+    return A2A(result)
 
 
 def A2Q(A):
@@ -201,3 +233,27 @@ def Az2R(Az):
     Convert (axis) angle along z axis Az to rotation matrix R
     """
     return A2R(Az * utils.str_to_axis("z"))
+    
+
+def Q2Q(Q, op, wxyz_in=True):
+    '''
+    change_order:
+    normalize:
+    halfspace:
+    '''
+    def q2q(q):
+        result = q.copy()
+        if 'normalize' in op:
+            norm = np.linalg.norm(result)
+            if norm < constants.EPSILON:
+                raise Exception('Invalid input with zero length')
+            result /= norm
+        if 'halfspace' in op:
+            w_idx = 0 if wxyz_in else 3
+            if result[w_idx] < 0.0:
+                result *= -1.0
+        if 'change_order' in op:
+            result = result[[1,2,3,0]] if wxyz_in else result[[3,0,1,2]]
+        return result
+    
+    return _apply_fn_agnostic_to_vec_mat(Q, q2q)
