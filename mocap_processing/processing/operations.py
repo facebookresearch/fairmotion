@@ -142,39 +142,6 @@ def projectionOnVector(inputVector, directionVector):
     return componentOnVector(inputVector, directionVector) * directionVector
 
 
-# def rotX(theta):
-#     R = constants.eye_R()
-#     c = math.cos(theta)
-#     s = math.sin(theta)
-#     R[1, 1] = c
-#     R[1, 2] = -s
-#     R[2, 1] = s
-#     R[2, 2] = c
-#     return R
-
-
-# def rotY(theta):
-#     R = constants.eye_R()
-#     c = math.cos(theta)
-#     s = math.sin(theta)
-#     R[0, 0] = c
-#     R[0, 2] = s
-#     R[2, 0] = -s
-#     R[2, 2] = c
-#     return R
-
-
-# def rotZ(theta):
-#     R = constants.eye_R()
-#     c = math.cos(theta)
-#     s = math.sin(theta)
-#     R[0, 0] = c
-#     R[0, 1] = -s
-#     R[1, 0] = s
-#     R[1, 1] = c
-#     return R
-
-
 def R_from_vectors(vec1, vec2):
     """
     Returns R such that R dot vec1 = vec2

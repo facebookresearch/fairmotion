@@ -218,21 +218,42 @@ def Ax2R(Ax):
     """
     Convert (axis) angle along x axis Ax to rotation matrix R
     """
-    return A2R(Ax * utils.str_to_axis("x"))
+    R = constants.eye_R()
+    c = math.cos(theta)
+    s = math.sin(theta)
+    R[1, 1] = c
+    R[1, 2] = -s
+    R[2, 1] = s
+    R[2, 2] = c
+    return R
 
 
 def Ay2R(Ay):
     """
     Convert (axis) angle along y axis Ay to rotation matrix R
     """
-    return A2R(Ay * utils.str_to_axis("y"))
+    R = constants.eye_R()
+    c = math.cos(theta)
+    s = math.sin(theta)
+    R[0, 0] = c
+    R[0, 2] = s
+    R[2, 0] = -s
+    R[2, 2] = c
+    return R
 
 
 def Az2R(Az):
     """
     Convert (axis) angle along z axis Az to rotation matrix R
     """
-    return A2R(Az * utils.str_to_axis("z"))
+    R = constants.eye_R()
+    c = math.cos(theta)
+    s = math.sin(theta)
+    R[0, 0] = c
+    R[0, 1] = -s
+    R[1, 0] = s
+    R[1, 1] = c
+    return R
     
 
 def Q2Q(Q, op, wxyz_in=True):
