@@ -5,8 +5,6 @@ from mocap_processing.utils import constants, utils
 
 import warnings
 
-import cv2
-
 """
 Glossary:
 p: position (3,)
@@ -25,6 +23,7 @@ def _apply_fn_agnostic_to_vec_mat(input, fn):
     output = np.apply_along_axis(fn, 1, output)
     return output[0] if input.ndim == 1 else output
 
+
 def rad2deg(rad):
     """Convert from radians to degrees."""
     return rad * 180.0 / np.pi
@@ -36,6 +35,7 @@ def deg2rad(deg):
 
 
 def A2A(A):
+    return A
     """
     The same 3D orientation could be represented by
     the two different axis-angle representatons;
@@ -60,6 +60,10 @@ def A2A(A):
 
 def A2R(A):
     return quaternion.as_rotation_matrix(quaternion.from_rotation_vector(A))
+
+
+def A2Q(A):
+    return quaternion.as_float_array(quaternion.from_rotation_vector(A))
 
 
 def R2A(R):
@@ -127,17 +131,13 @@ def R2Q(R):
     return quaternion.as_float_array(quaternion.from_rotation_matrix(R))
 
 
-def Q2R(Q):
-    return quaternion.as_rotation_matrix(quaternion.as_quat_array(Q))
+def R2T(R):
+    return Rp2T(R, constants.zero_p())
 
 
 def Q2A(Q):
     result = quaternion.as_rotation_vector(quaternion.as_quat_array(Q))
     return A2A(result)
-
-
-def A2Q(A):
-    return quaternion.as_float_array(quaternion.from_rotation_vector(A))
 
 
 def Q2E(Q, epsilon=0):
@@ -168,10 +168,30 @@ def Q2E(Q, epsilon=0):
     return np.reshape(E, original_shape)
 
 
+def Q2R(Q):
+    return quaternion.as_rotation_matrix(quaternion.as_quat_array(Q))
+
+
 def T2Rp(T):
     R = T[..., :3, :3]
     p = T[..., :3, 3]
     return R, p
+
+
+def T2Qp(T):
+    R, p = T2Rp(T)
+    Q = R2Q(R)
+    return Q, p
+
+
+def T2p(T):
+    _, p = T2Rp(T)
+    return p
+
+
+def T2R(T):
+    R, _ = T2Rp(T)
+    return R
 
 
 def Rp2T(R, p):
@@ -185,12 +205,6 @@ def Rp2T(R, p):
     return T.reshape(list(input_shape) + [4, 4])
 
 
-def T2Qp(T):
-    R, p = T2Rp(T)
-    Q = R2Q(R)
-    return Q, p
-
-
 def Qp2T(Q, p):
     R = Q2R(Q)
     return Rp2T(R, p)
@@ -200,27 +214,13 @@ def p2T(p):
     return Rp2T(constants.eye_R(), np.array(p))
 
 
-def R2T(R):
-    return Rp2T(R, constants.zero_p())
-
-
-def T2p(T):
-    _, p = T2Rp(T)
-    return p
-
-
-def T2R(T):
-    R, _ = T2Rp(T)
-    return R
-
-
-def Ax2R(Ax):
+def Ax2R(theta):
     """
     Convert (axis) angle along x axis Ax to rotation matrix R
     """
     R = constants.eye_R()
-    c = math.cos(theta)
-    s = math.sin(theta)
+    c = np.cos(theta)
+    s = np.sin(theta)
     R[1, 1] = c
     R[1, 2] = -s
     R[2, 1] = s
@@ -228,13 +228,13 @@ def Ax2R(Ax):
     return R
 
 
-def Ay2R(Ay):
+def Ay2R(theta):
     """
     Convert (axis) angle along y axis Ay to rotation matrix R
     """
     R = constants.eye_R()
-    c = math.cos(theta)
-    s = math.sin(theta)
+    c = np.cos(theta)
+    s = np.sin(theta)
     R[0, 0] = c
     R[0, 2] = s
     R[2, 0] = -s
@@ -242,13 +242,13 @@ def Ay2R(Ay):
     return R
 
 
-def Az2R(Az):
+def Az2R(theta):
     """
     Convert (axis) angle along z axis Az to rotation matrix R
     """
     R = constants.eye_R()
-    c = math.cos(theta)
-    s = math.sin(theta)
+    c = np.cos(theta)
+    s = np.sin(theta)
     R[0, 0] = c
     R[0, 1] = -s
     R[1, 0] = s
