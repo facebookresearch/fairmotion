@@ -32,19 +32,6 @@ def get_index(index_dict, key):
         return index_dict[key.name]
 
 
-def normalize(v):
-    is_list = type(v) == list
-    length = np.linalg.norm(v)
-    if length > 0.:
-        norm_v = np.array(v)/length
-        if is_list:
-            return list(norm_v)
-        else:
-            return norm_v
-    else:
-        return v
-
-
 def correct_antipodal_quaternions(quat):
     """
     Copied from https://github.com/eth-ait/spl/blob/master/preprocessing/
@@ -113,3 +100,9 @@ def files_in_dir(path, ext=None, keyward=None, sort=False, sample_mode=None, sam
         raise NotImplementedError
     
     return files
+
+
+def _apply_fn_agnostic_to_vec_mat(input, fn):
+    output = np.array([input]) if input.ndim == 1 else input
+    output = np.apply_along_axis(fn, 1, output)
+    return output[0] if input.ndim == 1 else output

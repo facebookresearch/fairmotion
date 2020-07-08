@@ -6,6 +6,9 @@ from mocap_processing.motion import motion as motion_class
 from mocap_processing.utils import constants, conversions, utils
 
 from scipy import stats
+from scipy.spatial.transform import Rotation
+
+import warnings
 
 def append(motion1, motion2):
     assert isinstance(motion1, motion_class.Motion)
@@ -80,6 +83,20 @@ def position_wrt_root(motion):
     return matrix
 
 
+def normalize(v):
+    is_list = type(v) == list
+    length = np.linalg.norm(v)
+    if length > constants.EPSILON:
+        norm_v = np.array(v)/length
+        if is_list:
+            return list(norm_v)
+        else:
+            return norm_v
+    else:
+        warnings.warn('!!!The length of input vector is almost zero!!!')
+        return v
+
+
 def slerp(R1, R2, t):
     return np.dot(R1, conversions.A2R(t * conversions.R2A(np.dot(R1.transpose(), R2))))
 
@@ -99,18 +116,50 @@ def invertT(T):
     return invT
 
 
+def Q_op(Q, op, xyzw_in=True):
+    """
+    change_order:
+    normalize:
+    halfspace:
+    """
+    def q2q(q):
+        result = q.copy()
+        if "normalize" in op:
+            norm = np.linalg.norm(result)
+            if norm < constants.EPSILON:
+                raise Exception("Invalid input with zero length")
+            result /= norm
+        if "halfspace" in op:
+            w_idx = 3 if xyzw_in else 0
+            if result[w_idx] < 0.0:
+                result *= -1.0
+        if "change_order" in op:
+            result = result[[3, 0, 1, 2]] if xyzw_in else result[[1, 2, 3, 0]]
+        return result
+
+    return utils._apply_fn_agnostic_to_vec_mat(Q, q2q)
+
+
+def Q_diff(Q1, Q2):
+    
+
+
+def Q_mult(Q1, Q2):
+    q1 = Rotation.from_quat(Q1)
+    q2 = Rotation.from_quat(Q2)
+    return (q1*q2).as_quat()
+
+
 def Q_closest(Q1, Q2, axis):
-    ''' 
+    """ 
     This computes optimal-in-place orientation given a target orientation Q1 
     and a geodesic curve (Q2, axis). In tutively speaking, the optimal-in-place 
     orientation is the closest orientation to Q1 when we are able to rotate Q2 
-    along the given axis. We assume Q is given in the order of wxyz.
-    '''
-    Q1 = Q1
-    Q2 = Q2
-    ws, vs = Q1[0], Q1[1:4]
-    w0, v0 = Q2[0], Q2[1:4]
-    u = utils.normalize(axis)
+    along the given axis. We assume Q is given in the order of xyzw.
+    """
+    ws, vs = Q1[3], Q1[0:3]
+    w0, v0 = Q2[3], Q2[0:3]
+    u = normalize(axis)
 
     a = ws*w0 + np.dot(vs, v0)
     b = -ws*np.dot(u, v0) + w0*np.dot(vs, u) + np.dot(vs, np.cross(u, v0))
@@ -123,10 +172,10 @@ def Q_closest(Q1, Q2, axis):
 
     if np.dot(Q1, G1) > np.dot(Q1, G2):
         theta = theta1
-        Qnearest = G1 * Q2
+        Qnearest = Q_mult(G1, Q2)
     else:
         theta = theta2
-        Qnearest = G2 * Q2
+        Qnearest = Q_mult(G1, Q2)
 
     return Qnearest, theta
 
@@ -146,10 +195,10 @@ def R_from_vectors(vec1, vec2):
     """
     Returns R such that R dot vec1 = vec2
     """
-    vec1 = utils.normalize(vec1)
-    vec2 = utils.normalize(vec2)
+    vec1 = normalize(vec1)
+    vec2 = normalize(vec2)
 
-    rot_axis = utils.normalize(np.cross(vec1, vec2))
+    rot_axis = normalize(np.cross(vec1, vec2))
     inner = np.inner(vec1, vec2)
     theta = math.acos(inner)
 
@@ -168,12 +217,20 @@ def R_from_vectors(vec1, vec2):
 
 
 def project_rotation_1D(R, axis):
+    """
+    Project a 3D rotation matrix to the closest 1D rotation 
+    when a rotational axis is given
+    """
     Q, angle = Q_closest(conversions.R2Q(R), [1.0, 0.0, 0.0, 0.0], axis)
     return angle
 
 
-def project_rotation_2D(R, axis1, axis2):
-    zyx = conversions.R2E(R)
+def project_rotation_2D(R, axis1, axis2, order='zyx'):
+    """
+    Project a 3D rotation matrix to the 2D rotation 
+    when two rotational axes are given
+    """
+    zyx = conversions.R2E(R, order)
     index1 = utils.axis_to_index(axis1)
     index2 = utils.axis_to_index(axis2)
     if index1==0 and index==1: return np.array(zyx[2],zyx[1])
@@ -186,27 +243,40 @@ def project_rotation_2D(R, axis1, axis2):
 
 
 def project_rotation_3D(R):
+    """
+    Project a 3D rotation matrix to the 3D rotation.
+    It will just returns corresponding axis-angle.
+    """
     return conversions.R2A(R)
 
 
 def project_angular_vel_1D(w, axis):
+    """
+    Project a 3D angular velocity to 1d angular velocity.
+    """
     return np.linalg.norm(np.dot(w, axis))
 
 
 def project_angular_vel_2D(w, axis1, axis2):
+    """
+    Project a 3D angular velocity to 2d angular velocity.
+    """
     index1 = utils.axis_to_index(axis1)
     index2 = utils.axis_to_index(axis2)
     return np.array([w[index1],w[index2]])
 
 
 def project_angular_vel_3D(w):
+    """
+    Project a 3D angular velocity to 3d angular velocity.
+    """
     return w    
 
 
 def truncnorm(mu, sigma, lower, upper):
-    '''
+    """
     Generate a sample from a truncated normal districution
-    '''
+    """
     return np.atleast_1d(stats.truncnorm(
         (lower - mu) / sigma, (upper - mu) / sigma, 
         loc=mu,
@@ -214,9 +284,9 @@ def truncnorm(mu, sigma, lower, upper):
 
 
 def random_unit_vector(dim=3):
-    '''
+    """
     Generate a random unit-vector (whose length is 1.0)
-    '''
+    """
     while True:
         v = np.random.uniform(-1.0, 1.0, size=dim)
         l = np.linalg.norm(v)
@@ -228,9 +298,9 @@ def random_unit_vector(dim=3):
 
 
 def random_position(mu_l, sigma_l, lower_l, upper_l, dim=3):
-    '''
+    """
     Generate a random position by a truncated normal districution
-    '''
+    """
     l = truncnorm(mu=mu_l,
                   sigma=sigma_l,
                   lower=lower_l,
@@ -239,9 +309,9 @@ def random_position(mu_l, sigma_l, lower_l, upper_l, dim=3):
 
 
 def random_rotation(mu_theta, sigma_theta, lower_theta, upper_theta):
-    '''
+    """
     Generate a random position by a truncated normal districution
-    '''
+    """
     theta = truncnorm(mu=mu_theta,
                       sigma=sigma_theta,
                       lower=lower_theta,
@@ -250,22 +320,22 @@ def random_rotation(mu_theta, sigma_theta, lower_theta, upper_theta):
 
 
 def lerp_from_paired_list(x, xy_pairs, clamp=True):
-    ''' 
+    """ 
     Given a list of data points in the shape of [[x0,y0][x1,y1],...,[xN,yN]],
     this returns an interpolated y value that correspoinds to a given x value
-    '''
+    """
     x0, y0 = xy_pairs[0]
     xN, yN = xy_pairs[-1]
     # if clamp is false, then check if x is inside of the given x range
     if not clamp:
         assert x0 <= x <= xN
-    # Return the boundary values if the value is outside '''
+    # Return the boundary values if the value is outside """
     if x <= x0:
         return y0
     elif x >= xN:
         return yN
     else:
-        ''' Otherwise, return linearly interpolated values '''
+        """ Otherwise, return linearly interpolated values """
         for i in range(len(xy_pairs) - 1):
             x1, y1 = xy_pairs[i]
             x2, y2 = xy_pairs[i+1]
@@ -276,6 +346,10 @@ def lerp_from_paired_list(x, xy_pairs, clamp=True):
 
 
 class Normalizer:
+    """
+    Helper class for the normalization between two sets of values.
+    (real_val_max, real_val_min) <--> (norm_val_max, norm_val_min)
+    """
     def __init__(self,
                  real_val_max, real_val_min,
                  norm_val_max, norm_val_min,
