@@ -32,10 +32,10 @@ class Camera(object):
         pos_local = np.dot(R.transpose(), self.pos-self.origin)
         dR = np.dot(
             np.dot(
-                operations.rotX(dx),
-                operations.rotY(dy)
+                conversions.Ax2R(dx),
+                conversions.Ay2R(dy)
             ),
-            operations.rotZ(dz)
+            conversions.Az2R(dz)
         )
         R = np.dot(R, dR)
         # self.vup = R[:, 1]
