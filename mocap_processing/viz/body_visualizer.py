@@ -65,7 +65,7 @@ def main(args):
         v_face_skel=np.array([0.0, 0.0, 1.0]),
         v_up_env=np.array([0.0, 0.0, 1.0]),
     )
-    motion.rotate(operations.rotX(conversions.deg2Rad(-90)))
+    motion.rotate(conversions.Ax2R(conversions.deg2Rad(-90)))
     mv = prepare_mesh_viewer(img_shape)
 
     out = cv2.VideoWriter(
