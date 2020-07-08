@@ -85,3 +85,31 @@ def correct_antipodal_quaternions(quat):
         quat_corrected[t] = qc
     quat_corrected = np.squeeze(quat_corrected)
     return quat_corrected
+
+def files_in_dir(path, ext=None, keyward=None, sort=False, sample_mode=None, sample_num=None):
+    files = []
+    # r=root, d=directories, f = files
+    for r, d, f in os.walk(path):
+        for file in f:
+            add = True
+            if ext is not None and not file.endswith(ext): add=False
+            if keyward is not None and keyward not in file: add=False
+            if add: files.append(os.path.join(r, file))
+    if sort: 
+        files.sort()
+    
+    if sample_num is None:
+        sample_num = len(files)
+    else:
+        sample_num = min(sample_num, len(files))
+    
+    if sample_mode==None:
+        pass
+    elif sample_mode=='sequential': 
+        files = files[:sample_num]
+    elif sample_mode=='shuffle':
+        files = random.shuffle(files)[:sample_num]
+    else:
+        raise NotImplementedError
+    
+    return files

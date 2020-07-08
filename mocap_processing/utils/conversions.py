@@ -3,6 +3,7 @@ import quaternion
 
 from mocap_processing.utils import constants, utils
 
+import warnings
 
 """
 Glossary:
@@ -17,6 +18,11 @@ T: Transition matrix (4,4)
 """
 # TODO: Add batched input support to all conversion methods
 
+def _apply_fn_agnostic_to_vec_mat(input, fn):
+    output = np.array([input]) if input.ndim == 1 else input
+    output = np.apply_along_axis(fn, 1, output)
+    return output[0] if input.ndim == 1 else output
+
 
 def rad2deg(rad):
     """Convert from radians to degrees."""
@@ -28,12 +34,41 @@ def deg2rad(deg):
     return deg * np.pi / 180.0
 
 
+def A2A(A):
+    return A
+    """
+    The same 3D orientation could be represented by
+    the two different axis-angle representatons;
+    (axis, angle) and (-axis, 2pi - angle) where 
+    we assume 0 <= angle <= pi. This function forces
+    that it only uses an angle between 0 and 2pi.
+    """
+    def a2a(a):
+        angle = np.linalg.norm(a)
+        if angle <= constants.EPSILON:
+            return a
+        if angle > 2*np.pi:
+            angle = angle%2*np.pi
+            warnings.warn('!!!Angle is larger than 2PI!!!')
+        if angle > np.pi:
+            return (-a/angle) * (2*np.pi-angle)
+        else:
+            return a
+    
+    return _apply_fn_agnostic_to_vec_mat(A, a2a)
+    
+
 def A2R(A):
     return quaternion.as_rotation_matrix(quaternion.from_rotation_vector(A))
 
 
+def A2Q(A):
+    return quaternion.as_float_array(quaternion.from_rotation_vector(A))
+
+
 def R2A(R):
-    return quaternion.as_rotation_vector(quaternion.from_rotation_matrix(R))
+    result = quaternion.as_rotation_vector(quaternion.from_rotation_matrix(R))
+    return A2A(result)
 
 
 def R2E(R):
@@ -96,16 +131,13 @@ def R2Q(R):
     return quaternion.as_float_array(quaternion.from_rotation_matrix(R))
 
 
-def Q2R(Q):
-    return quaternion.as_rotation_matrix(quaternion.as_quat_array(Q))
+def R2T(R):
+    return Rp2T(R, constants.zero_p())
 
 
 def Q2A(Q):
-    return quaternion.as_rotation_vector(quaternion.as_quat_array(Q))
-
-
-def A2Q(A):
-    return quaternion.as_float_array(quaternion.from_rotation_vector(A))
+    result = quaternion.as_rotation_vector(quaternion.as_quat_array(Q))
+    return A2A(result)
 
 
 def Q2E(Q, epsilon=0):
@@ -136,10 +168,30 @@ def Q2E(Q, epsilon=0):
     return np.reshape(E, original_shape)
 
 
+def Q2R(Q):
+    return quaternion.as_rotation_matrix(quaternion.as_quat_array(Q))
+
+
 def T2Rp(T):
     R = T[..., :3, :3]
     p = T[..., :3, 3]
     return R, p
+
+
+def T2Qp(T):
+    R, p = T2Rp(T)
+    Q = R2Q(R)
+    return Q, p
+
+
+def T2p(T):
+    _, p = T2Rp(T)
+    return p
+
+
+def T2R(T):
+    R, _ = T2Rp(T)
+    return R
 
 
 def Rp2T(R, p):
@@ -153,12 +205,6 @@ def Rp2T(R, p):
     return T.reshape(list(input_shape) + [4, 4])
 
 
-def T2Qp(T):
-    R, p = T2Rp(T)
-    Q = R2Q(R)
-    return Q, p
-
-
 def Qp2T(Q, p):
     R = Q2R(Q)
     return Rp2T(R, p)
@@ -168,36 +214,67 @@ def p2T(p):
     return Rp2T(constants.eye_R(), np.array(p))
 
 
-def R2T(R):
-    return Rp2T(R, constants.zero_p())
-
-
-def T2p(T):
-    _, p = T2Rp(T)
-    return p
-
-
-def T2R(T):
-    R, _ = T2Rp(T)
-    return R
-
-
-def Ax2R(Ax):
+def Ax2R(theta):
     """
     Convert (axis) angle along x axis Ax to rotation matrix R
     """
-    return A2R(Ax * utils.str_to_axis("x"))
+    R = constants.eye_R()
+    c = np.cos(theta)
+    s = np.sin(theta)
+    R[1, 1] = c
+    R[1, 2] = -s
+    R[2, 1] = s
+    R[2, 2] = c
+    return R
 
 
-def Ay2R(Ay):
+def Ay2R(theta):
     """
     Convert (axis) angle along y axis Ay to rotation matrix R
     """
-    return A2R(Ay * utils.str_to_axis("y"))
+    R = constants.eye_R()
+    c = np.cos(theta)
+    s = np.sin(theta)
+    R[0, 0] = c
+    R[0, 2] = s
+    R[2, 0] = -s
+    R[2, 2] = c
+    return R
 
 
-def Az2R(Az):
+def Az2R(theta):
     """
     Convert (axis) angle along z axis Az to rotation matrix R
     """
-    return A2R(Az * utils.str_to_axis("z"))
+    R = constants.eye_R()
+    c = np.cos(theta)
+    s = np.sin(theta)
+    R[0, 0] = c
+    R[0, 1] = -s
+    R[1, 0] = s
+    R[1, 1] = c
+    return R
+    
+
+def Q2Q(Q, op, wxyz_in=True):
+    '''
+    change_order:
+    normalize:
+    halfspace:
+    '''
+    def q2q(q):
+        result = q.copy()
+        if 'normalize' in op:
+            norm = np.linalg.norm(result)
+            if norm < constants.EPSILON:
+                raise Exception('Invalid input with zero length')
+            result /= norm
+        if 'halfspace' in op:
+            w_idx = 0 if wxyz_in else 3
+            if result[w_idx] < 0.0:
+                result *= -1.0
+        if 'change_order' in op:
+            result = result[[1,2,3,0]] if wxyz_in else result[[3,0,1,2]]
+        return result
+    
+    return _apply_fn_agnostic_to_vec_mat(Q, q2q)

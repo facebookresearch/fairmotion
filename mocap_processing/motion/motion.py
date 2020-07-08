@@ -200,7 +200,7 @@ def interpolate_pose(alpha, pose1, pose2):
         R2, p2 = conversions.T2Rp(pose2.get_transform(j, local=True))
         R, p = (
             operations.slerp(R1, R2, alpha),
-            operations.linearInterpol(p1, p2, alpha),
+            operations.lerp(p1, p2, alpha),
         )
         data.append(conversions.Rp2T(R, p))
     return Pose(pose1.skel, data)
