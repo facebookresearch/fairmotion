@@ -141,7 +141,7 @@ def Q_op(Q, op, xyzw_in=True):
 
 
 def Q_diff(Q1, Q2):
-    
+    raise NotImplementedError    
 
 
 def Q_mult(Q1, Q2):

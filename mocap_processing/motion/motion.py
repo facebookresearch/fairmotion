@@ -129,7 +129,7 @@ class Pose(object):
             the given transformation is valid
             """
             Q, p = conversions.T2Qp(T1)
-            Q = operations.post_process_Q(Q, normalize=True, half_space=False)
+            Q = operations.Q_op(Q, op=["normalize"])
             T1 = conversions.Qp2T(Q, p)
         self.data[self.skel.get_index_joint(key)] = T1
 
