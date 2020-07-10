@@ -2,8 +2,8 @@ version: 2.1
 jobs:
   mocap_processing:
     resource_class: gpu.small
-    machine:
-      image: ubuntu-1604:201903-01
+    docker:
+      - image: circleci/python:3.6
       
     steps:
       - checkout            
@@ -12,7 +12,6 @@ jobs:
           command: |
             cd ~/project
             sudo apt-get update -y
-            sudo apt-get install python3-pip
             sudo pip3 install virtualenv 
             virtualenv --python=python3 ./mocap_processing_env
             source ./mocap_processing_env/bin/activate
