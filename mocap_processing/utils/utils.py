@@ -1,5 +1,8 @@
 import numpy as np
 import os
+from functools import partial
+from multiprocessing import Pool
+
 
 def str_to_axis(s):
     if s == "x":
@@ -30,6 +33,26 @@ def get_index(index_dict, key):
         return index_dict[key]
     else:
         return index_dict[key.name]
+
+
+def run_parallel(func, iterable, num_cpus=20, **kwargs):
+    """
+    Run function over multiple cpus. The function must be written such that
+    it processes single input value.
+
+    Args:
+        func: Method that is run in parallel. The first argument of func 
+            accepts input values from iterable.
+        iterable: List of input values that func is executed over.
+        num_cpus: Number of cpus used by multiprocessing.
+        kwargs: Dictionary of keyword arguments that is passed on to each
+            parallel call to the function
+
+    """
+    func_with_kwargs = partial(func, **kwargs)
+    with Pool(processes=num_cpus) as pool:
+        results = pool.map(func_with_kwargs, iterable)
+    return [elem for result in results for elem in result]
 
 
 def correct_antipodal_quaternions(quat):

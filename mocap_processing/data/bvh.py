@@ -1,4 +1,6 @@
 import numpy as np
+from multiprocessing import Pool
+
 from mocap_processing.motion import motion as motion_classes
 from mocap_processing.utils import constants
 from mocap_processing.utils import conversions
@@ -89,7 +91,7 @@ def load(
             elif word == "hierarchy":
                 cnt += 1
             else:
-                raise Exception("Unknown Token", word)
+                raise Exception(f"Unknown Token {word} at token {cnt}")
 
     if load_motion:
         assert motion.skel is not None
@@ -231,4 +233,7 @@ def save(motion, filename, scale=1.0, rot_order="xyz", verbose=False):
         f.close()
 
 
-# TODO: Add parallel motion file reading feature using multiprocessing
+def load_parallel(files, cpus=20, **kwargs):
+    with Pool(cpus) as p:
+        motions = list(p.map(load, files))
+    return motions
