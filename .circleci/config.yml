@@ -1,9 +1,9 @@
 version: 2.1
 jobs:
   mocap_processing:
-    resource_class: xlarge
-    docker:
-      - image: ros:kinetic-robot-xenial
+    resource_class: gpu.small
+    machine:
+      - image: ubuntu-1604:201903-01
       
     steps:
       - checkout            
