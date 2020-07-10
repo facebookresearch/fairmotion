@@ -11,6 +11,7 @@ jobs:
           name: Install mocap_processing
           command: |
             cd ~/project
+            sudo apt-get update -y
             sudo apt-get install python3-pip
             sudo pip3 install virtualenv 
             virtualenv --python=python3 ./mocap_processing_env
