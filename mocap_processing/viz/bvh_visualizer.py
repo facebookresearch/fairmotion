@@ -30,7 +30,7 @@ class MocapViewer(glut_viewer.Viewer):
             self.cur_time = 0.0
             self.time_checker.begin()
         elif key == b"]":
-            next_frame = min(motion.num_frame() - 1, motion.time_to_frame(self.cur_time) + 1)
+            next_frame = min(motion.num_frames() - 1, motion.time_to_frame(self.cur_time) + 1)
             self.cur_time = motion.frame_to_time(next_frame)
         elif key == b"[":
             prev_frame = max(0, motion.time_to_frame(self.cur_time) - 1)
@@ -74,7 +74,7 @@ class MocapViewer(glut_viewer.Viewer):
                 p = 0.5 * (pos_parent + pos)
                 l = np.linalg.norm(pos_parent - pos)
                 r = 0.05
-                R = operations.get_R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
+                R = operations.R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
                 gl_render.render_capsule(conversions.Rp2T(R, p), l, r * self.scale, color=color, slice=8)
 
 

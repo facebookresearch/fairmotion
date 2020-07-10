@@ -62,9 +62,6 @@ class Skeleton(object):
         self.v_face = v_face
         self.v_up_env = v_up_env
 
-    def num_joint(self):
-        return len(self.joints)
-
     def get_index_joint(self, key):
         return utils.get_index(self.index_joint, key)
 
@@ -73,7 +70,7 @@ class Skeleton(object):
 
     def add_joint(self, joint, parent_joint):
         if parent_joint is None:
-            assert self.num_joint() == 0
+            assert self.num_joints() == 0
             self.root_joint = joint
         else:
             parent_joint = self.get_joint(parent_joint)
@@ -85,6 +82,14 @@ class Skeleton(object):
     def num_joints(self):
         return len(self.joints)
 
+    def num_end_effectors(self):
+        self.end_effectors = []
+        for j in self.joints:
+            if len(j.child_joint) == 0:
+                self.end_effectors.append(j)
+        return len(self.end_effectors)
+
+
 
 class Pose(object):
     def __init__(self, skel, data=None):
@@ -94,8 +99,8 @@ class Pose(object):
         """
         assert isinstance(skel, Skeleton)
         if data is None:
-            data = [constants.eye_T for _ in range(skel.num_joint())]
-        assert skel.num_joint() == len(data)
+            data = [constants.eye_T for _ in range(skel.num_joints())]
+        assert skel.num_joints() == len(data)
         self.skel = skel
         self.data = data
 
