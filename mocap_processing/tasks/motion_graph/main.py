@@ -12,11 +12,12 @@ if __name__ == "__main__":
     )
     parser.add_argument("--motion-files", action="append", help="Motion Files")
     parser.add_argument(
-        "--motion-folder",
-        help="Folder that contains motion files"
+        "--motion-folder", help="Folder that contains motion files"
     )
     parser.add_argument(
-        "--output-bvh", type=str, required=True,
+        "--output-bvh",
+        type=str,
+        required=True,
         help="Resulting motion stored as bvh",
     )
     parser.add_argument("--v-up-skel", type=str, default="y")
@@ -41,7 +42,9 @@ if __name__ == "__main__":
     skel = None
     motions = []
     motion_files = (
-        args.motion_files if args.motion_files else []
+        args.motion_files
+        if args.motion_files
+        else []
         + utils.files_in_dir("/Users/dgopinath/data/graph_bvh/", ext="bvh")
     )
     for file in motion_files:

@@ -277,7 +277,9 @@ class MotionGraph(object):
                 m = self.motions[motion_idx].detach(
                     frame_start, frame_end + self.frames_blend
                 )
-                motion = operations.append(motion, m) #, blend_length=self.blend_length)
+                motion = operations.append(
+                    motion, m
+                )  # , blend_length=self.blend_length)
         return motion
 
     def create_random_path(
@@ -394,7 +396,9 @@ class MotionGraph(object):
             if self.verbose:
                 print("[", cur_node, "] ", self.graph.nodes[cur_node])
 
-            motion = operations.append(motion, m)  # , blend_length=self.blend_length)
+            motion = operations.append(
+                motion, m
+            )  # , blend_length=self.blend_length)
 
             t_processed = motion.length()
             """ Jump to adjacent node (motion) randomly """
