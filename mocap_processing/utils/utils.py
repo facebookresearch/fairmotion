@@ -1,5 +1,5 @@
 import numpy as np
-
+import os
 
 def str_to_axis(s):
     if s == "x":

@@ -1,5 +1,4 @@
 import numpy as np
-import quaternion
 
 from mocap_processing.utils import constants, utils
 from scipy.spatial.transform import Rotation
