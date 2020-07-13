@@ -182,7 +182,7 @@ class MotionGraph(object):
             m.set_skeleton(self.skel)
         if self.verbose:
             print("creating nodes ...")
-        """ Create nodes """
+        # Create nodes
         ns = utils.run_parallel(
             create_nodes,
             list(range(len(self.motions))),
@@ -204,7 +204,7 @@ class MotionGraph(object):
                 frame_end=frame_end,
             )
             # print(motion_idx, frame_start, frame_end)
-        """ Create edges """
+        # Create edges
         if self.verbose:
             print("creating edges ...")
 
@@ -277,9 +277,9 @@ class MotionGraph(object):
                 m = self.motions[motion_idx].detach(
                     frame_start, frame_end + self.frames_blend
                 )
-                motion = operations.append(
-                    motion, m
-                )  # , blend_length=self.blend_length)
+                motion = operations.append_and_blend(
+                    motion, m, blend_length=self.blend_length,
+                )
         return motion
 
     def create_random_path(
@@ -305,7 +305,7 @@ class MotionGraph(object):
         prev_node = cur_node
         visited_nodes = []
         while t_processed < length:
-            """ Record currently visiting node """
+            # Record currently visiting node
             visited_nodes.append(cur_node)
 
             if leave_visit_info:
@@ -313,7 +313,7 @@ class MotionGraph(object):
                 if t_processed > 0.0:
                     self.graph.edges[(prev_node, cur_node)]["num_visit"] += 1
 
-            """ Append the selected motion to the current motion """
+            # Append the selected motion to the current motion
             frame_start = self.graph.nodes[cur_node]["frame_start"]
             frame_end = self.graph.nodes[cur_node]["frame_end"]
 
@@ -321,7 +321,7 @@ class MotionGraph(object):
                 print("[", cur_node, "] ", self.graph.nodes[cur_node])
 
             t_processed += (frame_end - frame_start + 1.0) / self.fps
-            """ Jump to adjacent node (motion) randomly """
+            # Jump to adjacent node (motion) randomly
             if self.graph.out_degree(cur_node) == 0:
                 if self.verbose:
                     print("!!!Dead-end exists in the graph!!!")
@@ -369,15 +369,15 @@ class MotionGraph(object):
             cur_node = start_node
         visited_nodes = []
         while t_processed < length:
-            """ Record currently visiting node """
+            # Record currently visiting node
             visited_nodes.append(cur_node)
 
-            """ Append the selected motion to the current motion """
+            # Append the selected motion to the current motion
             motion_idx = self.graph.nodes[cur_node]["motion_idx"]
             frame_start = self.graph.nodes[cur_node]["frame_start"]
             frame_end = self.graph.nodes[cur_node]["frame_end"]
 
-            """ Load the motion if it is not loaded in advance """
+            # Load the motion if it is not loaded in advance
             if self.motions[motion_idx] is None:
                 self.load_motion_at_idx(
                     motion_idx, self.motion_files[motion_idx]
@@ -396,12 +396,12 @@ class MotionGraph(object):
             if self.verbose:
                 print("[", cur_node, "] ", self.graph.nodes[cur_node])
 
-            motion = operations.append(
-                motion, m
-            )  # , blend_length=self.blend_length)
+            motion = operations.append_and_blend(
+                motion, m, blend_length=self.blend_length,
+            )
 
             t_processed = motion.length()
-            """ Jump to adjacent node (motion) randomly """
+            # Jump to adjacent node (motion) randomly
             if self.graph.out_degree(cur_node) == 0:
                 if self.verbose:
                     print("!!!Dead-end exists in the graph!!!")

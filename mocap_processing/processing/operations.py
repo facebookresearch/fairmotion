@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation
 
 import warnings
 
+
 def append(motion1, motion2):
     assert isinstance(motion1, motion_class.Motion)
     assert isinstance(motion2, motion_class.Motion)
@@ -20,6 +21,78 @@ def append(motion1, motion2):
     combined_motion.poses.extend(motion2.poses)
 
     return combined_motion
+
+
+def append_and_blend(motion1, motion2, blend_length=0):
+    assert isinstance(motion1, motion_class.Motion)
+    assert isinstance(motion2, motion_class.Motion)
+    assert motion1.skel.num_joints() == motion2.skel.num_joints()
+
+    combined_motion = copy.deepcopy(motion1)
+    combined_motion.name = f"{motion1.name}+{motion2.name}"
+
+    if motion1.num_frames() == 0:
+        for i in range(motion2.num_frames()):
+            combined_motion.poses.append(motion2.poses[i])
+            if hasattr(motion1, "velocities"):
+                combined_motion.velocities.append(motion2.velocities[i])
+        return combined_motion
+
+    frame_target = motion2.time_to_frame(blend_length)
+    frame_source = motion1.time_to_frame(motion1.length() - blend_length)
+
+    # Translate and rotate motion2 to location of frame_source
+    pose1 = motion1.get_pose_by_frame(frame_source)
+    pose2 = motion2.get_pose_by_frame(0)
+
+    R1, p1 = conversions.T2Rp(pose1.get_root_transform())
+    R2, p2 = conversions.T2Rp(pose2.get_root_transform())
+
+    # Translation to be applied
+    dp = p1 - p2
+    dp = dp - projectionOnVector(dp, motion1.skel.v_up_env)
+    axis = motion1.skel.v_up_env
+
+    # Rotation to be applied
+    Q1 = conversions.R2Q(R1)
+    Q2 = conversions.R2Q(R2)
+    _, theta = Q_closest(Q1, Q2, axis)
+    dR = conversions.A2R(axis * theta)
+
+    motion2 = translate(motion2, dp)
+    motion2 = rotate(motion2, dR)
+
+    t_total = motion1.fps * frame_source
+    t_processed = 0.0
+    poses_new = []
+    for i in range(motion2.num_frames()):
+        dt = 1 / motion2.fps
+        t_total += dt
+        t_processed += dt
+        pose_target = motion2.get_pose_by_frame(i)
+        # Blend pose for a moment
+        if t_processed <= blend_length:
+            alpha = t_processed/float(blend_length)
+            pose_source = motion1.get_pose_by_time(t_total)
+            pose_target = blend(pose_source, pose_target, alpha)
+        poses_new.append(pose_target)
+
+    del combined_motion.poses[frame_source+1:]
+    for i in range(len(poses_new)):
+        combined_motion.add_one_frame(0, copy.deepcopy(poses_new[i].data))
+
+    return combined_motion
+
+
+def blend(pose1, pose2, alpha=0.5):
+    assert 0.0 <= alpha <= 1.0
+    pose_new = copy.deepcopy(pose1)
+    for j in range(pose1.skel.num_joints()):
+        R0, p0 = conversions.T2Rp(pose1.get_transform(j, local=True))
+        R1, p1 = conversions.T2Rp(pose2.get_transform(j, local=True))
+        R, p = slerp(R0, R1, alpha), lerp(p0, p1, alpha)
+        pose_new.set_transform(j, conversions.Rp2T(R, p), local=True)
+    return pose_new
 
 
 def transform(motion, T, local=False):
