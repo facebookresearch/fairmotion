@@ -6,6 +6,9 @@ from mocap_processing.motion import motion as motion_class
 from mocap_processing.utils import conversions
 
 
+TEST_SINUSOIDAL_FILE = "tests/data/sinusoidal.bvh"
+
+
 class TestMotion(unittest.TestCase):
     def assert_motion_equal(self, ref_motion, test_motion):
         self.assertEqual(ref_motion.num_frames(), test_motion.num_frames())
@@ -21,7 +24,7 @@ class TestMotion(unittest.TestCase):
                 )
 
     def test_motion(self):
-        motion = bvh.load(file="tests/data/sinusoidal.bvh")
+        motion = bvh.load(file=TEST_SINUSOIDAL_FILE)
         # Inspect 0th frame, root joint
         T = motion.get_pose_by_frame(0).get_transform(0, local=False)
         _, p = conversions.T2Rp(T)
@@ -36,9 +39,9 @@ class TestMotion(unittest.TestCase):
         self.assertListEqual(list(p), [-8, 11, 5])
 
     def test_matrix_representation(self):
-        ref_motion = bvh.load(file="tests/data/sinusoidal.bvh")
+        ref_motion = bvh.load(file=TEST_SINUSOIDAL_FILE)
         test_motion = bvh.load(
-            file="tests/data/sinusoidal.bvh",
+            file=TEST_SINUSOIDAL_FILE,
             load_motion=False,
         )
         ref_matrix = ref_motion.to_matrix()

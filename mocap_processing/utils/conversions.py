@@ -159,7 +159,7 @@ def R2A(R):
         (3,))
 
 
-def R2E(R, order="xyz", degrees=False):
+def R2E(R, order="XYZ", degrees=False):
     return batch_auto_reshape(
         R, 
         lambda x: Rotation.from_matrix(x).as_euler(order, degrees=degrees),
