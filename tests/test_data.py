@@ -5,13 +5,16 @@ from mocap_processing.data import bvh
 from mocap_processing.utils import conversions
 
 
+TEST_SINUSOIDAL_FILE = "tests/data/sinusoidal.bvh"
+
+
 class TestBVH(unittest.TestCase):
     def test_load_motion(self):
         # Load file
-        motion = bvh.load(file="tests/data/sinusoidal.bvh")
+        motion = bvh.load(file=TEST_SINUSOIDAL_FILE)
 
         # Read pose data from all frames (in Euler angle)
-        with open("tests/data/sinusoidal.bvh") as f:
+        with open(TEST_SINUSOIDAL_FILE) as f:
             file_content = f.readlines()
         for frame_num, line in enumerate(file_content[-motion.num_frames():]):
             # Skip first 3 entries that store translation data, and read the
@@ -21,20 +24,19 @@ class TestBVH(unittest.TestCase):
             ).reshape(-1, 3)
             for T, true_E in zip(motion.poses[frame_num].data, angle_data):
                 R, _ = conversions.T2Rp(T)
-                E = conversions.rad2deg(conversions.R2E(R))
+                E = conversions.R2E(R, order="XYZ", degrees=True)
                 np.testing.assert_almost_equal(E, true_E)
 
     def test_save_motion(self):
         # Load file
-        motion = bvh.load(file="tests/data/sinusoidal.bvh")
+        motion = bvh.load(file=TEST_SINUSOIDAL_FILE)
 
         with tempfile.NamedTemporaryFile() as fp:
             # Save loaded file
-            bvh.save(motion, fp.name)
-
+            bvh.save(motion, fp.name, rot_order="XYZ")
             # Reload saved file and test if it is same as reference file
             # Read pose data from all frames (in Euler angle)
-            with open("tests/data/sinusoidal.bvh") as f:
+            with open(TEST_SINUSOIDAL_FILE) as f:
                 orig_file = f.readlines()
             with open(fp.name) as f:
                 saved_file = f.readlines()
@@ -52,7 +54,7 @@ class TestBVH(unittest.TestCase):
 
             # Reload saved file and test if it has the same data as original
             # motion object
-            with open("tests/data/sinusoidal.bvh") as f:
+            with open(TEST_SINUSOIDAL_FILE) as f:
                 file_content = f.readlines()
             for frame_num, line in enumerate(
                 file_content[-motion.num_frames():]
@@ -64,7 +66,7 @@ class TestBVH(unittest.TestCase):
                 ).reshape(-1, 3)
                 for T, true_E in zip(motion.poses[frame_num].data, angle_data):
                     R, _ = conversions.T2Rp(T)
-                    E = conversions.R2E(R, degrees=True)
+                    E = conversions.R2E(R, order="XYZ", degrees=True)
                     np.testing.assert_almost_equal(E, true_E)
 
 

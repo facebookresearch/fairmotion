@@ -144,11 +144,11 @@ def load(
     return motion
 
 
-def _write_hierarchy(motion, file, joint, scale=1.0, rot_order="xyz", tab=""):
+def _write_hierarchy(motion, file, joint, scale=1.0, rot_order="XYZ", tab=""):
     def rot_order_to_str(order):
-        if order == "xyz":
+        if order == "xyz" or order == "XYZ":
             return "Xrotation Yrotation Zrotation"
-        elif order == "zyx":
+        elif order == "zyx" or order == "ZYX":
             return "Zrotation Yrotation Xrotation"
         else:
             raise NotImplementedError
@@ -182,7 +182,7 @@ def _write_hierarchy(motion, file, joint, scale=1.0, rot_order="xyz", tab=""):
     return joint_order
 
 
-def save(motion, filename, scale=1.0, rot_order="xyz", verbose=False):
+def save(motion, filename, scale=1.0, rot_order="XYZ", verbose=False):
     if verbose:
         print(" >  >  Save BVH file: %s" % filename)
     with open(filename, "w") as f:
