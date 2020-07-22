@@ -191,19 +191,19 @@ class Pose(object):
             pose.set_transform(joint_id, data[joint_id], local)
         return pose
 
-
-def interpolate_pose(alpha, pose1, pose2):
-    skel = pose1.skel
-    data = []
-    for j in skel.joints:
-        R1, p1 = conversions.T2Rp(pose1.get_transform(j, local=True))
-        R2, p2 = conversions.T2Rp(pose2.get_transform(j, local=True))
-        R, p = (
-            operations.slerp(R1, R2, alpha),
-            operations.lerp(p1, p2, alpha),
-        )
-        data.append(conversions.Rp2T(R, p))
-    return Pose(pose1.skel, data)
+    @classmethod
+    def interpolate(cls, pose1, pose2, alpha):
+        skel = pose1.skel
+        data = []
+        for j in skel.joints:
+            R1, p1 = conversions.T2Rp(pose1.get_transform(j, local=True))
+            R2, p2 = conversions.T2Rp(pose2.get_transform(j, local=True))
+            R, p = (
+                operations.slerp(R1, R2, alpha),
+                operations.lerp(p1, p2, alpha),
+            )
+            data.append(conversions.Rp2T(R, p))
+        return Pose(pose1.skel, data)
 
 
 class Motion(object):
@@ -214,6 +214,7 @@ class Motion(object):
         self.skel = skel
         self.poses = []
         self.fps = fps
+        self.fps_inv = 1.0/fps
         self.info = {}
 
     def clear(self):
@@ -227,8 +228,8 @@ class Motion(object):
         self.poses.append(Pose(self.skel, pose_data))
 
     def frame_to_time(self, frame):
-        frame = np.clip(frame, 0, len(self.poses - 1))
-        return self.fps * frame
+        frame = np.clip(frame, 0, len(self.poses) - 1)
+        return frame * self.fps_inv
 
     def time_to_frame(self, time):
         return int(time * self.fps)
@@ -243,19 +244,19 @@ class Motion(object):
         frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
             return self.poses[frame1]
-        if np.isclose(time % (1.0/self.fps), 0):
-            return self.poses[frame1]
-
-        t1 = int(time/self.fps)*float(1/self.fps)
-        t2 = t1 + float(1/self.fps)
-        alpha = np.clip((time - t1) / (t2 - t1), 0.0, 1.0)
-        return interpolate_pose(alpha, self.poses[frame1], self.poses[frame2])
+        
+        t1 = self.frame_to_time(frame1)
+        t2 = self.frame_to_time(frame2)
+        alpha = (time - t1) / (t2 - t1)
+        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)"%(alpha)
+        
+        return Pose.interpolate(self.poses[frame1], self.poses[frame2], alpha)
 
     def num_frames(self):
         return len(self.poses)
 
     def length(self):
-        return  (len(self.poses) - 1)/self.fps
+        return  (len(self.poses) - 1)*self.fps_inv
 
     def to_matrix(self, local=True):
         """

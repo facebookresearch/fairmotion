@@ -126,21 +126,20 @@ class MotionWithVelocity(Motion):
             "Velocity was not computed yet.",
             "Please call self.compute_velocities() first",
         )
+
         time = np.clip(time, 0, self.length())
         frame1 = self.time_to_frame(time)
         frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
             return self.vels[frame1]
-        if np.isclose(time % (1.0 / self.fps), 0):
-            return self.vels[frame1]
-
-        t1 = int(time / self.fps) * float(1 / self.fps)
-        t2 = t1 + float(1 / self.fps)
-        alpha = np.clip((time - t1) / (t2 - t1), 0.0, 1.0)
+        
+        t1 = self.frame_to_time(frame1)
+        t2 = self.frame_to_time(frame2)
+        alpha = (time - t1) / (t2 - t1)
+        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)"%(alpha)
 
         v1 = self.get_velocity_by_frame(frame1)
         v2 = self.get_velocity_by_frame(frame2)
-
         return Velocity.interpolate(v1, v2, alpha)
 
     def get_velocity_by_frame(self, frame):
