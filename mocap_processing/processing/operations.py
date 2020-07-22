@@ -10,7 +10,19 @@ from scipy.spatial.transform import Rotation
 
 import warnings
 
+
 def append(motion1, motion2):
+    """
+    Combines two motion sequences into one. motion2 is appended to motion1.
+    The operation is not done in place.
+
+    Note that the operation places the sequences next to each other without
+    attempting to blend between the poses. To interpolate between the end of
+    motion1 and start of motion2, use the `append_and_blend` operation.
+
+    Args:
+        motion1, motion2: Motion sequences to be combined.
+    """
     assert isinstance(motion1, motion_class.Motion)
     assert isinstance(motion2, motion_class.Motion)
     assert motion1.skel.num_joints() == motion2.skel.num_joints()
@@ -23,6 +35,17 @@ def append(motion1, motion2):
 
 
 def transform(motion, T, local=False):
+    """
+    Apply transform to all poses of a motion sequence. The operation is done
+    in-place.
+
+    Args:
+        motion: Motion sequence to be transformed
+        T: Transformation matrix of shape (4, 4) to be applied to poses of
+            motion
+        local: Optional; Set local=True if the transformations are to be
+            applied locally, relative to parent of each joint.
+    """
     for pose_id in range(len(motion.poses)):
         R0, p0 = conversions.T2Rp(motion.poses[pose_id].get_root_transform())
         R1, p1 = conversions.T2Rp(T)
@@ -37,6 +60,16 @@ def transform(motion, T, local=False):
 
 
 def translate(motion, v, local=False):
+    """
+    Apply translation to motion sequence.
+
+    Args:
+        motion: Motion sequence to be translated
+        v: Array of shape (3,) indicating translation vector to be applied to
+            all poses of motion sequence
+        local: Optional; Set local=True if the translation is to be applied
+            locally, relative to root position.
+    """
     return transform(motion, conversions.p2T(v), local)
 
 
@@ -46,7 +79,14 @@ def rotate(motion, R, local=False):
 
 def cut(motion, frame_start, frame_end):
     """
-    Returns motion object with poses from [frame_start, frame_end) only
+    Returns motion object with poses from [frame_start, frame_end) only. The
+    operation is not done in-place.
+
+    Args:
+        motion: Motion sequence to be cut
+        frame_start, frame_end: Frame number range that defines the boundary of
+            motion to be cut. Pose at frame_start is included, and pose at
+            frame_end is excluded in the returned motion object
     """
     cut_motion = copy.deepcopy(motion)
     cut_motion.name = f"{motion.name}_{frame_start}_{frame_end}"
@@ -57,7 +97,13 @@ def cut(motion, frame_start, frame_end):
 
 def resample(motion, fps):
     """
-    Upsample/downsample frame rate of motion object to `fps` Hz
+    Upsample/downsample frame rate of motion object to `fps` Hz. For
+    upsampling, poses are interpolated using `Pose.interpolate` method to
+    fill in the gaps.
+
+    Args:
+        motion: Motion sequence to be resampled
+        fps: Frequency of motion desired
     """
     poses_new = []
 
@@ -75,6 +121,10 @@ def resample(motion, fps):
 
 
 def position_wrt_root(motion):
+    """
+    Returns position of joints with respect to the root, for all poses in the
+    motion sequence.
+    """
     matrix = motion.to_matrix(local=False)
     # Extract positions
     matrix = matrix[:, :, :3, 3]
@@ -84,6 +134,10 @@ def position_wrt_root(motion):
 
 
 def normalize(v):
+    """
+    Divide vector by its norm. The method handles vectors with type list and
+    np.array.
+    """
     is_list = type(v) == list
     length = np.linalg.norm(v)
     if length > constants.EPSILON:
@@ -98,10 +152,20 @@ def normalize(v):
 
 
 def slerp(R1, R2, t):
-    return np.dot(R1, conversions.A2R(t * conversions.R2A(np.dot(R1.transpose(), R2))))
+    """
+    Spherical linear interpolation (https://en.wikipedia.org/wiki/Slerp)
+    between R1 and R2 with parameter t, 0 ≤ t ≤ 1
+    """
+    return np.dot(
+        R1,
+        conversions.A2R(t * conversions.R2A(np.dot(R1.transpose(), R2)))
+    )
 
 
 def lerp(v0, v1, t):
+    """
+    Simple linear interpolation between v0 and v1 with parameter t, 0 ≤ t ≤ 1
+    """
     return v0 + (v1 - v0) * t
 
 
@@ -118,9 +182,20 @@ def invertT(T):
 
 def Q_op(Q, op, xyzw_in=True):
     """
-    change_order:
-    normalize:
-    halfspace:
+    Perform operations on quaternion. The operations currently supported are
+    "change_order", "normalize" and "halfspace".
+
+    `change_order` changes order of quaternion to xyzw if it's in wxyz and
+    vice-versa
+    `normalize` divides the quaternion by its norm
+    `half-space` negates the quaternion if w < 0
+
+    Args:
+        Q: Numpy array of shape (..., 4)
+        op: String; The operation to be performed on the quaternion. `op` can
+            take values "change_order", "normalize" and "halfspace"
+        xyzw_in: Set to True if input order is "xyzw". Otherwise, the order
+            "wxyz" is assumed.
     """
     def q2q(q):
         result = q.copy()
@@ -141,20 +216,23 @@ def Q_op(Q, op, xyzw_in=True):
 
 
 def Q_diff(Q1, Q2):
-    raise NotImplementedError    
+    raise NotImplementedError
 
 
 def Q_mult(Q1, Q2):
-    q1 = Rotation.from_quat(Q1)
-    q2 = Rotation.from_quat(Q2)
-    return (q1*q2).as_quat()
+    """
+    Multiply two quaternions.
+    """
+    R1 = Rotation.from_quat(Q1)
+    R2 = Rotation.from_quat(Q2)
+    return (R1*R2).as_quat()
 
 
 def Q_closest(Q1, Q2, axis):
     """ 
-    This computes optimal-in-place orientation given a target orientation Q1 
-    and a geodesic curve (Q2, axis). In tutively speaking, the optimal-in-place 
-    orientation is the closest orientation to Q1 when we are able to rotate Q2 
+    This computes optimal-in-place orientation given a target orientation Q1
+    and a geodesic curve (Q2, axis). In tutively speaking, the optimal-in-place
+    orientation is the closest orientation to Q1 when we are able to rotate Q2
     along the given axis. We assume Q is given in the order of xyzw.
     """
     ws, vs = Q1[3], Q1[0:3]
@@ -187,7 +265,6 @@ def componentOnVector(inputVector, directionVector):
 
 
 def projectionOnVector(inputVector, directionVector):
-    # componentOnVector() * vd
     return componentOnVector(inputVector, directionVector) * directionVector
 
 
@@ -320,7 +397,7 @@ def random_rotation(mu_theta, sigma_theta, lower_theta, upper_theta):
 
 
 def lerp_from_paired_list(x, xy_pairs, clamp=True):
-    """ 
+    """
     Given a list of data points in the shape of [[x0,y0][x1,y1],...,[xN,yN]],
     this returns an interpolated y value that correspoinds to a given x value
     """
@@ -350,10 +427,14 @@ class Normalizer:
     Helper class for the normalization between two sets of values.
     (real_val_max, real_val_min) <--> (norm_val_max, norm_val_min)
     """
-    def __init__(self,
-                 real_val_max, real_val_min,
-                 norm_val_max, norm_val_min,
-                 apply_clamp=True):
+    def __init__(
+        self,
+        real_val_max,
+        real_val_min,
+        norm_val_max,
+        norm_val_min,
+        apply_clamp=True
+    ):
         self.set_real_range(real_val_max, real_val_min)
         self.set_norm_range(norm_val_max, norm_val_min)
         self.apply_clamp = apply_clamp
