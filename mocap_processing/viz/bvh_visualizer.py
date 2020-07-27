@@ -1,3 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 """
 MocapViewer is an extension of the glut_viewer.Viewer class that implements
 requisite callback functions -- render_callback, keyboard_callback,
