@@ -39,12 +39,14 @@ def create_nodes(
     if motion.length() < base_length + compare_length:
         return res
 
-    frame = 0
-    while frame + frames_base + frames_compare + 1 <= motion.num_frames():
-        frame_start = frame
-        frame_end = frame + frames_base
-        res.append((motion_idx, frame_start, frame_end))
-        frame += frames_stride
+    frames_start = np.arange(
+        0,
+        motion.num_frames() - frames_base - frames_compare - 1,
+        frames_stride
+    )
+    frames_end = frames_start + frames_base
+    motion_idx_array = np.full(shape=frames_start.shape, fill_value=motion_idx)
+    res = np.stack([motion_idx_array, frames_start, frames_end]).transpose()
     return res
 
 
