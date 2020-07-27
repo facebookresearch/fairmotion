@@ -17,7 +17,7 @@ R: Rotation matrix (3,3)
 T: Transition matrix (4,4)
 
 Quaternion uses the xyzw order
-Rotation matrix matrix is column-wise 
+Rotation matrix matrix is column-wise
 """
 
 """
@@ -25,11 +25,13 @@ TODO:
 Euler Angle order correction for Test
 """
 
+
 def batch_auto_reshape(x, fn, shape_in, shape_out):
     reshape = x.ndim - len(shape_in) > 1
     xx = x.reshape(-1, *shape_in) if reshape else x
     y = fn(xx)
     return y.reshape(x.shape[:-len(shape_in)]+shape_out) if reshape else y
+
 
 """
 Angle conversions
@@ -53,11 +55,10 @@ From A to other representations
 
 def A2A(A):
     """
-    The same 3D orientation could be represented by
-    the two different axis-angle representatons;
-    (axis, angle) and (-axis, 2pi - angle) where 
-    we assume 0 <= angle <= pi. This function forces
-    that it only uses an angle between 0 and 2pi.
+    The same 3D orientation could be represented by the two different
+    axis-angle representatons -- (axis, angle) and (-axis, 2pi - angle) where
+    we assume 0 <= angle <= pi. This method forces that the representation of
+    orientation strictly uses an angle between 0 and pi.
     """
 
     def a2a(a):
@@ -73,42 +74,47 @@ def A2A(A):
             return a
 
     return batch_auto_reshape(
-        A, 
+        A,
         lambda x: utils._apply_fn_agnostic_to_vec_mat(x, a2a),
         (3,),
-        (3,))
+        (3,),
+    )
 
 
 def A2E(A, order="xyz", degrees=False):
     return batch_auto_reshape(
-        A, 
+        A,
         lambda x: Rotation.from_rotvec(x).as_euler(order, degrees=degrees),
         (3,),
-        (3,))
+        (3,),
+    )
 
 
 def A2Q(A):
     return batch_auto_reshape(
-        A, 
+        A,
         lambda x: Rotation.from_rotvec(x).as_quat(),
         (3,),
-        (4,))
+        (4,),
+    )
 
 
 def A2R(A):
     return batch_auto_reshape(
-        A, 
+        A,
         lambda x: Rotation.from_rotvec(x).as_matrix(),
         (3,),
-        (3,3))
+        (3,3),
+    )
 
 
 def A2T(A):
     return batch_auto_reshape(
-        A, 
+        A,
         lambda x: Rp2T(A2R(x), constants.zero_p()),
         (3,),
-        (4,4))
+        (4,4),
+    )
 
 
 def Ax2R(theta):
@@ -153,15 +159,16 @@ From R to other representations
 
 def R2A(R):
     return batch_auto_reshape(
-        R, 
+        R,
         lambda x: Rotation.from_matrix(x).as_rotvec(),
         (3,3),
-        (3,))
+        (3,),
+    )
 
 
 def R2E(R, order="XYZ", degrees=False):
     return batch_auto_reshape(
-        R, 
+        R,
         lambda x: Rotation.from_matrix(x).as_euler(order, degrees=degrees),
         (3,3),
         (3,))
@@ -169,10 +176,11 @@ def R2E(R, order="XYZ", degrees=False):
 
 def R2Q(R):
     return batch_auto_reshape(
-        R, 
+        R,
         lambda x: Rotation.from_matrix(x).as_quat(),
         (3,3),
-        (4,)) 
+        (4,),
+    )
 
 
 def R2R(R):
@@ -181,10 +189,11 @@ def R2R(R):
     rotations are invalid. Otherwise returns the same values.
     """
     return batch_auto_reshape(
-        R, 
+        R,
         lambda x: Rotation.from_matrix(x).as_matrix(),
         (3,3),
-        (3,3))
+        (3,3),
+    )
 
 
 def R2T(R):
@@ -198,46 +207,51 @@ From Q to other representations
 
 def Q2A(Q):
     return batch_auto_reshape(
-        Q, 
+        Q,
         lambda x: Rotation.from_quat(x).as_rotvec(),
         (4,),
-        (3,))
+        (3,),
+)
 
 
 def Q2E(Q, order="xyz", degrees=False):
     return batch_auto_reshape(
-        Q, 
+        Q,
         lambda x: Rotation.from_quat(x).as_euler(order, degrees=degrees),
         (4,),
-        (3,))
+        (3,),
+    )
 
 
 def Q2Q(Q, op, xyzw_in=True):
     """
-    This returns valid (corrected) rotation if input
-    rotations are invalid. Otherwise returns the same values.
+    This returns valid (corrected) rotation if input rotations are invalid.
+    Otherwise returns the same values.
     """
     return batch_auto_reshape(
-        Q, 
+        Q,
         lambda x: Rotation.from_quat(x).as_quat(),
         (4,),
-        (4,)) 
+        (4,),
+    )
 
 
 def Q2R(Q):
     return batch_auto_reshape(
-        Q, 
+        Q,
         lambda x: Rotation.from_quat(x).as_matrix(),
         (4,),
-        (3,3))
+        (3,3),
+    )
 
 
 def Q2T(Q):
     return batch_auto_reshape(
-        Q, 
+        Q,
         lambda x: Rp2T(Q2R(x), constants.zero_p()),
         (4,),
-        (4,4))
+        (4,4),
+    )
 
 
 """
