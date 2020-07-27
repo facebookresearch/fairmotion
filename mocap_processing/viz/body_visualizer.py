@@ -1,13 +1,29 @@
 """
+This code has been adapted from the AMASS Github repository
+https://github.com/nghorbani/amass/blob/master/notebooks/
+01-AMASS_Visualization.ipynb
+
+You can download SMPL-H body models from http://mano.is.tue.mpg.de/
+
 Sample command:
-python mocap_processing/viz/body_visualizer.py --input-file ~/Downloads/scp/amass/CMU/85/85_14_poses.bvh --body-model-path ~/Downloads/smplh/male/model.npz --video-output-path ~/85_14_poses.avi
+python mocap_processing/viz/body_visualizer.py \
+    --input-file $BVH_FILE \
+    --body-model-path $BODY_MODEL_PATH \
+    --video-output-path $OUTPUT_VIDEO
 """
 
+try:
+    import cv2
+except ImportError:
+    print(
+        "ImportError: Please run `pip install opencv-python` to install "
+        "OpenCV package required for the visualizer"
+    )
+    quit()
+
 import argparse
-import cv2
 import numpy as np
 import pyrender
-import os
 import torch
 import tqdm
 import trimesh
@@ -16,7 +32,6 @@ from human_body_prior.body_model.body_model import BodyModel
 from human_body_prior.mesh import MeshViewer
 from human_body_prior.tools.omni_tools import copy2cpu as c2c, colors
 from mocap_processing.data import bvh
-from mocap_processing.processing import operations
 from mocap_processing.utils import conversions
 
 

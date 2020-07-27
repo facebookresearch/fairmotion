@@ -2,6 +2,16 @@ import time
 
 
 class TimeChecker:
+    """Utility class that provides playback time related functionality.
+    TimeChecker starts running the clock when it is initialized. `get_time()`
+    method can be used to query current playback time.
+
+    Attributes:
+        start: Stores unix time at the start of visualization
+        data: Dictionary to store messages with timestamps. Use `save()` to
+            record messages and `get_data()` or `print_data()` to retrieve
+            messages
+    """
     def __init__(self):
         self.start = 0.0
         self.data = []

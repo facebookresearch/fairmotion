@@ -4,17 +4,34 @@ from OpenGL.GLU import *
 
 import sys
 import numpy as np
-import time
-from collections import deque
 from mocap_processing.viz import camera, utils
 
 from PIL import Image
 
-import pickle
-import gzip
-
 
 class Viewer():
+    """Viewer class builds general infrastructure to implement visualizer
+    class for motion sequences.
+
+    Attributes:
+        title: Title displayed on visualizer window
+        cam: Camera object for the scene
+        size: Tuple; Visualizer window dimensions
+        mouse_last_pos: Tuple; Stores last recorded position of mouse on the
+            screen
+        pressed_button: str; Stores last pressed keyboard character
+        time_checker: Object of utils.TimeChecker class to keep track of UNIX
+            time and playback time
+
+    To create a custom visualizer, extend this class and implement the
+    following methods:
+        - render_callback
+        - idle_callback
+        - keyboard_callback (optional)
+        - overlay_callback (optional)
+
+    Once the viewer is initialized, call `run` method to display visualization
+    """
     def __init__(
         self,
         title="glutgui_base",
@@ -26,8 +43,7 @@ class Viewer():
         self.window_size = size
         self.mouse_last_pos = None
         self.pressed_button = None
-        self.state = {}
-        
+
         self.time_checker = utils.TimeChecker()
         if cam is None:
             self.cam_cur = camera.Camera(
@@ -39,7 +55,6 @@ class Viewer():
         else:
             self.cam_cur = cam
 
-
     def idle_callback(self):
         pass
 
@@ -49,7 +64,7 @@ class Viewer():
     def keyboard_callback(self, key):
         return True
 
-    def render_callback(self, key):
+    def render_callback(self):
         glutSolidSphere(0.3, 20, 20)
         gl_render.render_ground(
             size=[100, 100],
