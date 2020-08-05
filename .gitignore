@@ -4,4 +4,6 @@ __pycache__/
 .eggs/*
 *.egg-info/
 *.ipynb_checkpoints/
+dist/
+build/
 mocap_processing/tasks/motion_prediction/test_data/*
