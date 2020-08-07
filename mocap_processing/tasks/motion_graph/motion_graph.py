@@ -78,7 +78,6 @@ def compare_and_connect_edge(
     motion_idx = node["motion_idx"]
     frame_end = node["frame_end"]
     
-    diffs = []
     for j in range(num_nodes):
         motion_idx_j = nodes[j]["motion_idx"]
         frame_start_j = nodes[j]["frame_start"]
@@ -128,10 +127,8 @@ def compare_and_connect_edge(
         diff_trajectory /= num_comparison
         diff = diff_pose + diff_root_ee + diff_trajectory
 
-        diffs.append(diff)
         if diff <= diff_threshold:
             res.append((diff, node_id, j))
-    logging.info(f"Node: {node}, Edges: {res}, Top diffs: {sorted(diffs)[:5]}")
     return res
 
 
@@ -211,8 +208,6 @@ class MotionGraph(object):
                 frame_start=frame_start,
                 frame_end=frame_end,
             )
-            # logging.info(motion_idx, frame_start, frame_end)
-        # Create edges
         if self.verbose:
             logging.info("Creating edges...")
 
@@ -265,7 +260,6 @@ class MotionGraph(object):
             n1 = nodes[i]
             n2 = nodes[i + 1]
             nodes_inbetween = nx.shortest_path(self.graph, n1, n2)
-            # logging.info(nodes_inbetween)
             range_nodes = (
                 range(len(nodes_inbetween))
                 if i == len(nodes) - 2
