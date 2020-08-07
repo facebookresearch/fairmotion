@@ -48,11 +48,6 @@ COLOR_SEQUENCE = [
 ]
 
 
-quadric = gluNewQuadric()
-gluQuadricDrawStyle(quadric, GLU_FILL)
-gluQuadricNormals(quadric, GLU_SMOOTH)
-
-
 def glTransform(T):
     glMultMatrixd(T.transpose().ravel())
 
@@ -155,7 +150,9 @@ def render_sphere_info(
 
 
 def render_cylinder(T, length, radius, scale=1.0, color=[0, 0, 0, 1], slice=16):
-    global quadric
+    quadric = gluNewQuadric()
+    gluQuadricDrawStyle(quadric, GLU_FILL)
+    gluQuadricNormals(quadric, GLU_SMOOTH)
 
     glEnable(GL_DEPTH_TEST)
     glPushMatrix()
@@ -174,7 +171,10 @@ def render_cylinder(T, length, radius, scale=1.0, color=[0, 0, 0, 1], slice=16):
 
 
 def render_capsule(T, length, radius, scale=1.0, color=[0, 0, 0, 1], slice=16):
-    global quadric
+    quadric = gluNewQuadric()
+    gluQuadricDrawStyle(quadric, GLU_FILL)
+    gluQuadricNormals(quadric, GLU_SMOOTH)
+
 
     glEnable(GL_DEPTH_TEST)
     glPushMatrix()
@@ -231,7 +231,9 @@ def render_disk(
     scale=1.0,
     color=[0.8, 0.8, 0.8, 1.0],
 ):
-    global quadric
+    quadric = gluNewQuadric()
+    gluQuadricDrawStyle(quadric, GLU_FILL)
+    gluQuadricNormals(quadric, GLU_SMOOTH)
 
     glPushMatrix()
     glTransform(T)
@@ -451,7 +453,9 @@ def render_path(data, color=[0.0, 0.0, 0.0], scale=1.0, line_width=1.0, point_si
 
 
 def render_arrow(p1, p2, D=0.1, color=[1.0, 0.5, 0.0], closed=False):
-    global quadric
+    quadric = gluNewQuadric()
+    gluQuadricDrawStyle(quadric, GLU_FILL)
+    gluQuadricNormals(quadric, GLU_SMOOTH)
 
     glColor(color)
     RADPERDEG = 0.0174533
