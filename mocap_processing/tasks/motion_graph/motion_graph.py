@@ -1,8 +1,8 @@
 import gzip
+import logging
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import os
 import pickle
 import random
 import tqdm
@@ -12,8 +12,12 @@ from mocap_processing.motion import similarity, velocity
 from mocap_processing.processing import operations
 from mocap_processing.utils import conversions, utils
 
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
+
+logging.basicConfig(
+    format="[%(asctime)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
 
 
 def create_nodes(
@@ -73,7 +77,8 @@ def compare_and_connect_edge(
 
     motion_idx = node["motion_idx"]
     frame_end = node["frame_end"]
-
+    
+    diffs = []
     for j in range(num_nodes):
         motion_idx_j = nodes[j]["motion_idx"]
         frame_start_j = nodes[j]["frame_start"]
@@ -123,9 +128,10 @@ def compare_and_connect_edge(
         diff_trajectory /= num_comparison
         diff = diff_pose + diff_root_ee + diff_trajectory
 
+        diffs.append(diff)
         if diff <= diff_threshold:
             res.append((diff, node_id, j))
-    print(node, res)
+    logging.info(f"Node: {node}, Edges: {res}, Top diffs: {sorted(diffs)[:5]}")
     return res
 
 
@@ -178,12 +184,12 @@ class MotionGraph(object):
     ):
         assert len(self.motions) > 0, "No motions to construct graph"
         if self.verbose:
-            print("construction start!")
+            logging.info("Starting construction")
         self.skel = self.motions[0].skel
         for m in self.motions:
             m.set_skeleton(self.skel)
         if self.verbose:
-            print("creating nodes ...")
+            logging.info("Creating nodes")
         # Create nodes
         ns = utils.run_parallel(
             create_nodes,
@@ -196,7 +202,7 @@ class MotionGraph(object):
             fps=self.fps,
         )
         if self.verbose:
-            print("merging %d nodes ..." % len(ns))
+            logging.info(f"Merging {len(ns)} nodes...")
         for motion_idx, frame_start, frame_end in tqdm.tqdm(ns):
             # for motion_idx, frame_start, frame_end in ns:
             self.graph.add_node(
@@ -205,10 +211,10 @@ class MotionGraph(object):
                 frame_start=frame_start,
                 frame_end=frame_end,
             )
-            # print(motion_idx, frame_start, frame_end)
+            # logging.info(motion_idx, frame_start, frame_end)
         # Create edges
         if self.verbose:
-            print("creating edges ...")
+            logging.info("Creating edges...")
 
         wes = utils.run_parallel(
             compare_and_connect_edge,
@@ -239,15 +245,13 @@ class MotionGraph(object):
         self.w_ee_vel = w_ee_vel
         self.w_trajectory = w_trajectory
         if self.verbose:
-            print("merging %d edges ..." % len(wes))
+            logging.info(f"Merging {len(wes)} edges...")
         for w, e_i, e_j in tqdm.tqdm(wes):
             self.graph.add_edge(e_i, e_j, weights=w)
         if self.verbose:
-            print("=======================================")
-            print("MotionGraph was constructed")
-            print("NumNodes:", self.graph.number_of_nodes())
-            print("NumEdges:", self.graph.number_of_edges())
-            print("=======================================")
+            logging.info("MotionGraph was constructed")
+            logging.info(f"NumNodes: {self.graph.number_of_nodes()}")
+            logging.info(f"NumEdges: {self.graph.number_of_edges()}")
 
     def clear_visit_info(self):
         for n in self.graph.nodes:
@@ -261,7 +265,7 @@ class MotionGraph(object):
             n1 = nodes[i]
             n2 = nodes[i + 1]
             nodes_inbetween = nx.shortest_path(self.graph, n1, n2)
-            # print(nodes_inbetween)
+            # logging.info(nodes_inbetween)
             range_nodes = (
                 range(len(nodes_inbetween))
                 if i == len(nodes) - 2
@@ -320,13 +324,13 @@ class MotionGraph(object):
             frame_end = self.graph.nodes[cur_node]["frame_end"]
 
             if self.verbose:
-                print("[", cur_node, "] ", self.graph.nodes[cur_node])
+                logging.info(f"[{cur_node}] {self.graph.nodes[cur_node]}")
 
             t_processed += (frame_end - frame_start + 1.0) / self.fps
             # Jump to adjacent node (motion) randomly
             if self.graph.out_degree(cur_node) == 0:
                 if self.verbose:
-                    print("!!!Dead-end exists in the graph!!!")
+                    logging.info("Dead-end exists in the graph!")
                 break
             prev_node = cur_node
             if use_visit_info == "node" or use_visit_info == "edge":
@@ -357,7 +361,8 @@ class MotionGraph(object):
 
     def create_random_motion(self, length, start_node=None):
         """
-        This funtion generate a motion from the given motion graph by randomly traversing the graph
+        This funtion generate a motion from the given motion graph by randomly
+        traversing the graph.
 
         length - length of the generated motion
         start_node - we can specify a start node if necessary
@@ -396,7 +401,7 @@ class MotionGraph(object):
             )
 
             if self.verbose:
-                print("[", cur_node, "] ", self.graph.nodes[cur_node])
+                logging.info(f"[{cur_node}] {self.graph.nodes[cur_node]}")
 
             motion = operations.append_and_blend(
                 motion, m, blend_length=self.blend_length,
@@ -406,7 +411,7 @@ class MotionGraph(object):
             # Jump to adjacent node (motion) randomly
             if self.graph.out_degree(cur_node) == 0:
                 if self.verbose:
-                    print("!!!Dead-end exists in the graph!!!")
+                    logging.info("Dead-end exists in the graph!")
                 break
             cur_node = random.choice(list(self.graph.successors(cur_node)))
         return motion, visited_nodes
@@ -426,6 +431,7 @@ class MotionGraph(object):
         nodes = []
         for i in range(num_component):
             nodes += components[i]
+        logging.info(f"Using reduced component with {len(nodes)} nodes")
         self.graph.remove_nodes_from(
             [n for n in self.graph.nodes if n not in nodes]
         )
@@ -444,7 +450,7 @@ class MotionGraph(object):
         motion.resample(fps=self.fps)
         self.motions[idx] = motion
         if self.verbose:
-            print(f"Loaded: {file}")
+            logging.info(f"Loaded: {file}")
 
     def load_motions(self, num_workers=8):
         self.motions = bvh.load_parallel(
@@ -456,8 +462,8 @@ class MotionGraph(object):
         )
         self.motions = [motion.resample(self.fps) for motion in self.motions]
         total_length = np.sum([m.length() for m in self.motions])
-        print(f"Total {total_length:.2f} sec long motions were loaded")
-        print(
+        logging.info(f"Total {total_length:.2f} sec long motions were loaded")
+        logging.info(
             f"FPS ~ {self.motions[0].num_frames() / self.motions[0].length():.2f}"
         )
 
@@ -466,14 +472,14 @@ class MotionGraph(object):
             pickle.dump(self.graph, f)
             nn = self.graph.number_of_nodes()
             ne = self.graph.number_of_edges()
-            print(f"Saved {filename} ({nn} nodes / {ne} edges)")
+            logging.info(f"Saved {filename} ({nn} nodes / {ne} edges)")
 
     def load_graph(self, filename="temp_motion_graph.gzip"):
         with gzip.open(filename, "rb") as f:
             self.graph = pickle.load(f)
             nn = self.graph.number_of_nodes()
             ne = self.graph.number_of_edges()
-            print(f"Loaded {filename} ({nn} nodes / {ne} edges)")
+            logging.info(f"Loaded {filename} ({nn} nodes / {ne} edges)")
 
     def draw(self):
         nx.draw(self.graph, with_labels=True)

@@ -7,10 +7,10 @@ from mocap_processing.motion.motion import Pose, Motion
 
 
 class Velocity(object):
-    """ 
+    """
     This contains linear and angluar velocity of joints.
     All velocities are represented w.r.t. the joint frame.
-    To get the global velocity, you should give the frame 
+    To get the global velocity, you should give the frame
     that corresponds to the velocity.
     """
 

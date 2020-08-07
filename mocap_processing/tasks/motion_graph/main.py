@@ -1,9 +1,17 @@
 import argparse
+import logging
 
 from mocap_processing.data import bvh
 from mocap_processing.motion import velocity
 from mocap_processing.tasks.motion_graph import motion_graph as graph
 from mocap_processing.utils import utils
+
+
+logging.basicConfig(
+    format="[%(asctime)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
 
 
 if __name__ == "__main__":
@@ -26,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--base-length", type=float, default=1.5)
     parser.add_argument("--blend-length", type=float, default=0.5)
-    parser.add_argument("--diff-threshold", type=float, default=0.5)
+    parser.add_argument("--diff-threshold", type=float, default=5.0)
     parser.add_argument("--w-joint-pos", type=float, default=8.0)
     parser.add_argument("--w-joint-vel", type=float, default=2.0)
     parser.add_argument("--w-root-pos", type=float, default=0.5)
@@ -39,37 +47,40 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load motions
-    skel = None
-    motions = []
     motion_files = (
         args.motion_files
         if args.motion_files
         else []
-        + utils.files_in_dir("/Users/dgopinath/data/graph_bvh/", ext="bvh")
     )
-    for file in motion_files:
-        if file.endswith("bvh"):
-            motion = velocity.MotionWithVelocity(skel=skel)
-            motion = bvh.load(
-                file=file,
-                motion=motion,
-                scale=args.scale,
-                load_skel=skel is None,
-                v_up_skel=utils.str_to_axis(args.v_up_skel),
-                v_face_skel=utils.str_to_axis(args.v_face_skel),
-                v_up_env=utils.str_to_axis(args.v_up_env),
+    motion_files = (
+        motion_files + utils.files_in_dir(args.motion_folder, ext="bvh")
+        if args.motion_folder
+        else motion_files
+    )
+
+    motions = bvh.load_parallel(
+        motion_files,
+        scale=args.scale,
+        v_up_skel=utils.str_to_axis(args.v_up_skel),
+        v_face_skel=utils.str_to_axis(args.v_face_skel),
+        v_up_env=utils.str_to_axis(args.v_up_env),
+    )
+
+    skel = motions[0].skel
+    motions_with_velocity = []
+    for motion in motions:
+        motion.set_skeleton(skel)
+        motions_with_velocity.append(
+            velocity.MotionWithVelocity.from_motion(
+                motion
             )
-            motion.compute_velocities()
-            # Ensure the same skeleton is used in all motions
-            if skel is None:
-                skel = motion.skel
-        # TODO: Support more data loaders
-        print(f"Loaded {file}")
-        motions.append(motion)
+        )
+
+    logging.info(f"Loaded {len(motions_with_velocity)} files")
 
     # Construct Motion Graph
     mg = graph.MotionGraph(
-        motions=motions,
+        motions=motions_with_velocity,
         motion_files=args.motion_files,
         skel=skel,
         base_length=args.base_length,

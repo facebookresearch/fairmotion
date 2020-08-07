@@ -168,6 +168,10 @@ class Pose(object):
         p = p - operations.projectionOnVector(p, self.skel.v_up_env)
         return d / np.linalg.norm(d), p
 
+    def set_skeleton(self, skel):
+        assert skel.num_joints() == len(self.data)
+        self.skel = skel
+
     def to_matrix(self, local=True):
         """
         Returns pose data in transformation matrix format, with shape
@@ -227,6 +231,8 @@ class Motion(object):
 
     def set_skeleton(self, skel):
         self.skel = skel
+        for idx in range(len(self.poses)):
+            self.poses[idx].set_skeleton(skel)
 
     def add_one_frame(self, t, pose_data):
         self.poses.append(Pose(self.skel, pose_data))

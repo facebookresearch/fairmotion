@@ -1,9 +1,7 @@
 import numpy as np
-from multiprocessing import Pool
 
 from mocap_processing.motion import motion as motion_classes
-from mocap_processing.utils import constants
-from mocap_processing.utils import conversions
+from mocap_processing.utils import constants, conversions, utils
 
 
 def load(
@@ -234,6 +232,4 @@ def save(motion, filename, scale=1.0, rot_order="XYZ", verbose=False):
 
 
 def load_parallel(files, cpus=20, **kwargs):
-    with Pool(cpus) as p:
-        motions = list(p.map(load, files))
-    return motions
+    return utils.run_parallel(load, files, num_cpus=cpus, **kwargs)

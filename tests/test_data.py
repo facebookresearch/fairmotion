@@ -2,10 +2,11 @@ import numpy as np
 import tempfile
 import unittest
 from mocap_processing.data import bvh
-from mocap_processing.utils import conversions
+from mocap_processing.utils import conversions, utils
 
 
 TEST_SINUSOIDAL_FILE = "tests/data/sinusoidal.bvh"
+TEST_SINUSOIDAL_2_FILE = "tests/data/sinusoidal_2.bvh"
 
 
 class TestBVH(unittest.TestCase):
@@ -26,6 +27,30 @@ class TestBVH(unittest.TestCase):
                 R, _ = conversions.T2Rp(T)
                 E = conversions.R2E(R, order="XYZ", degrees=True)
                 np.testing.assert_almost_equal(E, true_E)
+
+    def test_load_parallel(self):
+        # Load files
+        motions = bvh.load_parallel(
+            files=[TEST_SINUSOIDAL_FILE, TEST_SINUSOIDAL_2_FILE],
+        )
+        self.assertEqual(len(motions), 2)
+        # Test if the loaded motion objects are not same in the first frame
+        self.assertNotEqual(motions[0].poses[0], motions[1].poses[0])
+
+        # Use kwargs
+        v_up_skel = utils.str_to_axis("y")
+        v_face_skel = utils.str_to_axis("z")
+        v_up_env = utils.str_to_axis("x")
+        motions = bvh.load_parallel(
+            files=[TEST_SINUSOIDAL_FILE, TEST_SINUSOIDAL_2_FILE],
+            scale=0.1,
+            v_up_skel=v_up_skel,
+            v_face_skel=v_face_skel,
+            v_up_env=v_up_env,
+        )
+        np.testing.assert_equal(motions[0].skel.v_up, v_up_skel)
+        np.testing.assert_equal(motions[0].skel.v_face, v_face_skel)
+        np.testing.assert_equal(motions[0].skel.v_up_env, v_up_env)
 
     def test_save_motion(self):
         # Load file
