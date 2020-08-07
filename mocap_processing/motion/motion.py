@@ -24,8 +24,11 @@ class Joint(object):
             axis = np.deg2rad(axis)
             self.C = euler2mat(*axis)
             self.Cinv = np.linalg.inv(self.C)
+            self.matrix = None
+            self.degree = np.zeros(3)
+            self.coordinate = None
         if direction is not None:      
-            self.direction = np.reshape(direction, [3, 1])
+            self.direction = direction.squeeze() #np.reshape(direction, [3, 1])
         if limits is not None:
             self.limits = np.zeros([3, 2])
             for lm, nm in zip(limits, dof):
