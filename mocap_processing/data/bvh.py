@@ -1,3 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 import numpy as np
 
 from mocap_processing.motion import motion as motion_classes
@@ -169,11 +174,11 @@ def _write_hierarchy(motion, file, joint, scale=1.0, rot_order="XYZ", tab=""):
         )
     else:
         file.write(tab + "\tCHANNELS 3 %s\n"%rot_order_to_str(rot_order))
-    for child_joint in joint.child_joint:
+    for child_joint in joint.child_joints:
         child_joint_order = _write_hierarchy(
             motion, file, child_joint, scale, rot_order, tab + "\t")
         joint_order.extend(child_joint_order)
-    if len(joint.child_joint) == 0:
+    if len(joint.child_joints) == 0:
         file.write(tab + "\tEnd Site\n")
         file.write(tab + "\t{\n")
         file.write(tab + "\t\tOFFSET %f %f %f\n" % (0.0, 0.0, 0.0))

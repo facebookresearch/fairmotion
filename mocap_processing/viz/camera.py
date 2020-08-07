@@ -1,10 +1,21 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
 
 import numpy as np
 from mocap_processing.utils import constants, conversions
-from mocap_processing.processing import operations
 
 
 class Camera(object):
+    """Camera class for the visualizer.
+
+    Attributes:
+        pos: Position of the camera in global coordinates
+        origin: Point in global coordinates that the camera is pointing at
+        vup: Vertical axis. Defaults to y-axis
+        fov: Field of view in degrees
+    """
     def __init__(self, pos, origin, vup=np.array([0.0, 1.0, 0.0]), fov=45.0):
         self.pos = pos
         self.origin = origin

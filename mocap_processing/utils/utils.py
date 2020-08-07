@@ -1,7 +1,13 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 import numpy as np
 import os
 from functools import partial
 from multiprocessing import Pool
+import random
 
 
 def str_to_axis(s):
@@ -72,7 +78,7 @@ def run_parallel(func, iterable, num_cpus=20, **kwargs):
 
 def correct_antipodal_quaternions(quat):
     """
-    Copied from https://github.com/eth-ait/spl/blob/master/preprocessing/
+    Adapted from https://github.com/eth-ait/spl/blob/master/preprocessing/
     preprocess_dip.py#L64
     Removes discontinuities coming from antipodal representation of quaternions
     At time step t it checks which representation, q or -q, is closer to time
@@ -111,32 +117,52 @@ def correct_antipodal_quaternions(quat):
     quat_corrected = np.squeeze(quat_corrected)
     return quat_corrected
 
-def files_in_dir(path, ext=None, keyward=None, sort=False, sample_mode=None, sample_num=None):
+
+def files_in_dir(
+    path, ext=None, keyword=None, sort=False, sample_mode=None,
+    sample_num=None,
+):
+    """Returns list of files in `path` directory.
+
+    Args:
+        path: Path to directory to list files from
+        ext: Extension of files to be listed
+        keyword: Return file if filename contains `keyword`
+        sort: Sort files by filename in the returned list
+        sample_mode: str; Use this option to return subset of files from `path`
+            directory. `sample_mode` takes values 'sequential' to return first
+            `sample_num` files, or 'shuffle' to return `sample_num` number of
+            files randomly
+        sample_num: Number of files to return
+    """
     files = []
     # r=root, d=directories, f = files
     for r, d, f in os.walk(path):
         for file in f:
             add = True
-            if ext is not None and not file.endswith(ext): add=False
-            if keyward is not None and keyward not in file: add=False
-            if add: files.append(os.path.join(r, file))
-    if sort: 
+            if ext is not None and not file.endswith(ext):
+                add = False
+            if keyword is not None and keyword not in file:
+                add = False
+            if add:
+                files.append(os.path.join(r, file))
+    if sort:
         files.sort()
-    
+
     if sample_num is None:
         sample_num = len(files)
     else:
         sample_num = min(sample_num, len(files))
-    
-    if sample_mode==None:
+
+    if sample_mode is None:
         pass
-    elif sample_mode=='sequential': 
+    elif sample_mode == 'sequential':
         files = files[:sample_num]
-    elif sample_mode=='shuffle':
+    elif sample_mode == 'shuffle':
         files = random.shuffle(files)[:sample_num]
     else:
         raise NotImplementedError
-    
+
     return files
 
 

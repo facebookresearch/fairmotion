@@ -1,3 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 import numpy as np
 
 from mocap_processing.processing import operations
@@ -7,11 +12,13 @@ from mocap_processing.motion.motion import Pose, Motion
 
 
 class Velocity(object):
-    """
-    This contains linear and angluar velocity of joints.
-    All velocities are represented w.r.t. the joint frame.
-    To get the global velocity, you should give the frame
-    that corresponds to the velocity.
+    """Velocity class to compute angular and linear velocity of joints. All
+    velocities are represented w.r.t. the joint frame (local).
+
+    Attributes:
+        pose1, pose2: Objects of Pose class between which velocity is
+            computed.
+        dt: Time between poses
     """
 
     def __init__(self, pose1=None, pose2=None, dt=None):
@@ -21,7 +28,9 @@ class Velocity(object):
             assert pose2 and dt
             assert isinstance(pose1, Pose) and isinstance(pose2, Pose)
             self.skel = pose1.skel
-            self.data_local, self.data_global = Velocity.compute(pose1, pose2, dt)
+            self.data_local, self.data_global = Velocity.compute(
+                pose1, pose2, dt,
+            )
 
     def set_skel(self, skel):
         self.skel = skel
@@ -52,8 +61,12 @@ class Velocity(object):
         return np.array(data_local), np.array(data_global)
 
     def get_all(self, key, local, R_ref=None):
+        """Returns both linear and angular velocity stacked together"""
         return np.hstack(
-            [self.get_angular(key, local, R_ref), self.get_linear(key, local, R_ref)]
+            [
+                self.get_angular(key, local, R_ref),
+                self.get_linear(key, local, R_ref),
+            ]
         )
 
     def get_angular(self, key, local, R_ref=None):
@@ -71,10 +84,11 @@ class Velocity(object):
         return v
 
     def rotate(self, R):
+        # TODO: Add documentation
         data_global_new = []
         for joint in self.skel.joints:
-            w = self.get_angular(key, local=False)
-            v = self.get_linear(key, local=False)
+            w = self.get_angular(key=joint, local=False)
+            v = self.get_linear(key=joint, local=False)
             w = np.dot(R, w)
             v = np.dot(R, v)
             data_global_new.append(np.hstack([w, v]))
@@ -82,6 +96,17 @@ class Velocity(object):
 
     @classmethod
     def interpolate(cls, v1, v2, alpha):
+        """Returns interpolated velocity object between two velocity objects.
+        Typically, each velocity object is associated with a frame.
+        `interpolate` could be used to calculated interpolated angular and
+        linear velocity for any frame between them.
+
+        Args:
+            v1, v2: Velocity objects associated with frame between which
+                interpolated velocity is calculated
+            alpha: Value between 0 and 1 denoting the blending ratio. alpha=0
+                returns v1, and alpha=1 returns v2
+        """
         data_local = operations.lerp(v1.data_local, v2.data_local, alpha)
         data_global = operations.lerp(v1.data_global, v2.data_global, alpha)
         v = cls()
@@ -93,8 +118,29 @@ class Velocity(object):
 
 class MotionWithVelocity(Motion):
     """
-    This is an exteded motion class where precomputed velocities 
-    are available to access.ss
+    Extension of `Motion` class to additionally pre-compute angular and linear
+    velocity of joints.
+
+    Instantiating a `MotionWithVelocity` object uses the constructor of the
+    `Motion` class and creates an empty velocity list. After populating the
+    empty `MotionWithVelocity` object with poses, use `compute_velocities()`
+    to make velocity information available.
+
+    To instantiate `MotionWithVelocity` object from a `Motion` object, use
+    the `from_motion` method.
+    ```
+    from mocap_processing.data import bvh
+    from mocap_processing.motion.velocity import MotionWithVelocity
+
+    motion = bvh.load(bvh_filename)
+    motion_with_velcoty = MotionWithVelocity.from_motion(motion)
+    ```
+
+    Attributes:
+        name: Optional; String name of MotionWithVelocity object
+        skel: Skeleton object of the character associated with the motion
+            sequence
+        fps: Rendering frequency in Hz
     """
 
     def __init__(self, name="motion", skel=None, fps=60):
@@ -125,21 +171,20 @@ class MotionWithVelocity(Motion):
             "Velocity was not computed yet.",
             "Please call self.compute_velocities() first",
         )
+
         time = np.clip(time, 0, self.length())
         frame1 = self.time_to_frame(time)
         frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
             return self.vels[frame1]
-        if np.isclose(time % (1.0 / self.fps), 0):
-            return self.vels[frame1]
-
-        t1 = int(time / self.fps) * float(1 / self.fps)
-        t2 = t1 + float(1 / self.fps)
-        alpha = np.clip((time - t1) / (t2 - t1), 0.0, 1.0)
+        
+        t1 = self.frame_to_time(frame1)
+        t2 = self.frame_to_time(frame2)
+        alpha = (time - t1) / (t2 - t1)
+        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)"%(alpha)
 
         v1 = self.get_velocity_by_frame(frame1)
         v2 = self.get_velocity_by_frame(frame2)
-
         return Velocity.interpolate(v1, v2, alpha)
 
     def get_velocity_by_frame(self, frame):

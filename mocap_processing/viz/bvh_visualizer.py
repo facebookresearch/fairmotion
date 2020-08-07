@@ -1,13 +1,37 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+"""
+MocapViewer is an extension of the glut_viewer.Viewer class that implements
+requisite callback functions -- render_callback, keyboard_callback,
+idle_callback and overlay_callback.
+
+```
+python mocap_processing/viz/bvh_visualizer.py \
+    --bvh-files $BVH_FILE1
+```
+
+To visualize more than 1 motion sequence side by side, append more files to the
+`--bvh-files` argument. Set `--x-offset` to an appropriate float value to
+add space separation between characters in the row.
+
+```
+python mocap_processing/viz/bvh_visualizer.py \
+    --bvh-files $BVH_FILE1 $BVH_FILE2 $BVH_FILE3 \
+    --x-offset 2
+```
+"""
+
 import argparse
-from functools import partial
 import numpy as np
+import os
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-from mocap_processing.viz import (
-    camera, gl_render, glut_viewer, utils as viz_utils
-)
+from mocap_processing.viz import camera, gl_render, glut_viewer
 from mocap_processing.data import bvh
 from mocap_processing.processing import operations
 from mocap_processing.utils import conversions, utils
@@ -61,7 +85,6 @@ class MocapViewer(glut_viewer.Viewer):
 
         return True
 
-
     def _render_pose(self, pose, body_model, color):
         skel = pose.skel
         for j in skel.joints:
@@ -77,7 +100,6 @@ class MocapViewer(glut_viewer.Viewer):
                 R = operations.R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
                 gl_render.render_capsule(conversions.Rp2T(R, p), l, r * self.scale, color=color, slice=8)
 
-
     def _render_characters(self, colors):
         for i, motion in enumerate(self.motions):
             t = self.cur_time % motion.length()
@@ -91,7 +113,6 @@ class MocapViewer(glut_viewer.Viewer):
             glEnable(GL_LIGHTING)
             self._render_pose(pose, "stick_figure2", color)
 
-
     def render_callback(self):
         gl_render.render_ground(
             size=[100, 100], color=[0.8, 0.8, 0.8], axis=utils.axis_to_str(self.motions[0].skel.v_up_env), origin=not self.hide_origin, use_arrow=True
@@ -103,21 +124,18 @@ class MocapViewer(glut_viewer.Viewer):
         ]
         self._render_characters(colors)
 
-
     def idle_callback(self):
         time_elapsed = self.time_checker.get_time(restart=False)
         self.cur_time += self.play_speed * time_elapsed
         self.time_checker.begin()
 
-
     def overlay_callback(self):
         if self.render_overlay:
-            w, h = viewer.window_size
+            w, h = self.window_size
             t = self.cur_time % self.motions[0].length()
             frame = self.motions[0].time_to_frame(t)
-            status = "SEED SEQUENCE" if frame < 120 else "PREDICTION SEQUENCE"
             gl_render.render_text(
-                f"Frame number: {frame} | {status}",
+                f"Frame number: {frame}",
                 pos=[0.05*w, 0.95*h],
                 font=GLUT_BITMAP_TIMES_ROMAN_24,
             )
@@ -159,7 +177,9 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Visualize BVH file with block body")
+    parser = argparse.ArgumentParser(
+        description="Visualize BVH file with block body"
+    )
     parser.add_argument("--bvh-files", type=str, nargs="+", required=True)
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--speed", type=float, default=1.0)
