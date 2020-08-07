@@ -5,6 +5,8 @@
 
 import numpy as np
 import os
+from functools import partial
+from multiprocessing import Pool
 import random
 
 
@@ -37,6 +39,41 @@ def get_index(index_dict, key):
         return index_dict[key]
     else:
         return index_dict[key.name]
+
+
+def run_parallel(func, iterable, num_cpus=20, **kwargs):
+    """
+    Run function over multiple cpus. The function must be written such that
+    it processes single input value.
+
+    Args:
+        func: Method that is run in parallel. The first argument of func
+            accepts input values from iterable.
+        iterable: List of input values that func is executed over.
+        num_cpus: Number of cpus used by multiprocessing.
+        kwargs: Dictionary of keyword arguments that is passed on to each
+            parallel call to the function
+
+    Returns:
+        Flattened list of results from running the function on iterable
+        arguments
+    """
+    func_with_kwargs = partial(func, **kwargs)
+    with Pool(processes=num_cpus) as pool:
+        results = pool.map(func_with_kwargs, iterable)
+
+    # Check if each unit result is an iterable
+    is_iterable = True
+    if len(results) > 0:
+        try:
+            _ = iter(results[0])
+        except TypeError:
+            is_iterable = False
+
+    if is_iterable:
+        return [elem for result in results for elem in result]
+    else:
+        return results
 
 
 def correct_antipodal_quaternions(quat):

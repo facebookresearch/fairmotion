@@ -148,8 +148,7 @@ class MotionWithVelocity(Motion):
         self.vels = []
 
     def compute_velocities(self):
-        self.vels = []
-        self.vels += self._compute_velocities()
+        self.vels = self._compute_velocities()
 
     def _compute_velocities(self, frame_start=None, frame_end=None):
         vels = []

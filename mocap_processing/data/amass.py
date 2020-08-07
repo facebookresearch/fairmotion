@@ -96,7 +96,7 @@ def create_motion_from_amass_data(filename, bm):
 
     motion = motion_class.Motion(skel=skel)
 
-    num_joints = skel.num_joint()
+    num_joints = skel.num_joints()
     parents = bm.kintree_table[0].long()[:num_joints]
 
     for frame in range(pose_body.shape[0]):

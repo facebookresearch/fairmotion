@@ -95,7 +95,7 @@ def main(args):
     parents = bm.kintree_table[0].long()[: 21 + 1]
     parents = parents.cpu().numpy()
     dfs_order = get_dfs_order(parents)
-    for frame in tqdm.tqdm(range(motion.num_frame())):
+    for frame in tqdm.tqdm(range(motion.num_frames())):
         pose = motion.get_pose_by_frame(frame)
 
         R, p = conversions.T2Rp(pose.data[0])
