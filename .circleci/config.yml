@@ -12,6 +12,7 @@ jobs:
           command: |
             cd ~/project
             sudo apt-get update -y
+            sudo apt-get install freeglut3-dev
             sudo pip3 install virtualenv 
             virtualenv --python=python3 ./mocap_processing_env
             source ./mocap_processing_env/bin/activate

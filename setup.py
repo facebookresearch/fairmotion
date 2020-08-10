@@ -18,7 +18,6 @@ setup(
         "matplotlib",
         "numpy",
         "pillow",
-        "pyglet",
         "pyrender",
         "scikit-learn",
         "scipy",
