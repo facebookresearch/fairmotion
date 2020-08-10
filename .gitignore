@@ -6,4 +6,4 @@ __pycache__/
 *.ipynb_checkpoints/
 dist/
 build/
-mocap_processing/tasks/motion_prediction/test_data/*
+fairmotion/tasks/motion_prediction/test_data/*

@@ -6,9 +6,9 @@
 import numpy as np
 import unittest
 
-from mocap_processing.data import bvh
-from mocap_processing.motion import motion as motion_class
-from mocap_processing.utils import conversions
+from fairmotion.data import bvh
+from fairmotion.motion import motion as motion_class
+from fairmotion.utils import conversions
 
 
 TEST_SINUSOIDAL_FILE = "tests/data/sinusoidal.bvh"

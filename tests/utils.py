@@ -4,8 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import numpy as np
-from mocap_processing.utils import constants
-from mocap_processing.utils import conversions
+from fairmotion.utils import constants
+from fairmotion.utils import conversions
 
 
 def get_random_Q():

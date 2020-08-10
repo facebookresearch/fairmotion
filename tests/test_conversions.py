@@ -6,7 +6,7 @@
 import numpy as np
 import unittest
 from tests import utils as test_utils
-from mocap_processing.utils import conversions
+from fairmotion.utils import conversions
 
 
 class TestConversions(unittest.TestCase):

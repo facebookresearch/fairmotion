@@ -1,4 +1,4 @@
-# Contributing to mocap_processing
+# Contributing to fairmotion
 We want to make contributing to this project as easy and transparent as
 possible.
 
@@ -33,5 +33,5 @@ outlined on that page and do not file a public issue.
 [pyguide](https://google.github.io/styleguide/pyguide.html)
 
 ## License
-By contributing to mocap_processing, you agree that your contributions will be 
+By contributing to fairmotion, you agree that your contributions will be 
 licensed under the LICENSE file in the root directory of this source tree.

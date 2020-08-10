@@ -4,8 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
-from mocap_processing.data import bvh
-from mocap_processing.processing import operations
+from fairmotion.data import bvh
+from fairmotion.processing import operations
 
 
 class TestMotion(unittest.TestCase):

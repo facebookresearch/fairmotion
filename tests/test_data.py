@@ -6,8 +6,8 @@
 import numpy as np
 import tempfile
 import unittest
-from mocap_processing.data import bvh
-from mocap_processing.utils import conversions, utils
+from fairmotion.data import bvh
+from fairmotion.utils import conversions, utils
 
 
 TEST_SINUSOIDAL_FILE = "tests/data/sinusoidal.bvh"

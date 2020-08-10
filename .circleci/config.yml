@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  mocap_processing:
+  fairmotion:
     resource_class: gpu.small
     docker:
       - image: circleci/python:3.6
@@ -8,7 +8,7 @@ jobs:
     steps:
       - checkout            
       - run:
-          name: Install mocap_processing
+          name: Install fairmotion
           command: |
             cd ~/project
             sudo apt-get update -y
@@ -27,4 +27,4 @@ workflows:
   version: 2
   install_and_test:
     jobs:
-      - mocap_processing
+      - fairmotion

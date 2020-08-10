@@ -4,23 +4,23 @@ fairmotion provides easy-to-use interfaces and tools to work with motion capture
 
 Users can take advantage of large high-quality motion capture datasets like the [CMU](http://mocap.cs.cmu.edu/) and [AMASS](https://amass.is.tue.mpg.de/) datasets without deep knowledge of the domain or handling the idiosyncrasies of individual datasets. We implement baselines for research tasks using building blocks from the library to demonstrate its utility.
 
-<img src="mocap_processing/viz/samples/anim_viz.gif" width="500"><img src="mocap_processing/viz/samples/anim_smpl.gif" width="330">
+<img src="fairmotion/viz/samples/anim_viz.gif" width="500"><img src="fairmotion/viz/samples/anim_smpl.gif" width="330">
 
 ## Getting Started
 
 ### Installation
 
 To install fairmotion, first clone the git repository. Use the pip tool to install the project.
-
-$ git clone https://github.com/fairinternal/mocap_processing.git
-$ cd mocap_processing
+```
+$ git clone https://github.com/fairinternal/fairmotion.git
+$ cd fairmotion
 $ pip install -e .
-
+```
 ### Data Loading
 
 Here, we load a motion capture file in the BVH file format in a python console. Similarly, there are loaders to import files from ASF/AMC, AMASS and AMASS DIP formats.
 ```
-from mocap_processing.data import bvh
+from fairmotion.data import bvh
 
 BVH_FILENAME = “PATH_TO_BVH_FILE”
 motion = bvh.load(BVH_FILENAME)
@@ -36,7 +36,7 @@ sliced_motion = operations.cut(translated_motion, 10, 20)
 ```
 We can perform the same operations in the matrix representation of motion.
 ```
-from mocap_processing.motion.motion import Motion
+from fairmotion.motion.motion import Motion
 
 # motion_matrix has shape (num_frames, num_joints, 4, 4) where 4x4 is transformation matrix
 motion_matrix = motion.to_matrix()
@@ -59,7 +59,7 @@ bvh.save(sliced_motion, NEW_BVH_FILENAME)
 
 We visualize the results using the bvh_visualizer tool.
 ```
-$ python mocap_processing/viz/bvh_visualizer.py --bvh-files $NEW_BVH_FILENAME
+$ python fairmotion/viz/bvh_visualizer.py --bvh-files $NEW_BVH_FILENAME
 ```
 
 ## Tasks
@@ -76,14 +76,14 @@ Motion graphs are used to create arbitrary motion sequences by combining fragmen
 ### Clustering of motion capture dataset
 In this task, we semantically cluster motion sequences from a large motion capture dataset, specifically the [AMASS dataset](http://amass.is.tue.mpg.de/). We implement two quick methods to generate features for sequences -- the first based on [joint heuristics](https://dl.acm.org/doi/10.1145/1073204.1073247) and the second based on [kinetic energy](https://www.researchgate.net/publication/251419971_FMDistance_A_fast_and_effective_distance_function_for_motion_capture_data) and acceleration of joints. We cluster the features using KMeans and Hierarchical approaches and visualize their t-SNE embeddings.
 
-<img src="mocap_processing/tasks/clustering/tsne-pca-k-8.jpg" width="600">
+<img src="fairmotion/tasks/clustering/tsne-pca-k-8.jpg" width="600">
 
 t-SNE embeddings of sequences from AMASS CMU dataset; 8 clusters formed by k-means clustering
 
 ### Changepoint detection
-We implement an acceleration based changepoint detection algorithm in `mocap_processing/tasks/changepoint_detection`.
+We implement an acceleration based changepoint detection algorithm in `fairmotion/tasks/changepoint_detection`.
 
-![changepoints](mocap_processing/tasks/changepoint_detection/changepoints.svg)
+![changepoints](fairmotion/tasks/changepoint_detection/changepoints.svg)
 
 ## License
 fairmotion is MIT licensed. See the LICENSE file for details.
