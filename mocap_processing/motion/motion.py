@@ -6,7 +6,6 @@ from mocap_processing.utils import constants
 from mocap_processing.utils import conversions
 from mocap_processing.utils import utils
 
-from transforms3d.euler import euler2mat
 
 class Joint(object):
     def __init__(self, name=None, dof=3, limits=None, direction=None, length=None, axis=None):
@@ -22,7 +21,7 @@ class Joint(object):
 
         if axis is not None:
             axis = np.deg2rad(axis)
-            self.C = euler2mat(*axis)
+            self.C = conversions.E2R(axis)
             self.Cinv = np.linalg.inv(self.C)
             self.matrix = None
             self.degree = np.zeros(3)
@@ -256,7 +255,7 @@ class Motion(object):
         return int(time * self.fps)
 
     def get_pose_by_frame(self, frame):
-        assert frame < self.num_frames(), f"{frame}vs. {self.num_frames()}"
+        assert frame < self.num_frames(), f"{frame} vs. {self.num_frames()}"
         return self.poses[frame]
 
     def get_pose_by_time(self, time):

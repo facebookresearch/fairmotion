@@ -77,7 +77,15 @@ class TestBVH(unittest.TestCase):
 class TestASFAMC(unittest.TestCase):
     def test_load_motion(self):
         # Load file
-        motion = asfamc.load(file="tests/data/11.asf", motion='tests/data/11_01.amc')
+        motion = asfamc.load(file="tests/data/01.asf", motion='tests/data/01_01.amc')
+        motion_bvh = bvh.load(file="tests/data/01_01.bvh")
+        for i in range(motion.num_frames()):
+        # for i in range(10):
+            pose = motion.get_pose_by_frame(i)
+            pose_bvh = motion_bvh.get_pose_by_frame(i)
+            for k, j in zip(pose.data, pose_bvh.data):
+                # print('asf', k, 'bvh', j)
+                np.testing.assert_almost_equal(k, j)
 
 if __name__ == "__main__":
     unittest.main()
