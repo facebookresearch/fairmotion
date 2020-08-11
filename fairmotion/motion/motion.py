@@ -11,7 +11,6 @@ from fairmotion.utils import constants
 from fairmotion.utils import conversions
 from fairmotion.utils import utils
 
-from transforms3d.euler import euler2mat
 
 class Joint(object):
     """Defines a joint. A hierarchy of joints form a skeleton.

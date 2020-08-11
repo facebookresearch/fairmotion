@@ -3,7 +3,6 @@ import numpy as np
 from mocap_processing.motion import motion as motion_class
 from mocap_processing.motion.motion import Joint
 from mocap_processing.utils import conversions, constants
-from mocap_processing.processing.operations import translate_frames
 
 from transforms3d.euler import euler2mat
 from mpl_toolkits.mplot3d import Axes3D
@@ -115,8 +114,6 @@ def set_rotation(joint):
   if 'root' in joint.name:
     joint.matrix = joint.C.dot(conversions.E2R(joint.degree)).dot(joint.Cinv)
   else:
-    # joint.matrix = joint.parent_joint.matrix.dot(joint.C).dot(euler2mat(*joint.degree)).dot(joint.Cinv)
-    # joint.coordinate = joint.parent_joint.coordinate + joint.length * joint.matrix.dot(joint.direction)
     joint.matrix = joint.C.dot(euler2mat(*joint.degree)).dot(joint.Cinv)
     joint.coordinate = joint.length * joint.matrix.dot(joint.direction)
   for child in joint.child_joint:
@@ -148,16 +145,10 @@ def parse_amc(file_path, joints, skel):
         break
       if line[0].isnumeric():
         break
-    #   joint_degree[line[0]] = [float(deg) for deg in line[1:]]
-      # degree = []
       line_idx = 1
       if 'root' in line[0]:
-        # translation_data.append(np.array([float(line[i]) for i in range(1, 4)]))
-        # degree.append(np.array([float(line[i]) for i in range(4, 7)]))
         degree = np.array([float(line[i]) for i in range(4, 7)])
         joints[line[0]].coordinate = np.array([float(line[i]) for i in range(1, 4)])
-        # rotation = np.deg2rad(np.array(degree))
-        # joints[line[0]].matrix = joints[line[0]].C.dot(conversions.E2R(rotation)).dot(joints[line[0]].Cinv)
       else:
         degree = []
         for lm in joints[line[0]].limits:
@@ -166,36 +157,18 @@ def parse_amc(file_path, joints, skel):
             line_idx += 1
           else:
             degree.append(0)
-        # T = conversions.R2T(
-        #     # conversions.A2R(
-        #     np.deg2rad(np.array(degree, dtype=float))
-        # ))
       joints[line[0]].degree = np.deg2rad(np.array(degree).squeeze())
-        # print(line[0], ' parent ', joints[line[0]].parent_joint.name)
-        # joints[line[0]].matrix = joints[line[0]].parent_joint.matrix.dot(joints[line[0]].C).dot(conversions.E2R(rotation)).dot(joints[line[0]].Cinv)
-      # joint_degree[line[0]] = rotation
     pose_data = []
     set_rotation(joints['root'])
-    # joints['root'].matrix = joints['root'].C.dot(conversions.E2R(joint_degree['root'])).dot(joints['root'].Cinv)
     for key in joints.keys():
       if joints[key].matrix is None:
         pose_data.append(constants.eye_T())
       else:
         pose_data.append(conversions.Rp2T(joints[key].matrix.squeeze(), joints[key].coordinate.squeeze()))
-      
-        # if key in joint_degree:
-        #     # pose_data.append(joint_degree[key])
-        #     print(joints[key].matrix)
-        #     pose_data.append(joints[key].matrix)
-        # else:
-        #     pose_data.append(constants.eye_T())
-    
-    # frames.append(pose_data)
-    # TODO:  fps unknown
-    fps = 24
+
+    fps = 60
     motion.add_one_frame(frame / fps, pose_data)
     frame += 1
-  # motion = translate_frames(motion, translation_data)
   return motion
 
 def load(file, motion=None, scale=1.0, load_skel=True, load_motion=True):

@@ -31,22 +31,6 @@ def transform(motion, T, local=False):
         )
     return motion
 
-def translate_frames(motion, V, local=False):
-    for pose_id, v in zip(range(len(motion.poses)), V):
-        T = conversions.p2T(v)
-        R, p = conversions.T2Rp(T)
-        # R0, p0 = conversions.T2Rp(motion.poses[pose_id].get_root_transform())
-        # R1, p1 = conversions.T2Rp(T)
-        # if local:
-        #     R, p = np.dot(R0, R1), p0 + np.dot(R0, p1)
-        # else:
-        #     R, p = np.dot(R1, R0), p0 + p1
-        motion.poses[pose_id].set_root_transform(
-            conversions.Rp2T(R, p), local=False,
-        )
-    return motion
-
-
 def translate(motion, v, local=False):
     return transform(motion, conversions.p2T(v), local)
 
