@@ -194,7 +194,7 @@ class Viewer():
             return
         if args[0] == b"\x1b":
             print("Hit ESC key to quit.")
-            glutDestroyWindow(window)
+            glutDestroyWindow(self.window)
             sys.exit()
 
 

@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 from fairmotion.utils import constants, conversions, utils
+from fairmotion.processing import operations
 
 
 def load_texture(file):
@@ -313,7 +314,7 @@ def render_quad(
         glColor(color)
 
     if n is None:
-        n = utils.normalize(np.cross(p3 - p2, p2 - p1))
+        n = operations.normalize(np.cross(p3 - p2, p2 - p1))
 
     glBegin(GL_QUADS)
 
