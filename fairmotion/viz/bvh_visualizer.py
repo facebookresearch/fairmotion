@@ -22,6 +22,13 @@ python fairmotion/viz/bvh_visualizer.py \
     --bvh-files $BVH_FILE1 $BVH_FILE2 $BVH_FILE3 \
     --x-offset 2
 ```
+
+To visualize asfamc motion sequence:
+
+```
+python mocap_processing/viz/bvh_visualizer.py --asf-files tests/data/11.asf --amc-files tests/data/11_01.amc 
+```
+
 """
 
 import argparse
@@ -32,7 +39,7 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 from fairmotion.viz import camera, gl_render, glut_viewer
-from fairmotion.data import bvh
+from fairmotion.data import bvh, asfamc
 from fairmotion.processing import operations
 from fairmotion.utils import conversions, utils
 
@@ -143,17 +150,23 @@ class MocapViewer(glut_viewer.Viewer):
 
 def main(args):
     v_up_env = utils.str_to_axis(args.axis_up)
-    motions = [
-        bvh.load(
-            file=filename,
-            v_up_skel=v_up_env,
-            v_face_skel=utils.str_to_axis(args.axis_face),
-            v_up_env=v_up_env,
-            scale=args.scale,
-        )
-        for filename in args.bvh_files
-    ]
-
+    if args.bvh_files:
+        motions = [
+            bvh.load(
+                file=filename,
+                v_up_skel=v_up_env,
+                v_face_skel=utils.str_to_axis(args.axis_face),
+                v_up_env=v_up_env,
+                scale=args.scale,
+            )
+            for filename in args.bvh_files
+        ]
+    else:
+        motions = [
+            asfamc.load(file=f, motion=m)
+            for f, m in zip(args.asf_files, args.amc_files)    
+        ]
+        
     for i in range(len(motions)):
         operations.translate(motions[i], [args.x_offset * i, 0, 0])
 
@@ -180,7 +193,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Visualize BVH file with block body"
     )
-    parser.add_argument("--bvh-files", type=str, nargs="+", required=True)
+    parser.add_argument("--bvh-files", type=str, nargs="+", required=False)
+    parser.add_argument("--asf-files", type=str, nargs="+", required=False)
+    parser.add_argument("--amc-files", type=str, nargs="+", required=False)
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--axis-up", type=str, choices=["x", "y", "z"], default="z")

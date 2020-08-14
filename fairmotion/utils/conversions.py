@@ -289,7 +289,9 @@ def T2Qp(T):
 def Ap2T(A, p):
     return Rp2T(A2R(A), p)
 
-
+def E2R(theta):
+    return Rotation.from_euler('xyz', theta).as_matrix()
+    
 def Ep2T(E, p, order="xyz", degrees=False):
     return Rp2T(E2R(E, order, degrees), p)
 
