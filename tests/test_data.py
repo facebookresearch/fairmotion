@@ -146,7 +146,6 @@ class TestASFAMC(unittest.TestCase):
                 # As asfamc and bvh are from different sources, we are not strictly comparing them.
                 # We require no more than two different elements.
                 failures = 0
-<<<<<<< HEAD
                 if joint_idx == 0:
                     compare_rotation = 0
                 else:
@@ -156,15 +155,5 @@ class TestASFAMC(unittest.TestCase):
                         failures += 1
                 assert failures <= 2, failures
 
-=======
->>>>>>> testdata
-                if joint_idx == 0:
-                    compare_rotation = 0
-                else:
-                    compare_rotation = 1
-                for kk, jj in zip(np.nditer(k[:, :3 - compare_rotation]), np.nditer(j[:, :3 - compare_rotation])):
-                    if abs(kk - jj) > 0.2:
-                        failures += 1
-                assert failures <= 2, failures
 if __name__ == "__main__":
     unittest.main()

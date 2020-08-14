@@ -360,7 +360,7 @@ class Motion(object):
         return int(time * self.fps)
 
     def get_pose_by_frame(self, frame):
-        assert frame < self.num_frames()
+        assert frame < self.num_frames(), f"{frame} vs. {self.num_frames()}"
         return self.poses[frame]
 
     def get_pose_by_time(self, time):
