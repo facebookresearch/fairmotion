@@ -37,7 +37,8 @@ class Joint(object):
     """
     def __init__(
         self, name=None, dof=3, xform_from_parent_joint=constants.eye_T(),
-        parent_joint=None,
+        parent_joint=None, 
+        limits=None, direction=None, length=None, axis=None
     ):
         self.name = name if name else f"joint_{random.getrandbits(32)}"
         self.child_joints = []
@@ -46,6 +47,27 @@ class Joint(object):
         self.xform_from_parent_joint = xform_from_parent_joint
         self.parent_joint = self.set_parent_joint(parent_joint)
         self.info = {"dof": dof}  # set ball joint by default
+
+        self.length = length
+
+        if axis is not None:
+            axis = np.deg2rad(axis)
+            self.C = conversions.E2R(axis)
+            self.Cinv = np.linalg.inv(self.C)
+            self.matrix = None
+            self.degree = np.zeros(3)
+            self.coordinate = None
+        if direction is not None:      
+            self.direction = direction.squeeze() #np.reshape(direction, [3, 1])
+        if limits is not None:
+            self.limits = np.zeros([3, 2])
+            for lm, nm in zip(limits, dof):
+                if nm == 'rx':
+                    self.limits[0] = lm
+                elif nm == 'ry':
+                    self.limits[1] = lm
+                else:
+                    self.limits[2] = lm
 
     def get_child_joint(self, key):
         return self.child_joints[utils.get_index(self.index_child_joint, key)]
@@ -168,7 +190,7 @@ class Pose(object):
         assert isinstance(skel, Skeleton)
         if data is None:
             data = [constants.eye_T for _ in range(skel.num_joints())]
-        assert skel.num_joints() == len(data)
+        assert skel.num_joints() == len(data), "{} vs. {}".format(skel.num_joints(), len(data))
         self.skel = skel
         self.data = data
 
@@ -338,7 +360,7 @@ class Motion(object):
         return int(time * self.fps)
 
     def get_pose_by_frame(self, frame):
-        assert frame < self.num_frames()
+        assert frame < self.num_frames(), f"{frame} vs. {self.num_frames()}"
         return self.poses[frame]
 
     def get_pose_by_time(self, time):
@@ -366,7 +388,6 @@ class Motion(object):
         """
         Returns time length of motion in seconds. The first frame is considered
         to be at time 0, and the last frame at time self.length().
-
         Example: If fps is 60Hz and there are 120 frames, length() returns
         1.9833. In case there are 121 frames, length() is 2.
         """

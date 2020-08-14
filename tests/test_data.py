@@ -6,7 +6,7 @@
 import numpy as np
 import tempfile
 import unittest
-from fairmotion.data import bvh
+from fairmotion.data import bvh, asfamc
 from fairmotion.utils import conversions, utils
 
 
@@ -99,6 +99,61 @@ class TestBVH(unittest.TestCase):
                     E = conversions.R2E(R, order="XYZ", degrees=True)
                     np.testing.assert_almost_equal(E, true_E)
 
+class TestASFAMC(unittest.TestCase):
+    def test_load_motion(self):
+        # Load file
+        motion = asfamc.load(file="tests/data/01.asf", motion='tests/data/01_01.amc')
+        motion_bvh = bvh.load(file="tests/data/01_01.bvh")
+        for i in range(1, motion.num_frames()):
+            pose = motion.get_pose_by_frame(i)
+            pose_bvh = motion_bvh.get_pose_by_frame(i)
+            """
+            for k, j in zip(pose.skel.joints, pose_bvh.skel.joints):
+                print(k.name, j.name)
+            root Hips
+            lhipjoint LHipJoint
+            lfemur LeftUpLeg
+            ltibia LeftLeg
+            lfoot LeftFoot
+            ltoes LeftToeBase
+            rhipjoint RHipJoint
+            rfemur RightUpLeg
+            rtibia RightLeg
+            rfoot RightFoot
+            rtoes RightToeBase
+            lowerback LowerBack
+            upperback Spine
+            thorax Spine1
+            lowerneck Neck
+            upperneck Neck1
+            head Head
+            lclavicle LeftShoulder
+            lhumerus LeftArm
+            lradius LeftForeArm
+            lwrist LeftHand
+            lhand LeftFingerBase
+            lfingers LFingers
+            lthumb LThumb
+            rclavicle RightShoulder
+            rhumerus RightArm
+            rradius RightForeArm
+            rwrist RightHand
+            rhand RightFingerBase
+            rfingers RFingers
+            rthumb RThumb
+            """
+            for joint_idx, (k, j) in enumerate(zip(pose.data, pose_bvh.data)):
+                # As asfamc and bvh are from different sources, we are not strictly comparing them.
+                # We require no more than two different elements.
+                failures = 0
+                if joint_idx == 0:
+                    compare_rotation = 0
+                else:
+                    compare_rotation = 1
+                for kk, jj in zip(np.nditer(k[:, :3 - compare_rotation]), np.nditer(j[:, :3 - compare_rotation])):
+                    if abs(kk - jj) > 0.2:
+                        failures += 1
+                assert failures <= 2, failures
 
 if __name__ == "__main__":
     unittest.main()
