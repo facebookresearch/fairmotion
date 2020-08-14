@@ -146,6 +146,7 @@ class TestASFAMC(unittest.TestCase):
                 # As asfamc and bvh are from different sources, we are not strictly comparing them.
                 # We require no more than two different elements.
                 failures = 0
+<<<<<<< HEAD
                 if joint_idx == 0:
                     compare_rotation = 0
                 else:
@@ -155,6 +156,8 @@ class TestASFAMC(unittest.TestCase):
                         failures += 1
                 assert failures <= 2, failures
 
+=======
+>>>>>>> testdata
                 if joint_idx == 0:
                     compare_rotation = 0
                 else:
