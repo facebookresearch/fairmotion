@@ -4,7 +4,6 @@ from fairmotion.motion import motion as motion_class
 from fairmotion.motion.motion import Joint
 from fairmotion.utils import conversions, constants
 
-from transforms3d.euler import euler2mat
 from mpl_toolkits.mplot3d import Axes3D
 
 def read_line(stream, idx):
@@ -114,7 +113,7 @@ def set_rotation(joint):
   if 'root' in joint.name:
     joint.matrix = joint.C.dot(conversions.E2R(joint.degree)).dot(joint.Cinv)
   else:
-    joint.matrix = joint.C.dot(euler2mat(*joint.degree)).dot(joint.Cinv)
+    joint.matrix = joint.C.dot(conversions.E2R(joint.degree)).dot(joint.Cinv)
     joint.coordinate = joint.length * joint.matrix.dot(joint.direction)
   for child in joint.child_joints:
     set_rotation(child)
