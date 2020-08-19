@@ -18,7 +18,7 @@ Mean (Euler) Angle Error of poses at 80, 160, 320 and 400 ms
 
 ## Commands
 ### Preprocessing
-AMASS data can be downloaded from this link http://dip.is.tue.mpg.de/ where sequences are stored as `.pkl` files. We use `amass_dip` loader to load raw data in Motion objects, extract sequence windows, represent them as list of (source, target) tuples in their matrix versions, and split into training, validation and test sets.
+AMASS data can be downloaded from this link http://dip.is.tue.mpg.de/ where sequences are stored as `.pkl` files. We use `amass_dip` loader to load raw data in Motion objects, extract sequence windows, represent them as list of (source, target) tuples in their matrix versions, and split into training, validation and test sets. The preprocessing steps and dataset splits have been proposed by *Structured Prediction Helps 3D Human Motion Modelling*, Aksan et al ([source code](https://github.com/eth-ait/spl)). The following angle representations can be used -- axis angles (`aa`), quaternion (`quat`) and rotation matrix (`rotmat`).
 ```
 python fairmotion/tasks/motion_prediction/preprocess.py --input-dir <PATH TO RAW DATA> --output-dir <PREPROCESSED OUTPUT PATH> --split-dir ./fairmotion/tasks/motion_prediction/data/ --rep aa
 ```

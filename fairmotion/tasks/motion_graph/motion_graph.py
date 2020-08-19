@@ -132,6 +132,10 @@ def compare_and_connect_edge(
     return res
 
 
+def flatten(l):
+    return [elem for sublist in l for elem in sublist]
+
+
 class MotionGraph(object):
     def __init__(
         self,
@@ -198,6 +202,7 @@ class MotionGraph(object):
             compare_length=self.compare_length,
             fps=self.fps,
         )
+        ns = flatten(ns)
         if self.verbose:
             logging.info(f"Merging {len(ns)} nodes...")
         for motion_idx, frame_start, frame_end in tqdm.tqdm(ns):
@@ -230,6 +235,7 @@ class MotionGraph(object):
             num_comparison=num_comparison,
             verbose=self.verbose,
         )
+        wes = flatten(wes)
 
         self.w_joints = w_joints
         self.w_joint_pos = w_joint_pos

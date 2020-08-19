@@ -81,13 +81,8 @@ def unnormalize(arr, mean, std):
     return arr * (std + constants.EPSILON) + mean
 
 
-def create_dir_if_absent(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-
 def prepare_dataset(
-    train_path, valid_path, test_path, batch_size, device, shuffle="True",
+    train_path, valid_path, test_path, batch_size, device, shuffle=False,
 ):
     dataset = {}
     for split, split_path in zip(

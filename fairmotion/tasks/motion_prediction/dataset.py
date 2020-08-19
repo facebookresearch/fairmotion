@@ -37,7 +37,7 @@ class Dataset(data.Dataset):
 
 def get_loader(
     dataset_path, batch_size=100, device='cuda', mean=None, std=None,
-    shuffle=True,
+    shuffle=False,
 ):
     """Returns data loader for custom dataset.
     Args:

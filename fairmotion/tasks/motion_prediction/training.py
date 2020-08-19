@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 
 from fairmotion.tasks.motion_prediction import generate, utils
+from fairmotion.utils import utils as fairmotion_utils
 
 
 logging.basicConfig(
@@ -27,7 +28,7 @@ def set_seeds():
 
 
 def train(args):
-    utils.create_dir_if_absent(args.save_model_path)
+    fairmotion_utils.create_dir_if_absent(args.save_model_path)
     logging.info(args._get_kwargs())
     utils.log_config(args.save_model_path, args)
 
