@@ -11,6 +11,7 @@ setup(
     author_email="dgopinath@fb.com",
     install_requires=[
         "black",
+        "dataclasses", # py3.6 backport required by human_body_prior
         "human_body_prior",
         "matplotlib",
         "numpy",
@@ -25,7 +26,6 @@ setup(
     packages=find_packages(exclude=["tests"]),
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
 )
