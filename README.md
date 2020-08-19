@@ -10,7 +10,12 @@ Users can take advantage of large high-quality motion capture datasets like the 
 
 ### Installation
 
-To install fairmotion, first clone the git repository. Use the pip tool to install the project.
+farmotion is available on PyPi for easy installation
+```
+pip install fairmotion
+```
+
+To install fairmotion from source, first clone the git repository, use pip to download dependencies and build the project.
 ```
 $ git clone https://github.com/fairinternal/fairmotion.git
 $ cd fairmotion
@@ -18,7 +23,7 @@ $ pip install -e .
 ```
 ### Data Loading
 
-Here, we load a motion capture file in the BVH file format in a python console. Similarly, there are loaders to import files from ASF/AMC, AMASS and AMASS DIP formats.
+Here, we load a motion capture file in the BVH file format in a python console. Similarly, there are loaders to import files from [ASF/AMC](https://research.cs.wisc.edu/graphics/Courses/cs-838-1999/Jeff/ASF-AMC.html), [AMASS](https://amass.is.tue.mpg.de/dataset) and [AMASS DIP](http://dip.is.tuebingen.mpg.de/pre_download) formats.
 ```
 from fairmotion.data import bvh
 
@@ -86,4 +91,4 @@ We implement an acceleration based changepoint detection algorithm in `fairmotio
 ![changepoints](fairmotion/tasks/changepoint_detection/changepoints.svg)
 
 ## License
-fairmotion is MIT licensed. See the LICENSE file for details.
+fairmotion is released under the [BSD-3-Clause License](https://github.com/fairinternal/fairmotion/blob/master/LICENSE).

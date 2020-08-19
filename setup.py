@@ -1,8 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
 from setuptools import find_packages, setup
 
 setup(
@@ -14,6 +11,7 @@ setup(
     author_email="dgopinath@fb.com",
     install_requires=[
         "black",
+        "dataclasses", # py3.6 backport required by human_body_prior
         "human_body_prior",
         "matplotlib",
         "numpy",
@@ -28,7 +26,6 @@ setup(
     packages=find_packages(exclude=["tests"]),
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
 )
