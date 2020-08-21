@@ -43,8 +43,10 @@ def process_file(ftuple, create_windows, convert_fn, lengths):
         if motion.num_frames() < window_size:
             return [], []
         matrices = [
-            convert_fn(motion.rotations()) for motion in
-            split_into_windows(motion, window_size, window_stride)
+            convert_fn(motion.rotations())
+            for motion in split_into_windows(
+                motion, window_size, window_stride
+            )
         ]
     else:
         matrices = [convert_fn(motion.rotations())]
@@ -52,7 +54,7 @@ def process_file(ftuple, create_windows, convert_fn, lengths):
     return (
         [matrix[:src_len, ...].reshape((src_len, -1)) for matrix in matrices],
         [
-            matrix[src_len:src_len + tgt_len, ...].reshape((tgt_len, -1))
+            matrix[src_len : src_len + tgt_len, ...].reshape((tgt_len, -1))
             for matrix in matrices
         ],
     )
@@ -119,8 +121,10 @@ if __name__ == "__main__":
         help="Where the text files defining the data splits are stored.",
     )
     parser.add_argument(
-        "--rep", type=str, help="Angle representation to convert data to",
-        choices=["aa", "quat", "rotmat"]
+        "--rep",
+        type=str,
+        help="Angle representation to convert data to",
+        choices=["aa", "quat", "rotmat"],
     )
     parser.add_argument(
         "--src-len",
@@ -156,9 +160,7 @@ if __name__ == "__main__":
     validation_files = read_content(
         os.path.join(args.split_dir, "validation_fnames.txt")
     )
-    test_files = read_content(
-        os.path.join(args.split_dir, "test_fnames.txt")
-    )
+    test_files = read_content(os.path.join(args.split_dir, "test_fnames.txt"))
 
     train_ftuples = []
     test_ftuples = []

@@ -19,7 +19,7 @@ setup(
         "pyrender",
         "scikit-learn",
         "scipy",
-        "torch",
+        "torch==1.4.0",
         "tqdm",
         "PyOpenGL==3.1.0",
     ],
