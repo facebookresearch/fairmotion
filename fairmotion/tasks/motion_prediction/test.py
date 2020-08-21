@@ -41,9 +41,11 @@ def run_model(model, data_iter, max_len, device, mean, std):
         max_len = max_len if max_len else tgt_seq.shape[1]
         src_seqs.extend(src_seq.to(device="cpu").numpy())
         tgt_seqs.extend(tgt_seq.to(device="cpu").numpy())
-        pred_seq = generate.generate(
-            model, src_seq, max_len, device
-        ).to(device="cpu").numpy()
+        pred_seq = (
+            generate.generate(model, src_seq, max_len, device)
+            .to(device="cpu")
+            .numpy()
+        )
         pred_seqs.extend(pred_seq)
     return [
         utils.unnormalize(np.array(l), mean, std)
@@ -60,27 +62,24 @@ def save_seq(i, pred_seq, src_seq, tgt_seq, skel):
     ref_motion = operations.append(motions[1], motions[2])
     pred_motion = operations.append(motions[1], motions[0])
     bvh.save(
-        ref_motion,
-        os.path.join(args.save_output_path, "ref", f"{i}.bvh"),
+        ref_motion, os.path.join(args.save_output_path, "ref", f"{i}.bvh"),
     )
     bvh.save(
-        pred_motion,
-        os.path.join(args.save_output_path, "pred", f"{i}.bvh"),
+        pred_motion, os.path.join(args.save_output_path, "pred", f"{i}.bvh"),
     )
 
 
 def convert_to_T(pred_seqs, src_seqs, tgt_seqs, rep):
     ops = utils.convert_fn_to_R(rep)
     seqs_T = [
-        conversions.R2T(utils.apply_ops(seqs, ops)) for seqs in [
-            pred_seqs, src_seqs, tgt_seqs,
-        ]
+        conversions.R2T(utils.apply_ops(seqs, ops))
+        for seqs in [pred_seqs, src_seqs, tgt_seqs,]
     ]
     return seqs_T
 
 
 def save_motion_files(seqs_T, args):
-    idxs_to_save = [i for i in range(0, len(seqs_T[0]), len(seqs_T[0])//10)]
+    idxs_to_save = [i for i in range(0, len(seqs_T[0]), len(seqs_T[0]) // 10)]
     amass_dip_motion = amass_dip.load(
         file=None, load_skel=True, load_motion=False,
     )
@@ -91,8 +90,7 @@ def save_motion_files(seqs_T, args):
     indices = range(len(seqs_T[0]))
     skels = [amass_dip_motion.skel for _ in indices]
     pool.starmap(
-        save_seq,
-        [list(zip(indices, *seqs_T, skels))[i] for i in idxs_to_save]
+        save_seq, [list(zip(indices, *seqs_T, skels))[i] for i in idxs_to_save]
     )
 
 
@@ -105,13 +103,20 @@ def calculate_metrics(pred_seqs, tgt_seqs):
         R_tgt[:, :, amass_dip.SMPL_MAJOR_JOINTS],
     )
     euler_error = np.mean(euler_error, axis=0)
-    logging.info(
-        "Euler angle error: " +
-        " | ".join([
-            f"{frame}: {np.sum(euler_error[:frame])}"
-            for frame in metric_frames
-        ])
+    mae = {frame: np.sum(euler_error[:frame]) for frame in metric_frames}
+    return mae
+
+
+def test_model(model, dataset, rep, device, mean, std, max_len=None):
+    pred_seqs, src_seqs, tgt_seqs = run_model(
+        model, dataset, max_len, device, mean, std,
     )
+    seqs_T = convert_to_T(pred_seqs, src_seqs, tgt_seqs, rep)
+    # Calculate metric only when generated sequence has same shape as reference
+    # target sequence
+    if len(pred_seqs) > 0 and pred_seqs[0].shape == tgt_seqs[0].shape:
+        mae = calculate_metrics(seqs_T[0], seqs_T[2])
+    return seqs_T, mae
 
 
 def main(args):
@@ -139,17 +144,14 @@ def main(args):
     )
 
     logging.info("Running model")
-    pred_seqs, src_seqs, tgt_seqs = run_model(
-        model, dataset["test"], args.max_len, device, mean, std,
-    )
-
     _, rep = os.path.split(args.preprocessed_path.strip("/"))
-    seqs_T = convert_to_T(pred_seqs, src_seqs, tgt_seqs, rep)
-    # Do not calculate metrics if we are only generating sequences, and not
-    # evaluating
-    if not args.max_len:
-        logging.info("Calculating results")
-        calculate_metrics(seqs_T[0], seqs_T[2])
+    seqs_T, mae = test_model(
+        model, dataset["test"], rep, device, mean, std, args.max_len
+    )
+    logging.info(
+        "Test MAE: "
+        + " | ".join([f"{frame}: {mae[frame]}" for frame in mae.keys()])
+    )
 
     if args.save_output_path:
         logging.info("Saving results")
@@ -161,22 +163,28 @@ if __name__ == "__main__":
         description="Generate predictions and post process them"
     )
     parser.add_argument(
-        "--preprocessed-path", type=str, help="Path to folder with pickled"
-        "files from dataset", required=True
-    )
-    parser.add_argument(
-        "--save-model-path", type=str, help="Path to store saved models",
+        "--preprocessed-path",
+        type=str,
+        help="Path to folder with pickled" "files from dataset",
         required=True,
     )
     parser.add_argument(
-        "--save-output-path", type=str, help="Path to store predicted motion",
+        "--save-model-path",
+        type=str,
+        help="Path to saved models",
+        required=True,
+    )
+    parser.add_argument(
+        "--save-output-path",
+        type=str,
+        help="Path to store predicted motion",
         default=None,
     )
     parser.add_argument(
         "--hidden-dim",
         type=int,
         help="Hidden size of LSTM units in encoder/decoder",
-        default=128,
+        default=1024,
     )
     parser.add_argument(
         "--num-layers",
@@ -191,17 +199,24 @@ if __name__ == "__main__":
         "--batch-size", type=int, help="Batch size for testing", default=64
     )
     parser.add_argument(
-        "--epoch", type=int, help="Model from epoch to test, will test on best"
+        "--epoch",
+        type=int,
+        help="Model from epoch to test, will test on best"
         " model if not specified",
         default=None,
     )
     parser.add_argument(
-        "--architecture", type=str, help="Seq2Seq archtiecture to be used",
+        "--architecture",
+        type=str,
+        help="Seq2Seq archtiecture to be used",
         default="seq2seq",
         choices=[
-            "seq2seq", "tied_seq2seq", "transformer", "transformer_encoder",
+            "seq2seq",
+            "tied_seq2seq",
+            "transformer",
+            "transformer_encoder",
             "rnn",
-        ]
+        ],
     )
 
     args = parser.parse_args()

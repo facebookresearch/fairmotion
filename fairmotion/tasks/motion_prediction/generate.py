@@ -1,7 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 import torch
-import numpy as np
 
 
 def eval(model, criterion, dataset, batch_size, device):
@@ -39,7 +38,6 @@ def generate(model, src_seqs, max_len, device):
     model.eval()
     with torch.no_grad():
         tgt_seqs = src_seqs[:, -1].unsqueeze(1)
-        # src_seqs = src_seqs[:, :-1]
         src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
         outputs = model(
             src_seqs, tgt_seqs, max_len=max_len, teacher_forcing_ratio=0

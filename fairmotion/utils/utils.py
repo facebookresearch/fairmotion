@@ -58,19 +58,7 @@ def run_parallel(func, iterable, num_cpus=20, **kwargs):
     func_with_kwargs = partial(func, **kwargs)
     with Pool(processes=num_cpus) as pool:
         results = pool.map(func_with_kwargs, iterable)
-
-    # Check if each unit result is an iterable
-    is_iterable = True
-    if len(results) > 0:
-        try:
-            _ = iter(results[0])
-        except TypeError:
-            is_iterable = False
-
-    if is_iterable:
-        return [elem for result in results for elem in result]
-    else:
-        return results
+    return results
 
 
 def correct_antipodal_quaternions(quat):
@@ -167,3 +155,8 @@ def _apply_fn_agnostic_to_vec_mat(input, fn):
     output = np.array([input]) if input.ndim == 1 else input
     output = np.apply_along_axis(fn, 1, output)
     return output[0] if input.ndim == 1 else output
+
+
+def create_dir_if_absent(path):
+    if not os.path.exists(path):
+        os.makedirs(path)

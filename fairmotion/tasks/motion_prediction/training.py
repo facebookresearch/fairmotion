@@ -9,7 +9,8 @@ import random
 import torch
 import torch.nn as nn
 
-from fairmotion.tasks.motion_prediction import generate, utils
+from fairmotion.tasks.motion_prediction import generate, utils, test
+from fairmotion.utils import utils as fairmotion_utils
 
 
 logging.basicConfig(
@@ -17,6 +18,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.INFO,
 )
+
 
 def set_seeds():
     torch.manual_seed(1)
@@ -27,7 +29,7 @@ def set_seeds():
 
 
 def train(args):
-    utils.create_dir_if_absent(args.save_model_path)
+    fairmotion_utils.create_dir_if_absent(args.save_model_path)
     logging.info(args._get_kwargs())
     utils.log_config(args.save_model_path, args)
 
@@ -47,8 +49,8 @@ def train(args):
     )
 
     # number of predictions per time step = num_joints * angle representation
-    data_shape = next(iter(dataset["train"]))[0].shape
-    num_predictions = data_shape[-1]
+    # shape is (batch_size, seq_len, num_predictions)
+    _, tgt_len, num_predictions = next(iter(dataset["train"]))[1].shape
 
     model = utils.prepare_model(
         input_dim=num_predictions,
@@ -66,10 +68,7 @@ def train(args):
     for iterations, (src_seqs, tgt_seqs) in enumerate(dataset["train"]):
         model.eval()
         src_seqs, tgt_seqs = src_seqs.to(device), tgt_seqs.to(device)
-        outputs = model(
-            src_seqs, tgt_seqs, teacher_forcing_ratio=1,
-        )
-        outputs = outputs.double()
+        outputs = model(src_seqs, tgt_seqs, teacher_forcing_ratio=1,)
         loss = criterion(outputs, tgt_seqs)
         epoch_loss += loss.item()
     epoch_loss = epoch_loss / (iterations + 1)
@@ -83,14 +82,13 @@ def train(args):
     )
 
     logging.info("Training model...")
+    torch.autograd.set_detect_anomaly(True)
     opt = utils.prepare_optimizer(model, args.optimizer, args.lr)
     for epoch in range(args.epochs):
         epoch_loss = 0
         model.train()
         teacher_forcing_ratio = np.clip(
-            (1 - 2*epoch/args.epochs),
-            a_min=0,
-            a_max=1,
+            (1 - 2 * epoch / args.epochs), a_min=0, a_max=1,
         )
         logging.info(
             f"Running epoch {epoch} | "
@@ -103,7 +101,10 @@ def train(args):
                 src_seqs, tgt_seqs, teacher_forcing_ratio=teacher_forcing_ratio
             )
             outputs = outputs.double()
-            loss = criterion(outputs, tgt_seqs)
+            loss = criterion(
+                outputs,
+                utils.prepare_tgt_seqs(args.architecture, src_seqs, tgt_seqs),
+            )
             loss.backward()
             opt.step()
             epoch_loss += loss.item()
@@ -120,14 +121,23 @@ def train(args):
             f"Iterations {iterations + 1}"
         )
         if epoch % args.save_model_frequency == 0:
+            _, rep = os.path.split(args.preprocessed_path.strip("/"))
+            _, mae = test.test_model(
+                model=model,
+                dataset=dataset["validation"],
+                rep=rep,
+                device=device,
+                mean=mean,
+                std=std,
+                max_len=tgt_len,
+            )
+            logging.info(f"Validation MAE: {mae}")
             torch.save(
-                model.state_dict(),
-                f"{args.save_model_path}/{epoch}.model"
+                model.state_dict(), f"{args.save_model_path}/{epoch}.model"
             )
             if len(val_losses) == 0 or val_loss <= min(val_losses):
                 torch.save(
-                    model.state_dict(),
-                    f"{args.save_model_path}/best.model"
+                    model.state_dict(), f"{args.save_model_path}/best.model"
                 )
     return training_losses, val_losses
 
@@ -150,8 +160,10 @@ if __name__ == "__main__":
         description="Sequence to sequence motion prediction training"
     )
     parser.add_argument(
-        "--preprocessed-path", type=str, help="Path to folder with pickled "
-        "files", required=True
+        "--preprocessed-path",
+        type=str,
+        help="Path to folder with pickled " "files",
+        required=True,
     )
     parser.add_argument(
         "--batch-size", type=int, help="Batch size for training", default=64
@@ -169,7 +181,9 @@ if __name__ == "__main__":
         default=1,
     )
     parser.add_argument(
-        "--save-model-path", type=str, help="Path to store saved models",
+        "--save-model-path",
+        type=str,
+        help="Path to store saved models",
         required=True,
     )
     parser.add_argument(
@@ -183,23 +197,34 @@ if __name__ == "__main__":
         "--epochs", type=int, help="Number of training epochs", default=200
     )
     parser.add_argument(
-        "--device", type=str, help="Training device", default=None,
-        choices=["cpu", "cuda"]
+        "--device",
+        type=str,
+        help="Training device",
+        default=None,
+        choices=["cpu", "cuda"],
     )
     parser.add_argument(
-        "--architecture", type=str, help="Seq2Seq archtiecture to be used",
+        "--architecture",
+        type=str,
+        help="Seq2Seq archtiecture to be used",
         default="seq2seq",
         choices=[
-            "seq2seq", "tied_seq2seq", "transformer", "transformer_encoder",
+            "seq2seq",
+            "tied_seq2seq",
+            "transformer",
+            "transformer_encoder",
             "rnn",
-        ]
+        ],
     )
     parser.add_argument(
         "--lr", type=float, help="Learning rate", default=None,
     )
     parser.add_argument(
-        "--optimizer", type=str, help="Torch optimizer",
-        default="sgd", choices=["adam", "sgd", "noamopt"]
+        "--optimizer",
+        type=str,
+        help="Torch optimizer",
+        default="sgd",
+        choices=["adam", "sgd", "noamopt"],
     )
     args = parser.parse_args()
     main(args)

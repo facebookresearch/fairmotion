@@ -3,15 +3,23 @@
 
 import numpy as np
 import os
+import torch
 from functools import partial
 from multiprocessing import Pool
 
-from fairmotion.models import decoders, encoders, optimizer, rnn, seq2seq
+from fairmotion.models import (
+    decoders, encoders, optimizer, rnn, seq2seq, transformer
+)
 from fairmotion.tasks.motion_prediction import dataset as motion_dataset
 from fairmotion.utils import constants, conversions
 
 
 def apply_ops(input, ops):
+    """
+    Apply series of operations in order on input. `ops` is a list of methods
+    that takes single argument as input (single argument functions, partial
+    functions). The methods are called in the same order provided.
+    """
     output = input
     for op in ops:
         output = op(output)
@@ -81,18 +89,12 @@ def unnormalize(arr, mean, std):
     return arr * (std + constants.EPSILON) + mean
 
 
-def create_dir_if_absent(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-
 def prepare_dataset(
-    train_path, valid_path, test_path, batch_size, device, shuffle="True",
+    train_path, valid_path, test_path, batch_size, device, shuffle=False,
 ):
     dataset = {}
     for split, split_path in zip(
-        ["train", "test", "validation"],
-        [train_path, valid_path, test_path]
+        ["train", "test", "validation"], [train_path, valid_path, test_path]
     ):
         mean, std = None, None
         if split in ["test", "validation"]:
@@ -123,11 +125,11 @@ def prepare_model(
     elif architecture == "tied_seq2seq":
         model = seq2seq.TiedSeq2Seq(input_dim, hidden_dim, num_layers, device)
     elif architecture == "transformer_encoder":
-        model = seq2seq.TransformerModel(
+        model = transformer.TransformerLSTMModel(
             input_dim, hidden_dim, 4, hidden_dim, num_layers,
         )
     elif architecture == "transformer":
-        model = seq2seq.FullTransformerModel(
+        model = transformer.TransformerModel(
             input_dim, hidden_dim, 4, hidden_dim, num_layers,
         )
     model = model.to(device)
@@ -153,3 +155,10 @@ def prepare_optimizer(model, opt: str, lr=None):
         return optimizer.AdamOpt(model, **kwargs)
     elif opt == "noamopt":
         return optimizer.NoamOpt(model)
+
+
+def prepare_tgt_seqs(architecture, src_seqs, tgt_seqs):
+    if architecture == "st_transformer" or architecture == "rnn":
+        return torch.cat((src_seqs[:, 1:], tgt_seqs), axis=1)
+    else:
+        return tgt_seqs
