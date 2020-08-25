@@ -1,11 +1,12 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
 import math
 import numpy as np
 import warnings
 from scipy import stats
 
-from fairmotion.ops import quaternion
+from fairmotion.ops import conversions, quaternion
 from fairmotion.utils import constants, utils
-from fairmotion.ops import conversions
 
 
 def normalize(v):

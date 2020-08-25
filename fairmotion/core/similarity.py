@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from fairmotion.ops import conversions, quaternion
+from fairmotion.ops import conversions, math as math_ops, quaternion
 
 
 def root_ee_similarity(
@@ -94,7 +94,7 @@ def root_ee_similarity(
                 p1s.append(p1)
                 p2s.append(p2)
                 if auto_weight:
-                    h = math.projectionOnVector(p1, skel.v_up_env)
+                    h = math_ops.projectionOnVector(p1, skel.v_up_env)
                     ee_weights.append(
                         math.exp(-np.dot(h, h) / auto_weight_sigma)
                     )
