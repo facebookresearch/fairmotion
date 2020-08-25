@@ -1,7 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 from fairmotion.tasks.clustering.features import utils as feat_utils
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions
 
 
 class ManualFeatures:

@@ -34,7 +34,7 @@ from human_body_prior.body_model.body_model import BodyModel
 from human_body_prior.mesh import MeshViewer
 from human_body_prior.tools.omni_tools import copy2cpu as c2c, colors
 from fairmotion.data import bvh
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions
 
 
 def get_dfs_order(parents_np):

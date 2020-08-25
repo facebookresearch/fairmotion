@@ -2,8 +2,9 @@
 
 import numpy as np
 
-from fairmotion.motion import motion as motion_classes
-from fairmotion.utils import constants, conversions, utils
+from fairmotion.core import motion as motion_classes
+from fairmotion.utils import constants, utils
+from fairmotion.ops import conversions
 
 
 def load(

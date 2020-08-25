@@ -1,8 +1,7 @@
 import math
 import numpy as np
 
-from fairmotion.processing import operations
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions, quaternion
 
 
 def root_ee_similarity(
@@ -95,7 +94,7 @@ def root_ee_similarity(
                 p1s.append(p1)
                 p2s.append(p2)
                 if auto_weight:
-                    h = operations.projectionOnVector(p1, skel.v_up_env)
+                    h = math.projectionOnVector(p1, skel.v_up_env)
                     ee_weights.append(
                         math.exp(-np.dot(h, h) / auto_weight_sigma)
                     )
@@ -172,7 +171,7 @@ def pose_similarity(
             if apply_root_correction and j == root_idx:
                 Q1 = conversions.R2Q(R1)
                 Q2 = conversions.R2Q(R2)
-                Q2, _ = operations.Q_closest(Q1, Q2, v_up_env)
+                Q2, _ = quaternion.Q_closest(Q1, Q2, v_up_env)
                 R2 = conversions.Q2R(Q2)
             # TODO: Verify if logSO3 is same as R2A
             dR = conversions.R2A(np.dot(np.transpose(R1), R2))

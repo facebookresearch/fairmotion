@@ -2,9 +2,9 @@
 
 import numpy as np
 import pickle as pkl
-from fairmotion.motion import motion as motion_class
+from fairmotion.core import motion as motion_class
 from fairmotion.utils import constants
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions
 
 
 SMPL_MAJOR_JOINTS = [1, 2, 3, 4, 5, 6, 9, 12, 13, 14, 15, 16, 17, 18, 19]

@@ -1,14 +1,14 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 import numpy as np
-from fairmotion.processing import operations
+from fairmotion.ops import motion as motion_ops
 from fairmotion.tasks.clustering.features import utils as feat_utils
 
 
 class KineticFeatures:
     def __init__(self, motion, frame_time, thresholds, up_vec, sliding_window=2):
         self.local_positions = motion.positions(local=True)
-        self.positions = operations.position_wrt_root(motion)
+        self.positions = motion_ops.position_wrt_root(motion)
         self.frame_time = frame_time
         self.thresholds = thresholds
         self.up_vec = up_vec

@@ -61,48 +61,6 @@ def run_parallel(func, iterable, num_cpus=20, **kwargs):
     return results
 
 
-def correct_antipodal_quaternions(quat):
-    """
-    Adapted from https://github.com/eth-ait/spl/blob/master/preprocessing/
-    preprocess_dip.py#L64
-    Removes discontinuities coming from antipodal representation of quaternions
-    At time step t it checks which representation, q or -q, is closer to time
-    step t-1 and chooses the closest one.
-
-    Args:
-        quat: numpy array of shape (N, K, 4) where N is the number of frames
-            and K the number of joints. K is optional, i.e. can be 0.
-
-    Returns: numpy array of shape (N, K, 4) with fixed antipodal representation
-    """
-    assert len(quat.shape) == 3 or len(quat.shape) == 2
-    assert quat.shape[-1] == 4
-
-    if len(quat.shape) == 2:
-        quat_r = quat[:, np.newaxis].copy()
-    else:
-        quat_r = quat.copy()
-
-    def dist(x, y):
-        return np.sqrt(np.sum((x - y) ** 2, axis=-1))
-
-    # Naive implementation looping over all time steps sequentially.
-    # For a faster implementation check the QuaterNet paper.
-    quat_corrected = np.zeros_like(quat_r)
-    quat_corrected[0] = quat_r[0]
-    for t in range(1, quat.shape[0]):
-        diff_to_plus = dist(quat_r[t], quat_corrected[t - 1])
-        diff_to_neg = dist(-quat_r[t], quat_corrected[t - 1])
-
-        # diffs are vectors
-        qc = quat_r[t]
-        swap_idx = np.where(diff_to_neg < diff_to_plus)
-        qc[swap_idx] = -quat_r[t, swap_idx]
-        quat_corrected[t] = qc
-    quat_corrected = np.squeeze(quat_corrected)
-    return quat_corrected
-
-
 def files_in_dir(
     path, ext=None, keyword=None, sort=False, sample_mode=None,
     sample_num=None,

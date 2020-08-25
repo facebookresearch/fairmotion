@@ -2,7 +2,7 @@
 
 import unittest
 from fairmotion.data import bvh
-from fairmotion.processing import operations
+from fairmotion.ops import motion as motion_ops
 
 
 class TestMotion(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestMotion(unittest.TestCase):
     def test_cut_motion(self):
         motion = bvh.load(file="tests/data/sinusoidal.bvh")
         # Inspect 0th frame, root joint
-        cut_motion = operations.cut(motion, 3, 5)
+        cut_motion = motion_ops.cut(motion, 3, 5)
         self.assertEqual(cut_motion.num_frames(), 2)
 
     def test_append_motion(self):
@@ -22,7 +22,7 @@ class TestMotion(unittest.TestCase):
         num_frames = motion1.num_frames()
 
         # Append motion 1 and motion 2, and check total combined frames
-        combined_motion1 = operations.append(motion1, motion2)
+        combined_motion1 = motion_ops.append(motion1, motion2)
         self.assertEqual(
             combined_motion1.num_frames(),
             motion1.num_frames() + motion2.num_frames(),
@@ -30,7 +30,7 @@ class TestMotion(unittest.TestCase):
 
         # Append motion 1 and motion 3, and check total combined frames
         motion3 = bvh.load(file="tests/data/sinusoidal.bvh")
-        combined_motion2 = operations.append(motion1, motion3)
+        combined_motion2 = motion_ops.append(motion1, motion3)
         self.assertEqual(
             combined_motion2.num_frames(),
             motion1.num_frames() + motion3.num_frames(),
@@ -43,7 +43,7 @@ class TestMotion(unittest.TestCase):
 
         # Test blending
         blend_length = 0.1
-        combined_motion3 = operations.append_and_blend(
+        combined_motion3 = motion_ops.append_and_blend(
             motion1,
             motion2,
             blend_length=blend_length,

@@ -1,33 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
-"""
-MocapViewer is an extension of the glut_viewer.Viewer class that implements
-requisite callback functions -- render_callback, keyboard_callback,
-idle_callback and overlay_callback.
-
-```
-python fairmotion/viz/bvh_visualizer.py \
-    --bvh-files $BVH_FILE1
-```
-
-To visualize more than 1 motion sequence side by side, append more files to the
-`--bvh-files` argument. Set `--x-offset` to an appropriate float value to
-add space separation between characters in the row.
-
-```
-python fairmotion/viz/bvh_visualizer.py \
-    --bvh-files $BVH_FILE1 $BVH_FILE2 $BVH_FILE3 \
-    --x-offset 2
-```
-
-To visualize asfamc motion sequence:
-
-```
-python mocap_processing/viz/bvh_visualizer.py --asf-files tests/data/11.asf --amc-files tests/data/11_01.amc 
-```
-
-"""
-
 import argparse
 import numpy as np
 import os
@@ -37,11 +9,40 @@ from OpenGL.GLUT import *
 
 from fairmotion.viz import camera, gl_render, glut_viewer
 from fairmotion.data import bvh, asfamc
-from fairmotion.processing import operations
-from fairmotion.utils import conversions, utils
+from fairmotion.ops import conversions, math, motion as motion_ops
+from fairmotion.utils import utils
 
 
 class MocapViewer(glut_viewer.Viewer):
+    """
+    MocapViewer is an extension of the glut_viewer.Viewer class that implements
+    requisite callback functions -- render_callback, keyboard_callback,
+    idle_callback and overlay_callback.
+
+    ```
+    python fairmotion/viz/bvh_visualizer.py \
+        --bvh-files $BVH_FILE1
+    ```
+
+    To visualize more than 1 motion sequence side by side, append more files 
+    to the `--bvh-files` argument. Set `--x-offset` to an appropriate float 
+    value to add space separation between characters in the row.
+
+    ```
+    python fairmotion/viz/bvh_visualizer.py \
+        --bvh-files $BVH_FILE1 $BVH_FILE2 $BVH_FILE3 \
+        --x-offset 2
+    ```
+
+    To visualize asfamc motion sequence:
+
+    ```
+    python fairmotion/viz/bvh_visualizer.py \
+        --asf-files tests/data/11.asf \
+        --amc-files tests/data/11_01.amc
+    ```
+
+    """
     def __init__(self, motions, play_speed=1.0, scale=1.0, render_overlay=False, hide_origin=False, **kwargs):
         self.motions = motions
         self.play_speed = play_speed
@@ -101,7 +102,7 @@ class MocapViewer(glut_viewer.Viewer):
                 p = 0.5 * (pos_parent + pos)
                 l = np.linalg.norm(pos_parent - pos)
                 r = 0.05
-                R = operations.R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
+                R = math.R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
                 gl_render.render_capsule(conversions.Rp2T(R, p), l, r * self.scale, color=color, slice=8)
 
     def _render_characters(self, colors):
@@ -165,7 +166,7 @@ def main(args):
         ]
         
     for i in range(len(motions)):
-        operations.translate(motions[i], [args.x_offset * i, 0, 0])
+        motion_ops.translate(motions[i], [args.x_offset * i, 0, 0])
 
     cam = camera.Camera(
         pos=2 * utils.str_to_axis(args.axis_face) + 1 * utils.str_to_axis(args.axis_up),

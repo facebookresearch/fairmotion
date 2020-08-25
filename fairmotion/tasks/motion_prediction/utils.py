@@ -11,7 +11,8 @@ from fairmotion.models import (
     decoders, encoders, optimizer, rnn, seq2seq, transformer
 )
 from fairmotion.tasks.motion_prediction import dataset as motion_dataset
-from fairmotion.utils import constants, conversions
+from fairmotion.utils import constants
+from fairmotion.ops import conversions
 
 
 def apply_ops(input, ops):

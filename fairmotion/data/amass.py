@@ -3,8 +3,8 @@
 import torch
 import numpy as np
 from human_body_prior.body_model.body_model import BodyModel
-from fairmotion.motion import motion as motion_class
-from fairmotion.utils import conversions
+from fairmotion.core import motion as motion_class
+from fairmotion.ops import conversions
 
 """
 Structure of npz file in AMASS dataset is as follows.

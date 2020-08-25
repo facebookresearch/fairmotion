@@ -3,7 +3,7 @@
 import numpy as np
 import unittest
 from tests import utils as test_utils
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions
 
 
 class TestConversions(unittest.TestCase):

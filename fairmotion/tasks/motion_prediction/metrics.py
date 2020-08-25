@@ -1,7 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 import numpy as np
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions
 
 
 def euler_diff(predictions, targets):

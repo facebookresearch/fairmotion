@@ -8,9 +8,9 @@ import random
 import tqdm
 
 from fairmotion.data import bvh
-from fairmotion.motion import similarity, velocity
-from fairmotion.processing import operations
-from fairmotion.utils import conversions, utils
+from fairmotion.core import similarity, velocity
+from fairmotion.ops import conversions, motion as motion_ops
+from fairmotion.utils import utils
 
 
 logging.basicConfig(
@@ -77,7 +77,7 @@ def compare_and_connect_edge(
 
     motion_idx = node["motion_idx"]
     frame_end = node["frame_end"]
-    
+
     for j in range(num_nodes):
         motion_idx_j = nodes[j]["motion_idx"]
         frame_start_j = nodes[j]["frame_start"]
@@ -283,7 +283,7 @@ class MotionGraph(object):
                 m = self.motions[motion_idx].detach(
                     frame_start, frame_end + self.frames_blend
                 )
-                motion = operations.append_and_blend(
+                motion = motion_ops.append_and_blend(
                     motion, m, blend_length=self.blend_length,
                 )
         return motion
@@ -394,7 +394,7 @@ class MotionGraph(object):
             We should detach with the extra (frames_blend)
             because motion.append affects the end of current motion
             """
-            m = operations.cut(
+            m = motion_ops.cut(
                 self.motions[motion_idx],
                 frame_start,
                 frame_end + self.frames_blend,
@@ -403,7 +403,7 @@ class MotionGraph(object):
             if self.verbose:
                 logging.info(f"[{cur_node}] {self.graph.nodes[cur_node]}")
 
-            motion = operations.append_and_blend(
+            motion = motion_ops.append_and_blend(
                 motion, m, blend_length=self.blend_length,
             )
 

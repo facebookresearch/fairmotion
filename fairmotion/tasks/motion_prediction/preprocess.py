@@ -7,7 +7,7 @@ import os
 import pickle
 
 from fairmotion.data import amass_dip
-from fairmotion.processing import operations
+from fairmotion.ops import motion as motion_ops
 from fairmotion.tasks.motion_prediction import utils
 from fairmotion.utils import utils as fairmotion_utils
 
@@ -26,7 +26,7 @@ def split_into_windows(motion, window_size, stride):
     """
     n_windows = (motion.num_frames() - window_size) // stride + 1
     motion_ws = [
-        operations.cut(motion, start, start + window_size)
+        motion_ops.cut(motion, start, start + window_size)
         for start in stride * np.arange(n_windows)
     ]
     return motion_ws
@@ -54,7 +54,7 @@ def process_file(ftuple, create_windows, convert_fn, lengths):
     return (
         [matrix[:src_len, ...].reshape((src_len, -1)) for matrix in matrices],
         [
-            matrix[src_len : src_len + tgt_len, ...].reshape((tgt_len, -1))
+            matrix[src_len: src_len + tgt_len, ...].reshape((tgt_len, -1))
             for matrix in matrices
         ],
     )

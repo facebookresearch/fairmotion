@@ -2,7 +2,7 @@
 
 import numpy as np
 from fairmotion.utils import constants
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions
 
 
 def get_random_Q():

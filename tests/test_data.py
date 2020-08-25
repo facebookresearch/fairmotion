@@ -4,7 +4,8 @@ import numpy as np
 import tempfile
 import unittest
 from fairmotion.data import bvh, asfamc
-from fairmotion.utils import conversions, utils
+from fairmotion.ops import conversions
+from fairmotion.utils import utils
 
 
 TEST_SINUSOIDAL_FILE = "tests/data/sinusoidal.bvh"

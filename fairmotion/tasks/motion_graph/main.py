@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from fairmotion.data import bvh
-from fairmotion.motion import velocity
+from fairmotion.core import velocity
 from fairmotion.tasks.motion_graph import motion_graph as graph
 from fairmotion.utils import utils
 

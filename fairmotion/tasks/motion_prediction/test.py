@@ -8,10 +8,9 @@ import torch
 from multiprocessing import Pool
 
 from fairmotion.data import amass_dip, bvh
-from fairmotion.motion import motion as motion_class
-from fairmotion.processing import operations
+from fairmotion.core import motion as motion_class
 from fairmotion.tasks.motion_prediction import generate, metrics, utils
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions, motion as motion_ops
 
 
 logging.basicConfig(
@@ -59,8 +58,8 @@ def save_seq(i, pred_seq, src_seq, tgt_seq, skel):
         motion_class.Motion.from_matrix(seq, skel)
         for seq in [pred_seq, src_seq, tgt_seq]
     ]
-    ref_motion = operations.append(motions[1], motions[2])
-    pred_motion = operations.append(motions[1], motions[0])
+    ref_motion = motion_ops.append(motions[1], motions[2])
+    pred_motion = motion_ops.append(motions[1], motions[0])
     bvh.save(
         ref_motion, os.path.join(args.save_output_path, "ref", f"{i}.bvh"),
     )
@@ -73,7 +72,7 @@ def convert_to_T(pred_seqs, src_seqs, tgt_seqs, rep):
     ops = utils.convert_fn_to_R(rep)
     seqs_T = [
         conversions.R2T(utils.apply_ops(seqs, ops))
-        for seqs in [pred_seqs, src_seqs, tgt_seqs,]
+        for seqs in [pred_seqs, src_seqs, tgt_seqs]
     ]
     return seqs_T
 

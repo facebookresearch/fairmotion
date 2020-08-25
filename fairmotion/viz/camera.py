@@ -1,7 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 import numpy as np
-from fairmotion.utils import constants, conversions
+from fairmotion.utils import constants
+from fairmotion.ops import conversions
 
 
 class Camera(object):

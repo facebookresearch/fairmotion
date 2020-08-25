@@ -2,10 +2,9 @@
 
 import numpy as np
 
-from fairmotion.processing import operations
 from fairmotion.utils import constants
-from fairmotion.utils import conversions
-from fairmotion.motion.motion import Pose, Motion
+from fairmotion.ops import conversions, math
+from fairmotion.core.motion import Pose, Motion
 
 
 class Velocity(object):
@@ -47,12 +46,12 @@ class Velocity(object):
         for joint in pose1.skel.joints:
             T1 = pose1.get_transform(joint, local=True)
             T2 = pose2.get_transform(joint, local=True)
-            dR, dp = conversions.T2Rp(np.dot(operations.invertT(T1), T2))
+            dR, dp = conversions.T2Rp(np.dot(math.invertT(T1), T2))
             w, v = conversions.R2A(dR) / dt, dp / dt
             data_local.append(np.hstack((w, v)))
             T1 = pose1.get_transform(joint, local=False)
             T2 = pose2.get_transform(joint, local=False)
-            dR, dp = conversions.T2Rp(np.dot(operations.invertT(T1), T2))
+            dR, dp = conversions.T2Rp(np.dot(math.invertT(T1), T2))
             w, v = conversions.R2A(dR) / dt, dp / dt
             data_global.append(np.hstack((w, v)))
         return np.array(data_local), np.array(data_global)
@@ -104,8 +103,8 @@ class Velocity(object):
             alpha: Value between 0 and 1 denoting the blending ratio. alpha=0
                 returns v1, and alpha=1 returns v2
         """
-        data_local = operations.lerp(v1.data_local, v2.data_local, alpha)
-        data_global = operations.lerp(v1.data_global, v2.data_global, alpha)
+        data_local = math.lerp(v1.data_local, v2.data_local, alpha)
+        data_global = math.lerp(v1.data_global, v2.data_global, alpha)
         v = cls()
         v.set_skel(v1.skel)
         v.set_data_local(data_local)
@@ -127,7 +126,7 @@ class MotionWithVelocity(Motion):
     the `from_motion` method.
     ```
     from fairmotion.data import bvh
-    from fairmotion.motion.velocity import MotionWithVelocity
+    from fairmotion.core.velocity import MotionWithVelocity
 
     motion = bvh.load(bvh_filename)
     motion_with_velcoty = MotionWithVelocity.from_motion(motion)
@@ -174,11 +173,13 @@ class MotionWithVelocity(Motion):
         frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
             return self.vels[frame1]
-        
+
         t1 = self.frame_to_time(frame1)
         t2 = self.frame_to_time(frame2)
         alpha = (time - t1) / (t2 - t1)
-        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)"%(alpha)
+        assert 0.0 <= alpha <= 1.0, (
+            "alpha (%f) is out of range (0, 1)" % (alpha)
+        )
 
         v1 = self.get_velocity_by_frame(frame1)
         v2 = self.get_velocity_by_frame(frame2)

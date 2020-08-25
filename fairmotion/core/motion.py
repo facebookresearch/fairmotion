@@ -3,9 +3,9 @@
 import numpy as np
 import random
 
-from fairmotion.processing import operations
+from fairmotion.ops import math, quaternion
 from fairmotion.utils import constants
-from fairmotion.utils import conversions
+from fairmotion.ops import conversions
 from fairmotion.utils import utils
 
 
@@ -55,7 +55,7 @@ class Joint(object):
             self.degree = np.zeros(3)
             self.coordinate = None
         if direction is not None:      
-            self.direction = direction.squeeze() #np.reshape(direction, [3, 1])
+            self.direction = direction.squeeze()
         if limits is not None:
             self.limits = np.zeros([3, 2])
             for lm, nm in zip(limits, dof):
@@ -159,7 +159,6 @@ class Skeleton(object):
         return len(self.end_effectors)
 
 
-
 class Pose(object):
     """Defines a pose. A list of poses forms a motion sequence.
 
@@ -214,14 +213,14 @@ class Pose(object):
             T1 = T
         else:
             T0 = self.skel.get_joint(key).xform_global
-            T1 = np.dot(operations.invertT(T0), T)
+            T1 = np.dot(math.invertT(T0), T)
         if do_ortho_norm:
             """
             This insures that the rotation part of
             the given transformation is valid
             """
             Q, p = conversions.T2Qp(T1)
-            Q = operations.Q_op(Q, op=["normalize"])
+            Q = quaternion.Q_op(Q, op=["normalize"])
             T1 = conversions.Qp2T(Q, p)
         self.data[self.skel.get_index_joint(key)] = T1
 
@@ -251,8 +250,8 @@ class Pose(object):
     def get_facing_direction_position(self):
         R, p = conversions.T2Rp(self.get_root_transform())
         d = np.dot(R, self.skel.v_face)
-        d = d - operations.projectionOnVector(d, self.skel.v_up_env)
-        p = p - operations.projectionOnVector(p, self.skel.v_up_env)
+        d = d - math.projectionOnVector(d, self.skel.v_up_env)
+        p = p - math.projectionOnVector(p, self.skel.v_up_env)
         return d / np.linalg.norm(d), p
 
     def set_skeleton(self, skel):
@@ -295,8 +294,8 @@ class Pose(object):
             R1, p1 = conversions.T2Rp(pose1.get_transform(j, local=True))
             R2, p2 = conversions.T2Rp(pose2.get_transform(j, local=True))
             R, p = (
-                operations.slerp(R1, R2, alpha),
-                operations.lerp(p1, p2, alpha),
+                math.slerp(R1, R2, alpha),
+                math.lerp(p1, p2, alpha),
             )
             data.append(conversions.Rp2T(R, p))
         return Pose(pose1.skel, data)
@@ -370,12 +369,14 @@ class Motion(object):
         frame2 = min(frame1 + 1, self.num_frames() - 1)
         if frame1 == frame2:
             return self.poses[frame1]
-        
+
         t1 = self.frame_to_time(frame1)
         t2 = self.frame_to_time(frame2)
         alpha = (time - t1) / (t2 - t1)
-        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)"%(alpha)
-        
+        assert 0.0 <= alpha <= 1.0, (
+            "alpha (%f) is out of range (0, 1)" % (alpha)
+        )
+
         return Pose.interpolate(self.poses[frame1], self.poses[frame2], alpha)
 
     def num_frames(self):

@@ -1,8 +1,9 @@
 import torch
 import numpy as np
-from fairmotion.motion import motion as motion_class
-from fairmotion.motion.motion import Joint
-from fairmotion.utils import conversions, constants
+from fairmotion.core import motion as motion_class
+from fairmotion.core.motion import Joint
+from fairmotion.ops import conversions
+from fairmotion.utils import constants
 
 from mpl_toolkits.mplot3d import Axes3D
 

@@ -4,7 +4,7 @@ import argparse
 import os
 import tqdm
 from fairmotion.data import bvh
-from fairmotion.processing import operations
+from fairmotion.ops import motion as motion_ops
 
 
 def split_bvh(filepath, time_window, output_folder):
@@ -13,7 +13,7 @@ def split_bvh(filepath, time_window, output_folder):
     for num, i in enumerate(
         range(0, motion.num_frames(), int(frames_per_time_window/2))
     ):
-        motion_slice = operations.cut(motion, i, i + frames_per_time_window)
+        motion_slice = motion_ops.cut(motion, i, i + frames_per_time_window)
         filepath_slice = os.path.join(
             output_folder,
             filepath.split(".")[-2].split("/")[-1] + "_" + str(num) + ".bvh",
