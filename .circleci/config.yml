@@ -1,0 +1,31 @@
+version: 2.1
+jobs:
+  fairmotion:
+    resource_class: gpu.small
+    docker:
+      - image: circleci/python:3.6
+      
+    steps:
+      - checkout            
+      - run:
+          name: Install fairmotion
+          command: |
+            cd ~/project
+            sudo apt-get update -y
+            sudo apt-get install freeglut3-dev
+            sudo pip3 install virtualenv 
+            virtualenv --python=python3 ./fairmotion_env
+            source ./fairmotion_env/bin/activate
+            pip install -e .
+      - run:
+          name: Run Tests
+          command: |
+            cd ~/project
+            source ./fairmotion_env/bin/activate
+            python setup.py test
+
+workflows:
+  version: 2
+  install_and_test:
+    jobs:
+      - fairmotion

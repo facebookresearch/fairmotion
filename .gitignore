@@ -1,0 +1,9 @@
+*/__pycache__/*
+__pycache__/
+.vscode/
+.eggs/*
+*.egg-info/
+*.ipynb_checkpoints/
+dist/
+build/
+fairmotion/tasks/motion_prediction/test_data/*
