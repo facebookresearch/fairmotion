@@ -2,6 +2,10 @@
 
 In this task, we semantically cluster motion sequences from a large motion capture dataset. We implement two quick methods to generate features for sequences -- the first based on joint heuristics [1] and the second based on kinetic energy [2] and acceleration of joints. We cluster the features using KMeans and Hierarchical approaches and visualize their t-SNE embeddings.
 
+<img src="fairmotion/tasks/clustering/tsne-pca-k-8.jpg" width="600">
+
+t-SNE embeddings of sequences from AMASS CMU dataset; 8 clusters formed by k-means clustering
+
 ## Instructions
 
 Gather all motion files to be clustered in a single folder. As an optional step, we provide a tool to generate equal sized chunks of motion sequences from the dataset. `split_bvh.py` split BVH files in a folder to create overlapping `--time-window` second clips, and saves them in BVH format in the output folder.
@@ -28,4 +32,5 @@ To test code, run unit tests in `test_generate_features.py`.
 
 ## References
 [1] Müller, Meinard, Tido Röder, and Michael Clausen. "Efficient content-based retrieval of motion capture data." ACM SIGGRAPH 2005
+
 [2] Onuma, Kensuke, Christos Faloutsos, and Jessica K. Hodgins. "FMDistance: A Fast and Effective Distance Function for Motion Capture Data." Eurographics (Short Papers). 2008.
