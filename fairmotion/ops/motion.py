@@ -102,28 +102,50 @@ def blend(pose1, pose2, alpha=0.5):
     return pose_new
 
 
-def transform(motion, T, local=False):
+def transform(motion, T, anchor_frame, local=False):
     """
     Apply transform to all poses of a motion sequence. The operation is done
     in-place.
 
     Args:
         motion: Motion sequence to be transformed
-        T: Transformation matrix of shape (4, 4) to be applied to poses of
-            motion
-        local: Optional; Set local=True if the transformations are to be
-            applied locally, relative to parent of each joint.
+        T: Transformation matrix of shape (4, 4) to be applied
+        anchor_frame: a reference frame number for the operation. T will
+            be applied to this frame which the other frame will follow
+            passively
+        local: Optional; Set local=True if the transformation is to be
+            interpreted locally, relative to the root transformation of 
+            the anchor frame. Otherwise, T will be interpreted globally
     """
-    for pose_id in range(len(motion.poses)):
-        R0, p0 = conversions.T2Rp(motion.poses[pose_id].get_root_transform())
+    assert 0 <= anchor_frame < len(motion.poses)
+    
+    def transform_pose(pose, T, local):
+        R0, p0 = conversions.T2Rp(pose.get_root_transform())
         R1, p1 = conversions.T2Rp(T)
         if local:
             R, p = np.dot(R0, R1), p0 + np.dot(R0, p1)
         else:
             R, p = np.dot(R1, R0), p0 + p1
-        motion.poses[pose_id].set_root_transform(
+        pose.set_root_transform(
             conversions.Rp2T(R, p), local=False,
         )
+
+    T_from_anchor = []
+    pose_anchor = motion.poses[anchor_frame]
+    T_root_anchor = pose_anchor.get_root_transform()
+    T_root_anchor_inv = math.invertT(T_root_anchor)
+    for pose_id in range(len(motion.poses)):
+        T_rel = np.dot(
+            T_root_anchor_inv, motion.poses[pose_id].get_root_transform())
+        T_from_anchor.append(T_rel)
+
+    transform_pose(pose_anchor, T, local)
+
+    T_root_anchor_new = pose_anchor.get_root_transform()
+    for pose_id in range(len(motion.poses)):
+        T_new = np.dot(T_root_anchor_new, T_from_anchor[pose_id])
+        motion.poses[pose_id].set_root_transform(T_new, local=False)
+
     return motion
 
 
@@ -135,14 +157,29 @@ def translate(motion, v, local=False):
         motion: Motion sequence to be translated
         v: Array of shape (3,) indicating translation vector to be applied to
             all poses of motion sequence
-        local: Optional; Set local=True if the translation is to be applied
-            locally, relative to root position.
+        local: Optional; Set local=True if the translation is to be
+            interpreted locally, relative to the root transformation of 
+            the anchor frame. Otherwise, v will be interpreted globally
     """
-    return transform(motion, conversions.p2T(v), local)
+    return transform(motion, conversions.p2T(v), 0, local)
 
 
-def rotate(motion, R, local=False):
-    return transform(motion, conversions.R2T(R), local)
+def rotate(motion, R, anchor_frame, local=False):
+    """
+    Apply rotation to all poses of a motion sequence. The operation is done
+    in-place.
+
+    Args:
+        motion: Motion sequence to be transformed
+        R: Rotation matrix of shape (3, 3) to be applied
+        anchor_frame: a reference frame number for the operation. T will
+            be applied to this frame which the other frame will follow
+            passively
+        local: Optional; Set local=True if the rotatioin is to be
+            interpreted locally, relative to the root transformation of 
+            the anchor frame. Otherwise, R will be interpreted globally
+    """
+    return transform(motion, conversions.R2T(R), anchor_frame, local)
 
 
 def cut(motion, frame_start, frame_end):
