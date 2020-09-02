@@ -343,7 +343,6 @@ class Motion(object):
         self.skel = skel
         self.poses = []
         self.fps = fps
-        self.fps_inv = 1.0 / fps
         self.info = {}
 
     def clear(self):
@@ -365,7 +364,7 @@ class Motion(object):
 
     def frame_to_time(self, frame):
         frame = np.clip(frame, 0, len(self.poses) - 1)
-        return frame * self.fps_inv
+        return frame / self.fps
 
     def time_to_frame(self, time):
         return int(time * self.fps)
@@ -404,7 +403,7 @@ class Motion(object):
         Example: If fps is 60Hz and there are 120 frames, length() returns
         1.9833. In case there are 121 frames, length() is 2.
         """
-        return (len(self.poses) - 1) * self.fps_inv
+        return (len(self.poses) - 1) / self.fps
 
     def to_matrix(self, local=True):
         """
