@@ -1,3 +1,5 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
 import gzip
 import logging
 import matplotlib.pyplot as plt

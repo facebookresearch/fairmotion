@@ -1,3 +1,5 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
 import torch
 import numpy as np
 from fairmotion.core import motion as motion_class
