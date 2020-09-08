@@ -34,7 +34,7 @@ motion = bvh.load(BVH_FILENAME)
 
 The motion object can be manipulated in both modular and matrix forms. Here, we translate the object to a fixed global position `[1, 1, 1]` and select a time slice from frame `20` to frame `30`.
 ```
-from mocap_proceessing.ops import motion as motion_ops
+from fairmotion.ops import motion as motion_ops
 
 translated_motion = motion_ops.translate(motion, np.array([1, 1, 1]))
 sliced_motion = motion_ops.cut(translated_motion, 10, 20)
