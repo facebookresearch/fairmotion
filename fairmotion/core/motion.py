@@ -386,10 +386,7 @@ class Motion(object):
 
         t1 = self.frame_to_time(frame1)
         t2 = self.frame_to_time(frame2)
-        alpha = (time - t1) / (t2 - t1)
-        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)" % (
-            alpha
-        )
+        alpha = np.clip((time - t1) / (t2 - t1), 0.0, 1.0)
 
         return Pose.interpolate(self.poses[frame1], self.poses[frame2], alpha)
 
