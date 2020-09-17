@@ -44,6 +44,15 @@ def prepare_model(input_dim, hidden_dim, num_layers, num_observed, device):
     return model
 
 
+def prepare_optimizer(opt_type, model, lr):
+    opt = None
+    if optimizer == "adam":
+        opt = optimizer.AdamOpt(model, lr=lr)
+    else:
+        opt = optimizer.SGDOpt(model, lr=lr)
+    return opt
+
+
 def train(args):
     fairmotion_utils.create_dir_if_absent(args.save_model_path)
     logging.info(args._get_kwargs())
@@ -77,7 +86,7 @@ def train(args):
     epoch_loss = 0
 
     logging.info("Training model...")
-    opt = optimizer.AdamOpt(model, lr=args.lr)
+    opt = prepare_optimizer(args.optimizer, model, args.lr)
     training_losses = []
     for epoch in range(args.epochs):
         epoch_loss = 0
@@ -147,7 +156,7 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument(
-        "--epochs", type=int, help="Number of training epochs", default=20
+        "--epochs", type=int, help="Number of training epochs", default=10
     )
     parser.add_argument(
         "--device",
@@ -155,6 +164,13 @@ if __name__ == "__main__":
         help="Training device",
         default=None,
         choices=["cpu", "cuda"],
+    )
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        help="Optimizer to use",
+        default="adam",
+        choices=["adam", "sgd"],
     )
     parser.add_argument(
         "--lr", type=float, help="Learning rate", default=0.001,
