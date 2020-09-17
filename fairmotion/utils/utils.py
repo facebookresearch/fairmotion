@@ -128,3 +128,25 @@ def _apply_fn_agnostic_to_vec_mat(input, fn):
 def create_dir_if_absent(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def log_config(path, args):
+    """Creates config.txt and prints all keys and values in args
+    """
+    with open(os.path.join(path, "config.txt"), "w") as f:
+        for key, value in args._get_kwargs():
+            f.write(f"{key}:{value}\n")
+
+
+def flatten_angles(arr, rep):
+    """
+    Unflatten from (batch_size, num_frames, num_joints, ndim) to
+    (batch_size, num_frames, num_joints*ndim) for each angle format
+    """
+    if rep == "aa":
+        return arr.reshape(arr.shape[:-2] + (-1,))
+    elif rep == "quat":
+        return arr.reshape(arr.shape[:-2] + (-1,))
+    elif rep == "rotmat":
+        # original dimension is (batch_size, num_frames, num_joints, 3, 3)
+        return arr.reshape(arr.shape[:-3] + (-1,))

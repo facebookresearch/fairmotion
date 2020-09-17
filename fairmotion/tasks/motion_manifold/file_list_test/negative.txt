@@ -1,0 +1,9 @@
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_01_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_02_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_03_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_04_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_05_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_06_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_07_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_08_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/05/05_09_poses.bvh

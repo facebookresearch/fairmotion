@@ -299,3 +299,17 @@ def Rp2T(R, p):
 
 def p2T(p):
     return Rp2T(constants.eye_R(), np.array(p))
+
+
+def identity(x):
+    return x
+
+
+def convert_fn_from_R(rep):
+    if rep == "aa":
+        convert_fn = R2A
+    elif rep == "quat":
+        convert_fn = R2Q
+    elif rep == "rotmat":
+        convert_fn = identity
+    return convert_fn

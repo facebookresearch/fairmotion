@@ -1,0 +1,3 @@
+/private/home/dgopinath/data/scadive/CMU/CMU/07/07_01_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/07/07_02_poses.bvh
+/private/home/dgopinath/data/scadive/CMU/CMU/07/07_03_poses.bvh
