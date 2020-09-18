@@ -147,7 +147,7 @@ def main(args):
 
     ranked_clusters = get_ranked_clusters(clusters)
 
-    with open(args.output_file, "w") as f:
+    with open(args.output_csv, "w") as f:
         for cluster in ranked_clusters:
             for (name, rank, score) in ranked_clusters[cluster]:
                 f.write(

@@ -5,6 +5,7 @@ import os
 import tqdm
 from fairmotion.data import bvh
 from fairmotion.ops import motion as motion_ops
+import re
 
 
 def split_bvh(filepath, time_window, output_folder):
@@ -25,8 +26,9 @@ def main(args):
     os.makedirs(args.output_folder, exist_ok=True)
     for root, _, files in os.walk(args.folder, topdown=False):
         for filename in tqdm.tqdm(files):
-            filepath = os.path.join(root, filename)
-            split_bvh(filepath, args.time_window, args.output_folder)
+            if re.match(r'(\w+).bvh', filename):
+                filepath = os.path.join(root, filename)
+                split_bvh(filepath, args.time_window, args.output_folder)
 
 
 if __name__ == "__main__":
