@@ -81,5 +81,16 @@ fairmotion has been used in some form in the following works:
 * Tanmay Shankar, and Abhinav Gupta. "Learning Robot Skills with Temporal Variational Inference." ICML 2020
 * Jungdam Won, and Jehee Lee. "Learning body shape variation in physics-based characters." ACM Transactions on Graphics (TOG) 2019
 
+## Citation
+If you find fairmotion useful in your research, please cite our repository using the following BibTeX entry.
+```
+@Misc{gopinath2020fairmotion,
+  author =       {Gopinath, Deepak and Won, Jungdam},
+  title =        {fairmotion - Tools to load, process and visualize motion capture data},
+  howpublished = {Github},
+  year =         {2020},
+  url =          {https://github.com/facebookresearch/fairmotion}
+}
+```
 ## License
 fairmotion is released under the [BSD-3-Clause License](https://github.com/facebookresearch/fairmotion/blob/master/LICENSE).
