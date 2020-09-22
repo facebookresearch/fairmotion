@@ -350,6 +350,10 @@ class Motion(object):
         self.poses = []
         self.info = {}
 
+    def set_fps(self, fps):
+        self.fps = fps
+        self.fps_inv = 1.0 / fps
+
     def set_skeleton(self, skel):
         self.skel = skel
         for idx in range(len(self.poses)):

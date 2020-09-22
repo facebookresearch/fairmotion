@@ -156,7 +156,7 @@ class MotionGraph(object):
         self.motions = motions
         self.motion_files = motion_files
         self.skel = skel
-        self.fps = fps
+        self.set_fps(fps)
         self.base_length = base_length
         self.stride_length = stride_length
         self.blend_length = blend_length

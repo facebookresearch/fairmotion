@@ -136,7 +136,7 @@ def load(
     if load_motion:
         assert motion.skel is not None
         # Assume 60fps
-        motion.fps = 60.0
+        motion.set_fps(60.0)
         dt = float(1 / motion.fps)
         with open(file, "rb") as f:
             data = pkl.load(f, encoding="latin1")
