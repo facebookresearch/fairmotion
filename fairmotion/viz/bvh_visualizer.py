@@ -81,13 +81,12 @@ class MocapViewer(glut_viewer.Viewer):
         elif key == b"-":
             self.play_speed = max(self.play_speed - 0.2, 0.2)
         elif key == b"r":
-            start_time = 0.0
+            self.cur_time = 0.0
             end_time = self.motions[0].length()
             fps = self.motions[0].fps
             save_dir = input("Enter directory to store screenshots: ")
             os.makedirs(save_dir, exist_ok=True)
             cnt_screenshot = 0
-            time_processed = start_time
             dt = 1 / fps
             while self.cur_time <= end_time:
                 print(
@@ -120,7 +119,7 @@ class MocapViewer(glut_viewer.Viewer):
                 )
                 p = 0.5 * (pos_parent + pos)
                 l = np.linalg.norm(pos_parent - pos)
-                r = 0.05
+                r = 0.2
                 R = math.R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
                 gl_render.render_capsule(
                     conversions.Rp2T(R, p),
@@ -153,7 +152,7 @@ class MocapViewer(glut_viewer.Viewer):
         )
         colors = [
             np.array([123, 174, 85, 255]) / 255.0,  # green
-            np.array([220, 220, 220, 120]) / 255.0,  # grey
+            np.array([255, 255, 0, 255]) / 255.0,  # yellow
             np.array([85, 160, 173, 255]) / 255.0,  # blue
         ]
         self._render_characters(colors)
@@ -196,11 +195,9 @@ def main(args):
 
     for i in range(len(motions)):
         motion_ops.translate(motions[i], [args.x_offset * i, 0, 0])
-
     cam = camera.Camera(
-        pos=2 * utils.str_to_axis(args.axis_face)
-        + 1 * utils.str_to_axis(args.axis_up),
-        origin=np.array([0, 0, 0]),
+        pos=np.array(args.camera_position),
+        origin=np.array(args.camera_origin),
         vup=v_up_env,
         fov=45.0,
     )
@@ -232,6 +229,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--axis-face", type=str, choices=["x", "y", "z"], default="y"
     )
+    parser.add_argument(
+        "--camera-position",
+        nargs="+",
+        type=float,
+        required=False,
+        default=(2.0, 2.0, 2.0),
+    )
+    parser.add_argument(
+        "--camera-origin",
+        nargs="+",
+        type=float,
+        required=False,
+        default=(0.0, 0.0, 0.0),
+    )
     parser.add_argument("--hide-origin", action="store_true")
     parser.add_argument("--render-overlay", action="store_true")
     parser.add_argument(
@@ -242,4 +253,8 @@ if __name__ == "__main__":
         "simultaneously side-by-side",
     )
     args = parser.parse_args()
+    assert len(args.camera_position) == 3 and len(args.camera_origin) == 3, (
+        "Provide x, y and z coordinates for camera position/origin like "
+        "--camera-position x y z"
+    )
     main(args)
