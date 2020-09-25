@@ -184,7 +184,7 @@ def resample(motion, fps):
         t += dt
 
     motion.poses = poses_new
-    motion.fps = fps
+    motion.set_fps(fps)
     return motion
 
 

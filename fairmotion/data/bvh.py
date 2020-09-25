@@ -106,7 +106,7 @@ def load(
             if word == "motion":
                 num_frames = int(words[cnt + 2])
                 dt = float(words[cnt + 5])
-                motion.fps = round(1 / dt)
+                motion.set_fps(round(1 / dt))
                 cnt += 6
                 t = 0.0
                 range_num_dofs = range(motion.skel.num_dofs)
