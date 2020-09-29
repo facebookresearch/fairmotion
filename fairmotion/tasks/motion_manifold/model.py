@@ -47,6 +47,11 @@ class MLP(nn.Module):
             observed: Tensor of shape (batch_size, num_observed, input_dim)
             predicted: Tensor of shape (batch_size, input_dim)
         """
+        # If batch size is not provided as first dimension
+        if predicted.ndim == 1:
+            predicted = predicted.unsqueeze(0)
+        if observed.ndim == 2:
+            observed = observed.unsqueeze(0)
         observed = self.mlp_input(observed)
         observed = torch.reshape(
             observed, (-1, observed.shape[-2] * observed.shape[-1])

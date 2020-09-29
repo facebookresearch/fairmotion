@@ -26,26 +26,35 @@ def process_sample(data, rep):
     return data
 
 
-def create_samples(
+def select_poses(data, num_poses, skip_frames):
+    selected_data = []
+    for sample in data:
+        length = sample.shape[0]
+        num_poses_to_extract = num_poses
+        indices = np.arange(num_poses_to_extract) * skip_frames
+        for i in range(length - num_poses_to_extract * skip_frames):
+            selected_data.append(np.take(sample, i + indices, axis=0))
+    return selected_data
+
+
+def create_train_samples(
     positive_samples,
     negative_samples,
     rep,
     num_observed,
-    skip_frames=1,
+    skip_frames=2,
     negative_sample_ratio=5,
 ):
-    samples = []
-    for sample in positive_samples:
-        length = sample.shape[0]
-        num_poses_to_extract = num_observed + 1
-        indices = np.arange(num_poses_to_extract) * skip_frames
-        for i in range(length - num_poses_to_extract * skip_frames):
-            samples.append(np.take(sample, i + indices, axis=0))
+    selected_positive_poses = select_poses(
+        positive_samples,
+        num_poses=num_observed + 1,
+        skip_frames=skip_frames,
+    )
 
     data = []
     labels = []
     num_negative_samples = len(negative_samples)
-    for sample in samples:
+    for sample in selected_positive_poses:
         data.append(sample)
         labels.append(1)
         for _ in range(negative_sample_ratio):
@@ -59,7 +68,45 @@ def create_samples(
             ]
             data.append(negative_sample)
             labels.append(0)
-    return process_sample(np.array(data), rep), np.array(labels)
+
+    metadata = {
+        "num_observed": num_observed,
+        "rep": rep,
+        "skip_frames": skip_frames,
+    }
+    return process_sample(np.array(data), rep), np.array(labels), metadata
+
+
+def create_valid_samples(
+    positive_samples,
+    negative_samples,
+    rep,
+    num_observed,
+    skip_frames=2,
+):
+    selected_positive_poses = select_poses(
+        positive_samples,
+        num_poses=num_observed + 1,
+        skip_frames=skip_frames,
+    )
+    selected_negative_poses = select_poses(
+        negative_samples,
+        num_poses=num_observed + 1,
+        skip_frames=skip_frames,
+    )
+
+    data = selected_positive_poses + selected_negative_poses
+    labels = (
+        [1] * len(selected_positive_poses) +
+        [0] * len(selected_negative_poses)
+    )
+
+    metadata = {
+        "num_observed": num_observed,
+        "rep": rep,
+        "skip_frames": skip_frames,
+    }
+    return process_sample(np.array(data), rep), np.array(labels), metadata
 
 
 def read_content(filepath):
@@ -100,37 +147,58 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    positive_files = read_content(
-        os.path.join(os.path.join(args.file_list_folder, "positive.txt"))
-    )
-    negative_files = read_content(
-        os.path.join(os.path.join(args.file_list_folder, "negative.txt"))
-    )
-
     logging.info("Loading files...")
-    positive_samples = [
-        motion.rotations() for motion in bvh.load_parallel(positive_files)
-    ]
-    negative_samples = [
-        motion.rotations() for motion in bvh.load_parallel(negative_files)
-    ]
+    samples = []
+    for file_list_name in [
+        "positive.txt",
+        "negative.txt",
+        "valid_positive.txt",
+        "valid_negative.txt"
+    ]:
+        files = read_content(
+            os.path.join(os.path.join(args.file_list_folder, file_list_name))
+        )
+        motions = bvh.load_parallel(files)
+        samples.append(
+            [
+                motion.rotations() for motion in motions
+            ]
+        )
+        num_frames = sum([motion.num_frames() for motion in motions])
+        logging.info(f"{file_list_name}: {num_frames} frames")
 
     output_path = os.path.join(args.output_dir, args.rep)
     utils.create_dir_if_absent(output_path)
-    output_path = os.path.join(
+    train_path = os.path.join(
         output_path,
         (
-            f"data_num_observed_{args.num_observed}_skip_frames_"
+            f"train_num_observed_{args.num_observed}_skip_frames_"
             f"{args.frames_between_poses}.pkl"
         )
     )
 
     logging.info("Creating dataset...")
-    dataset = create_samples(
-        positive_samples,
-        negative_samples,
+    train_dataset = create_train_samples(
+        samples[0],
+        samples[1],
         rep=args.rep,
         num_observed=args.num_observed,
         skip_frames=args.frames_between_poses,
     )
-    pickle.dump(dataset, open(output_path, "wb"))
+    pickle.dump(train_dataset, open(train_path, "wb"))
+
+    valid_path = os.path.join(
+        output_path,
+        (
+            f"valid_num_observed_{args.num_observed}_skip_frames_"
+            f"{args.frames_between_poses}.pkl"
+        )
+    )
+    valid_dataset = create_valid_samples(
+        samples[2],
+        samples[3],
+        rep=args.rep,
+        num_observed=args.num_observed,
+        skip_frames=args.frames_between_poses,
+    )
+    pickle.dump(valid_dataset, open(valid_path, "wb"))

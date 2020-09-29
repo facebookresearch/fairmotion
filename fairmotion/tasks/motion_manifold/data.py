@@ -6,10 +6,18 @@ from fairmotion.utils import constants
 
 
 class Dataset(data.Dataset):
-    def __init__(self, dataset_path, device):
-        self.samples, self.labels = pickle.load(open(dataset_path, "rb"))
-        self.mean = np.mean(self.samples, axis=(0, 1))
-        self.std = np.std(self.samples, axis=(0, 1))
+    def __init__(self, dataset_path, device, mean=None, std=None):
+        self.samples, self.labels, self.metadata = pickle.load(
+            open(dataset_path, "rb")
+        )
+        if mean is None or std is None:
+            self.mean = np.mean(self.samples, axis=(0, 1))
+            self.std = np.std(self.samples, axis=(0, 1))
+        else:
+            self.mean = mean
+            self.std = std
+        self.metadata["mean"] = self.mean
+        self.metadata["std"] = self.std
         self.num_total_seqs = len(self.samples)
         self.device = device
 

@@ -300,6 +300,19 @@ class Pose(object):
             pose.set_transform(joint_id, data[joint_id], local)
         return pose
 
+    def rotations(self, local=True):
+        """
+        Returns joint rotations in rotation matrix format, with shape
+        (num_joints, 3, 3)
+        """
+        return self.to_matrix(local)[..., :3, :3]
+
+    def positions(self, local=True):
+        """
+        Returns joint positions with shape (num_joints, 3)
+        """
+        return self.to_matrix(local)[..., :3, 3]
+
     @classmethod
     def interpolate(cls, pose1, pose2, alpha):
         skel = pose1.skel

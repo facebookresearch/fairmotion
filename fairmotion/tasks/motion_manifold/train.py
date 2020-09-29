@@ -4,7 +4,6 @@ import argparse
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import random
 import torch
 import torch.nn as nn
@@ -53,6 +52,18 @@ def prepare_optimizer(opt_type, model, lr):
     return opt
 
 
+def save_model(model, epoch, save_model_path, model_kwargs, stats, metadata):
+    torch.save(
+        {
+            "state_dict": model.state_dict(),
+            "model_kwargs": model_kwargs,
+            "stats": stats,
+            "metadata": metadata
+        },
+        f"{args.save_model_path}/{epoch}.model",
+    )
+
+
 def train(args):
     fairmotion_utils.create_dir_if_absent(args.save_model_path)
     logging.info(args._get_kwargs())
@@ -64,20 +75,28 @@ def train(args):
     logging.info(f"Using device: {device}")
 
     logging.info("Preparing dataset...")
-    dataset = data.get_loader(
-        args.preprocessed_file,
+    train_dataloader = data.get_loader(
+        args.train_preprocessed_file,
+        args.batch_size,
+        device,
+    )
+    valid_dataloader = data.get_loader(
+        args.valid_preprocessed_file,
         args.batch_size,
         device,
     )
 
-    batch_size, num_observed, input_dim = next(iter(dataset))[0].shape
+    batch_size, num_observed, input_dim = next(iter(train_dataloader))[0].shape
 
+    model_kwargs = {
+        "input_dim": input_dim,
+        "hidden_dim": args.hidden_dim,
+        "num_layers": args.num_layers,
+        "num_observed": num_observed,
+        "device": device,
+    }
     model = prepare_model(
-        input_dim=input_dim,
-        hidden_dim=args.hidden_dim,
-        num_layers=args.num_layers,
-        num_observed=num_observed,
-        device=device,
+        **model_kwargs
     )
 
     criterion = nn.MSELoss()
@@ -91,7 +110,9 @@ def train(args):
     for epoch in range(args.epochs):
         epoch_loss = 0
         model.train()
-        for iterations, (observed, predicted, label) in enumerate(dataset):
+        for iterations, (observed, predicted, label) in enumerate(
+            train_dataloader
+        ):
             opt.optimizer.zero_grad()
             output = model(observed, predicted)
             output = output.double()
@@ -104,11 +125,35 @@ def train(args):
             epoch_loss += loss.item()
         epoch_loss = epoch_loss / (iterations + 1)
         training_losses.append(epoch_loss)
+
+        valid_loss = 0
+        model.eval()
+        for iterations, (observed, predicted, label) in enumerate(
+            valid_dataloader
+        ):
+            output = model(observed, predicted)
+            output = output.double()
+            loss = criterion(
+                output,
+                label,
+            )
+            valid_loss += loss.item()
+        valid_loss = valid_loss / (iterations + 1)
         logging.info(
-            f"Training loss {epoch_loss} | "
-            f"Iterations {iterations + 1}"
+            f"Epoch: {epoch} | "
+            f"Training loss: {epoch_loss} | "
+            f"Validation loss: {valid_loss} | "
+            f"Iterations: {iterations + 1}"
         )
-    torch.save(model.state_dict(), f"{args.save_model_path}/{epoch}.model")
+
+    save_model(
+        model=model,
+        epoch=epoch,
+        save_model_path=args.save_model_path,
+        model_kwargs=model_kwargs,
+        stats=[train_dataloader.dataset.mean, train_dataloader.dataset.std],
+        metadata=train_dataloader.dataset.metadata,
+    )
     return training_losses
 
 
@@ -129,7 +174,13 @@ if __name__ == "__main__":
         description="Constrastive motion manifold training"
     )
     parser.add_argument(
-        "--preprocessed-file",
+        "--train-preprocessed-file",
+        type=str,
+        help="Path to pickled file with preprocessed data",
+        required=True,
+    )
+    parser.add_argument(
+        "--valid-preprocessed-file",
         type=str,
         help="Path to pickled file with preprocessed data",
         required=True,
