@@ -7,6 +7,7 @@ import torch
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+from PIL import Image
 
 from fairmotion.viz import camera, gl_render, glut_viewer
 from fairmotion.data import bvh
@@ -50,6 +51,7 @@ class MotionManifoldViewer(glut_viewer.Viewer):
         self.hide_origin = hide_origin
         self.file_idx = 0
         self.cur_time = 0.0
+        self.score = 0
 
         self.model, self.model_kwargs, self.model_stats = test.load_model(
             model_path,
@@ -61,36 +63,48 @@ class MotionManifoldViewer(glut_viewer.Viewer):
         if key == b"s":
             self.cur_time = 0.0
             self.time_checker.begin()
-        elif key == b"r":
-            start_time = 0.0
+        elif (key == b"r" or key == b"v"):
+            self.cur_time = 0.0
             end_time = self.motion.length()
             fps = self.motion.fps
-            save_dir = input("Enter directory to store screenshots: ")
-            os.makedirs(save_dir, exist_ok=True)
+            save_path = input(
+                "Enter directory/file to store screenshots/video: "
+            )
             cnt_screenshot = 0
-            time_processed = start_time
             dt = 1 / fps
+            gif_images = []
             while self.cur_time <= end_time:
                 print(
                     f"Recording progress: {self.cur_time:.2f}s/{end_time:.2f}s ({int(100*self.cur_time/end_time)}%) \r",
                     end="",
                 )
-                name = "screenshot_%04d" % (cnt_screenshot)
-                p = conversions.T2p(
-                    motion.get_pose_by_time(self.cur_time).get_root_transform()
-                )
-                self.draw_GL()
-                self.save_screen(dir=save_dir, name=name)
+                if key == b"r":
+                    os.makedirs(save_path, exist_ok=True)
+                    name = "screenshot_%04d" % (cnt_screenshot)
+                    self.save_screen(dir=save_path, name=name, render=True)
+                else:
+                    image = self.get_screen(render=True)
+                    gif_images.append(
+                        image.convert("P", palette=Image.ADAPTIVE)
+                    )
                 self.cur_time += dt
                 cnt_screenshot += 1
+            if key == b"v":
+                gif_images[0].save(
+                    save_path,
+                    save_all=True,
+                    optimize=False,
+                    append_images=gif_images[1:],
+                    loop=0,
+                )
         else:
             return False
-
         return True
 
     def _render_pose(self, pose, observed):
         if observed is None:
             color = np.array([0., 0., 255., 255.]) / 255.0
+            self.score = 0
         else:
             observed = torch.Tensor(
                 (
@@ -109,9 +123,10 @@ class MotionManifoldViewer(glut_viewer.Viewer):
                     self.model_stats[1] + constants.EPSILON
                 )
             ).double()
-            score = self.model(observed, pose_t)
-            print(score)
-            color = np.array([(1-score)*255, score*255, 0, 255]) / 255.0
+            self.score = self.model(observed, pose_t).data.cpu().numpy()[0][0]
+            color = np.array(
+                [(1-self.score)*255, self.score*255, 0, 255]
+            ) / 255.0
         skel = pose.skel
         for j in skel.joints:
             T = pose.get_transform(j, local=False)
@@ -179,7 +194,7 @@ class MotionManifoldViewer(glut_viewer.Viewer):
             t = self.cur_time % self.motion.length()
             frame = self.motion.time_to_frame(t)
             gl_render.render_text(
-                f"Frame number: {frame}",
+                f"Frame number: {frame} | Score: {self.score}",
                 pos=[0.05 * w, 0.95 * h],
                 font=GLUT_BITMAP_TIMES_ROMAN_24,
             )

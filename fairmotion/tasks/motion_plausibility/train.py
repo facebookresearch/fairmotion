@@ -60,29 +60,40 @@ def save_model(model, epoch, save_model_path, model_kwargs, stats, metadata):
             "stats": stats,
             "metadata": metadata
         },
-        f"{args.save_model_path}/{epoch}.model",
+        f"{save_model_path}/{epoch}.model",
     )
 
 
-def train(args):
-    fairmotion_utils.create_dir_if_absent(args.save_model_path)
-    logging.info(args._get_kwargs())
-    fairmotion_utils.log_config(args.save_model_path, args)
+def train(
+    save_model_path,
+    train_preprocessed_file,
+    valid_preprocessed_file,
+    hidden_dim,
+    num_layers,
+    optimizer,
+    lr,
+    epochs,
+    batch_size=256,
+    device=None,
+):
+    fairmotion_utils.create_dir_if_absent(save_model_path)
 
     set_seeds()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = args.device if args.device else device
+    device = (
+        ("cuda" if torch.cuda.is_available() else "cpu")
+        if not device else device
+    )
     logging.info(f"Using device: {device}")
 
     logging.info("Preparing dataset...")
     train_dataloader = data.get_loader(
-        args.train_preprocessed_file,
-        args.batch_size,
+        train_preprocessed_file,
+        batch_size,
         device,
     )
     valid_dataloader = data.get_loader(
-        args.valid_preprocessed_file,
-        args.batch_size,
+        valid_preprocessed_file,
+        batch_size,
         device,
     )
 
@@ -90,8 +101,8 @@ def train(args):
 
     model_kwargs = {
         "input_dim": input_dim,
-        "hidden_dim": args.hidden_dim,
-        "num_layers": args.num_layers,
+        "hidden_dim": hidden_dim,
+        "num_layers": num_layers,
         "num_observed": num_observed,
         "device": device,
     }
@@ -105,9 +116,9 @@ def train(args):
     epoch_loss = 0
 
     logging.info("Training model...")
-    opt = prepare_optimizer(args.optimizer, model, args.lr)
+    opt = prepare_optimizer(optimizer, model, lr)
     training_losses = []
-    for epoch in range(args.epochs):
+    for epoch in range(epochs):
         epoch_loss = 0
         model.train()
         for iterations, (observed, predicted, label) in enumerate(
@@ -145,11 +156,22 @@ def train(args):
             f"Validation loss: {valid_loss} | "
             f"Iterations: {iterations + 1}"
         )
+        if epoch % 10 == 0:
+            save_model(
+                model=model,
+                epoch=epoch,
+                save_model_path=save_model_path,
+                model_kwargs=model_kwargs,
+                stats=[
+                    train_dataloader.dataset.mean, train_dataloader.dataset.std
+                ],
+                metadata=train_dataloader.dataset.metadata,
+            )
 
     save_model(
         model=model,
         epoch=epoch,
-        save_model_path=args.save_model_path,
+        save_model_path=save_model_path,
         model_kwargs=model_kwargs,
         stats=[train_dataloader.dataset.mean, train_dataloader.dataset.std],
         metadata=train_dataloader.dataset.metadata,
@@ -157,21 +179,34 @@ def train(args):
     return training_losses
 
 
-def plot_curves(args, training_losses):
+def plot_curves(save_model_path, training_losses):
     plt.plot(range(len(training_losses)), training_losses)
     plt.ylabel("MSE Loss")
     plt.xlabel("Epoch")
-    plt.savefig(f"{args.save_model_path}/loss.svg", format="svg")
+    plt.savefig(f"{save_model_path}/loss.svg", format="svg")
 
 
 def main(args):
-    train_losses = train(args)
-    plot_curves(args, train_losses)
+    logging.info(args._get_kwargs())
+    fairmotion_utils.log_config(args.save_model_path, args)
+    train_losses = train(
+        args.save_model_path,
+        args.train_preprocessed_file,
+        args.valid_preprocessed_file,
+        args.hidden_dim,
+        args.num_layers,
+        args.optimizer,
+        args.lr,
+        args.epochs,
+        args.batch_size,
+        args.device,
+    )
+    plot_curves(args.save_model_path, train_losses)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Constrastive motion manifold training"
+        description="Constrastive motion plausibility model training"
     )
     parser.add_argument(
         "--train-preprocessed-file",

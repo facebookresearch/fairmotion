@@ -1,0 +1,4 @@
+/private/home/dgopinath/data/multiagent/fencing/base/Capture1_subject1_stageII.bvh
+/private/home/dgopinath/data/multiagent/fencing/base/Capture2_subject1_stageII.bvh
+/private/home/dgopinath/data/multiagent/fencing/base/Capture3_subject1_stageII.bvh
+/private/home/dgopinath/data/multiagent/fencing/base/Capture4_subject1_stageII.bvh
