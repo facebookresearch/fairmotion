@@ -9,7 +9,9 @@ import torch
 import torch.nn as nn
 
 from fairmotion.models import optimizer
-from fairmotion.tasks.motion_manifold import data, model as manifold_model
+from fairmotion.tasks.motion_plausibility import (
+    data, model as plausibility_model, options
+)
 from fairmotion.utils import utils as fairmotion_utils
 
 
@@ -29,7 +31,7 @@ def set_seeds():
 
 
 def prepare_model(input_dim, hidden_dim, num_layers, num_observed, device):
-    model = manifold_model.MLP(
+    model = plausibility_model.MLP(
         input_dim=input_dim,
         num_observed=num_observed,
         hidden_dim=hidden_dim,
@@ -50,6 +52,13 @@ def prepare_optimizer(opt_type, model, lr):
     else:
         opt = optimizer.SGDOpt(model, lr=lr)
     return opt
+
+
+def prepare_criterion(loss_fn):
+    if loss_fn == "ce":
+        return nn.CrossEntropyLoss()
+    else:
+        return nn.MSELoss()
 
 
 def save_model(model, epoch, save_model_path, model_kwargs, stats, metadata):
@@ -109,8 +118,7 @@ def train(
     model = prepare_model(
         **model_kwargs
     )
-
-    criterion = nn.MSELoss()
+    criterion = prepare_criterion(args.criterion)
     model.init_weights()
 
     epoch_loss = 0
@@ -208,58 +216,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Constrastive motion plausibility model training"
     )
-    parser.add_argument(
-        "--train-preprocessed-file",
-        type=str,
-        help="Path to pickled file with preprocessed data",
-        required=True,
-    )
-    parser.add_argument(
-        "--valid-preprocessed-file",
-        type=str,
-        help="Path to pickled file with preprocessed data",
-        required=True,
-    )
-    parser.add_argument(
-        "--batch-size", type=int, help="Batch size for training", default=64
-    )
-    parser.add_argument(
-        "--hidden-dim",
-        type=int,
-        help="Hidden size of LSTM units in encoder/decoder",
-        default=256,
-    )
-    parser.add_argument(
-        "--num-layers",
-        type=int,
-        help="Number of layers of LSTM/Transformer in encoder/decoder",
-        default=2,
-    )
-    parser.add_argument(
-        "--save-model-path",
-        type=str,
-        help="Path to store saved models",
-        required=True,
-    )
-    parser.add_argument(
-        "--epochs", type=int, help="Number of training epochs", default=10
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        help="Training device",
-        default=None,
-        choices=["cpu", "cuda"],
-    )
-    parser.add_argument(
-        "--optimizer",
-        type=str,
-        help="Optimizer to use",
-        default="adam",
-        choices=["adam", "sgd"],
-    )
-    parser.add_argument(
-        "--lr", type=float, help="Learning rate", default=0.001,
-    )
+    parser = options.add_train_args(parser)
     args = parser.parse_args()
     main(args)

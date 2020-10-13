@@ -1,7 +1,7 @@
 import numpy as np
 import torch
-from fairmotion.tasks.motion_manifold import (
-    data as manifold_data, model as manifold_model, preprocess
+from fairmotion.tasks.motion_plausibility import (
+    model as plausibility_model, preprocess
 )
 from fairmotion.utils import constants
 
@@ -12,7 +12,7 @@ BATCH_SIZE = 2
 
 def load_model(model_path):
     checkpoint = torch.load(model_path)
-    model = manifold_model.MLP(
+    model = plausibility_model.MLP(
         **checkpoint["model_kwargs"]
     )
     model.load_state_dict(checkpoint["state_dict"])

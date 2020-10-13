@@ -12,7 +12,7 @@ from PIL import Image
 from fairmotion.viz import camera, gl_render, glut_viewer
 from fairmotion.data import bvh
 from fairmotion.ops import conversions, math
-from fairmotion.tasks.motion_manifold import test
+from fairmotion.tasks.motion_plausibility import test
 from fairmotion.utils import constants, utils
 
 

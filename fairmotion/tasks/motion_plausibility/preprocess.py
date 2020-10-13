@@ -8,6 +8,7 @@ import pickle
 
 from fairmotion.data import bvh
 from fairmotion.ops import conversions
+from fairmotion.tasks.motion_plausibility import options
 from fairmotion.utils import utils
 
 
@@ -119,32 +120,7 @@ def read_content(filepath):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--output-dir", required=True, help="Where to store pickle files."
-    )
-    parser.add_argument(
-        "--rep",
-        type=str,
-        default="aa",
-        help="Angle representation to convert data to",
-        choices=["aa", "quat", "rotmat"],
-    )
-    parser.add_argument(
-        "--num-observed",
-        type=int,
-        default=5,
-        help="Number of observed poses in history",
-    )
-    parser.add_argument(
-        "--frames-between-poses",
-        type=int,
-        default=2,
-    )
-    parser.add_argument(
-        "--file-list-folder",
-        type=str,
-    )
-
+    options.add_preprocess_args(parser)
     args = parser.parse_args()
 
     logging.info("Loading files...")
