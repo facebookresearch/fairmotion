@@ -10,14 +10,15 @@ MODEL_PATH = "/checkpoint/dgopinath/models/scadive/manifold/rotmat_5_5/0.model"
 BATCH_SIZE = 2
 
 
-def load_model(model_path):
+def load_model(model_path, device="cuda"):
     checkpoint = torch.load(model_path)
     model = plausibility_model.MLP(
-        **checkpoint["model_kwargs"]
+        **checkpoint["model_kwargs"],
     )
     model.load_state_dict(checkpoint["state_dict"])
     model.double()
     model.eval()
+    model.to(device)
     return model, checkpoint["model_kwargs"], checkpoint["stats"]
 
 
