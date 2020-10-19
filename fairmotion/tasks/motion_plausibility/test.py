@@ -11,7 +11,7 @@ BATCH_SIZE = 2
 
 
 def load_model(model_path, device="cuda"):
-    checkpoint = torch.load(model_path)
+    checkpoint = torch.load(model_path, map_location=torch.device(device))
     model = plausibility_model.MLP(
         **checkpoint["model_kwargs"],
     )
