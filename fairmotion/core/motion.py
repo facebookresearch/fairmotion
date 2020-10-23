@@ -162,7 +162,7 @@ class Skeleton(object):
     def num_end_effectors(self):
         self.end_effectors = []
         for j in self.joints:
-            if len(j.child_joint) == 0:
+            if len(j.child_joints) == 0:
                 self.end_effectors.append(j)
         return len(self.end_effectors)
 

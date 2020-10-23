@@ -6,6 +6,7 @@ import os
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+from PIL import Image
 
 from fairmotion.viz import camera, gl_render, glut_viewer
 from fairmotion.data import bvh, asfamc
@@ -49,6 +50,7 @@ class MocapViewer(glut_viewer.Viewer):
         motions,
         play_speed=1.0,
         scale=1.0,
+        thickness=1.0,
         render_overlay=False,
         hide_origin=False,
         **kwargs,
@@ -60,6 +62,7 @@ class MocapViewer(glut_viewer.Viewer):
         self.file_idx = 0
         self.cur_time = 0.0
         self.scale = scale
+        self.thickness = thickness
         super().__init__(**kwargs)
 
     def keyboard_callback(self, key):
@@ -80,27 +83,41 @@ class MocapViewer(glut_viewer.Viewer):
             self.play_speed = min(self.play_speed + 0.2, 5.0)
         elif key == b"-":
             self.play_speed = max(self.play_speed - 0.2, 0.2)
-        elif key == b"r":
+        elif (key == b"r" or key == b"v"):
             self.cur_time = 0.0
-            end_time = self.motions[0].length()
-            fps = self.motions[0].fps
-            save_dir = input("Enter directory to store screenshots: ")
-            os.makedirs(save_dir, exist_ok=True)
+            end_time = motion.length()
+            fps = motion.fps
+            save_path = input(
+                "Enter directory/file to store screenshots/video: "
+            )
             cnt_screenshot = 0
             dt = 1 / fps
+            gif_images = []
             while self.cur_time <= end_time:
                 print(
                     f"Recording progress: {self.cur_time:.2f}s/{end_time:.2f}s ({int(100*self.cur_time/end_time)}%) \r",
                     end="",
                 )
-                name = "screenshot_%04d" % (cnt_screenshot)
-                p = conversions.T2p(
-                    motion.get_pose_by_time(self.cur_time).get_root_transform()
-                )
-                self.draw_GL()
-                self.save_screen(dir=save_dir, name=name)
+                if key == b"r":
+                    utils.create_dir_if_absent(save_path)
+                    name = "screenshot_%04d" % (cnt_screenshot)
+                    self.save_screen(dir=save_path, name=name, render=True)
+                else:
+                    image = self.get_screen(render=True)
+                    gif_images.append(
+                        image.convert("P", palette=Image.ADAPTIVE)
+                    )
                 self.cur_time += dt
                 cnt_screenshot += 1
+            if key == b"v":
+                utils.create_dir_if_absent(os.path.dirname(save_path))
+                gif_images[0].save(
+                    save_path,
+                    save_all=True,
+                    optimize=False,
+                    append_images=gif_images[1:],
+                    loop=0,
+                )
         else:
             return False
 
@@ -119,7 +136,7 @@ class MocapViewer(glut_viewer.Viewer):
                 )
                 p = 0.5 * (pos_parent + pos)
                 l = np.linalg.norm(pos_parent - pos)
-                r = 0.2
+                r = 0.1 * self.thickness
                 R = math.R_from_vectors(np.array([0, 0, 1]), pos_parent - pos)
                 gl_render.render_capsule(
                     conversions.Rp2T(R, p),
@@ -205,6 +222,7 @@ def main(args):
         motions=motions,
         play_speed=args.speed,
         scale=args.scale,
+        thickness=args.thickness,
         render_overlay=args.render_overlay,
         hide_origin=args.hide_origin,
         title="Motion Graph Viewer",
@@ -222,6 +240,10 @@ if __name__ == "__main__":
     parser.add_argument("--asf-files", type=str, nargs="+", required=False)
     parser.add_argument("--amc-files", type=str, nargs="+", required=False)
     parser.add_argument("--scale", type=float, default=1.0)
+    parser.add_argument(
+        "--thickness", type=float, default=1.0,
+        help="Thickness (radius) of character body"
+    )
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument(
         "--axis-up", type=str, choices=["x", "y", "z"], default="z"

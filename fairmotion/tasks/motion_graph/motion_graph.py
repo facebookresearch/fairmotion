@@ -156,7 +156,7 @@ class MotionGraph(object):
         self.motions = motions
         self.motion_files = motion_files
         self.skel = skel
-        self.set_fps(fps)
+        self.fps = fps
         self.base_length = base_length
         self.stride_length = stride_length
         self.blend_length = blend_length
@@ -263,7 +263,7 @@ class MotionGraph(object):
             self.graph.edges[e]["num_visit"] = 0
 
     def create_motion_by_following(self, nodes):
-        motion = velocity.MotionWithVelocity(skel=self.skel)
+        motion = velocity.MotionWithVelocity(skel=self.skel, fps=self.fps)
         for i in range(len(nodes) - 1):
             n1 = nodes[i]
             n2 = nodes[i + 1]
@@ -369,7 +369,7 @@ class MotionGraph(object):
         length - length of the generated motion
         start_node - we can specify a start node if necessary
         """
-        motion = velocity.MotionWithVelocity(skel=self.skel)
+        motion = velocity.MotionWithVelocity(skel=self.skel, fps=self.fps)
         t_processed = 0.0
         nodes = list(self.graph.nodes)
         if start_node is None or start_node not in self.graph.nodes:
@@ -439,7 +439,7 @@ class MotionGraph(object):
         )
 
     def load_motion_at_idx(self, idx, file):
-        motion = velocity.MotionWithVelocity(skel=self.skel)
+        motion = velocity.MotionWithVelocity(skel=self.skel, fps=self.fps)
         motion = bvh.load(
             file=file,
             motion=motion,
