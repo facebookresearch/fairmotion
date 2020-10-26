@@ -56,7 +56,7 @@ def prepare_optimizer(opt_type, model, lr):
 
 def prepare_criterion(loss_fn):
     if loss_fn == "ce":
-        return nn.CrossEntropyLoss()
+        return nn.BCELoss()
     else:
         return nn.MSELoss()
 
@@ -195,6 +195,7 @@ def plot_curves(save_model_path, training_losses):
 
 
 def main(args):
+    fairmotion_utils.create_dir_if_absent(args.save_model_path)
     logging.info(args._get_kwargs())
     fairmotion_utils.log_config(args.save_model_path, args)
     train_losses = train(

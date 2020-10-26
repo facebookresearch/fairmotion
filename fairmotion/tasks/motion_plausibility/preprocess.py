@@ -121,6 +121,7 @@ def read_content(filepath):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     options.add_preprocess_args(parser)
+    options.add_preprocess_motion_args(parser)
     args = parser.parse_args()
 
     logging.info("Loading files...")

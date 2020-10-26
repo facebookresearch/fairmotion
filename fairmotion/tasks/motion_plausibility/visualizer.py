@@ -12,7 +12,7 @@ from PIL import Image
 from fairmotion.viz import camera, gl_render, glut_viewer
 from fairmotion.data import bvh
 from fairmotion.ops import conversions, math
-from fairmotion.tasks.motion_plausibility import test
+from fairmotion.tasks.motion_plausibility import featurizer, test
 from fairmotion.utils import constants, utils
 
 
@@ -53,13 +53,15 @@ class MotionManifoldViewer(glut_viewer.Viewer):
         self.cur_time = 0.0
         self.score = 0
 
-        self.model, self.model_kwargs, self.model_stats = test.load_model(
+        self.model, self.model_kwargs, model_stats = test.load_model(
             model_path,
+        )
+        self.featurizer = featurizer.RotationFeaturizer(
+            rep="aa", mean=model_stats[0], std=model_stats[1],
         )
         super().__init__(**kwargs)
 
     def keyboard_callback(self, key):
-        motion = self.motion
         if key == b"s":
             self.cur_time = 0.0
             self.time_checker.begin()
@@ -106,23 +108,9 @@ class MotionManifoldViewer(glut_viewer.Viewer):
             color = np.array([0., 0., 255., 255.]) / 255.0
             self.score = 0
         else:
-            observed = torch.Tensor(
-                (
-                    utils.flatten_angles(conversions.R2A(observed), "aa") -
-                    self.model_stats[0]
-                )/(
-                    self.model_stats[1] + constants.EPSILON
-                )
-            ).double()
-            pose_t = torch.Tensor(
-                (
-                    utils.flatten_angles(
-                        conversions.R2A(pose.rotations()), "aa"
-                    ) - self.model_stats[0]
-                )/(
-                    self.model_stats[1] + constants.EPSILON
-                )
-            ).double()
+            observed, pose_t = self.featurizer.featurize(observed, pose)
+            observed = torch.Tensor(observed).double().to("cuda")
+            pose_t = torch.Tensor(pose_t).double().to("cuda")
             self.score = self.model(observed, pose_t).data.cpu().numpy()[0][0]
             color = np.array(
                 [(1-self.score)*255, self.score*255, 0, 255]
@@ -164,12 +152,13 @@ class MotionManifoldViewer(glut_viewer.Viewer):
         num_observed * skip_frames
         observed = None
         if frame >= num_observed * skip_frames:
-            observed_frames = np.arange(
+            observed = []
+            for idx in np.arange(
                 frame - skip_frames,
                 frame - (num_observed + 1) * skip_frames,
                 -skip_frames,
-            )
-            observed = self.motion.rotations()[observed_frames]
+            ):
+                observed.append(self.motion.poses[idx])
 
         self._render_pose(pose, observed)
 

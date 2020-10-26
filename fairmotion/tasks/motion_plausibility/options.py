@@ -3,13 +3,6 @@ def add_preprocess_args(parser):
         "--output-dir", required=True, help="Where to store pickle files."
     )
     parser.add_argument(
-        "--rep",
-        type=str,
-        default="aa",
-        help="Angle representation to convert data to",
-        choices=["aa", "quat", "rotmat"],
-    )
-    parser.add_argument(
         "--num-observed",
         type=int,
         default=5,
@@ -19,6 +12,17 @@ def add_preprocess_args(parser):
         "--frames-between-poses",
         type=int,
         default=2,
+    )
+    return parser
+
+
+def add_preprocess_motion_args(parser):
+    parser.add_argument(
+        "--rep",
+        type=str,
+        default="aa",
+        help="Angle representation to convert data to",
+        choices=["aa", "quat", "rotmat"],
     )
     parser.add_argument(
         "--file-list-folder",
