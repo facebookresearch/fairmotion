@@ -1,13 +1,14 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 import argparse
+import copy
 import logging
 import numpy as np
 import os
 import pickle
 
 from fairmotion.data import bvh
-from fairmotion.ops import conversions, math
+from fairmotion.ops import math
 from fairmotion.tasks.motion_plausibility import (
     featurizer as mp_featurizer,
     options,
@@ -46,7 +47,9 @@ def get_negative_samples_facing(
         rand_pose_idx = np.random.randint(
             negative_motions[rand_sample_idx].num_frames()
         )
-        rand_pose = negative_motions[rand_sample_idx].poses[rand_pose_idx]
+        rand_pose = copy.deepcopy(
+            negative_motions[rand_sample_idx].poses[rand_pose_idx]
+        )
         prev_rand_pose = negative_motions[rand_sample_idx].poses[
             rand_pose_idx - skip_frames
         ]
@@ -54,7 +57,7 @@ def get_negative_samples_facing(
             math.invertT(prev_rand_pose.get_root_transform()),
             rand_pose.get_root_transform()
         )
-        negative_sample = poses.copy()
+        negative_sample = copy.deepcopy(poses)
 
         new_root_xform = np.dot(poses[-2].get_root_transform(), rel_root_xform)
         rand_pose.set_transform(0, new_root_xform, local=True)
@@ -72,7 +75,7 @@ def get_negative_samples(poses, negative_motions, negative_sample_ratio=5):
         rand_pose_idx = np.random.randint(
             negative_motions[rand_sample_idx].num_frames()
         )
-        negative_sample = poses.copy()
+        negative_sample = copy.deepcopy(poses)
         negative_sample[-1] = negative_motions[rand_sample_idx].poses[
             rand_pose_idx
         ]

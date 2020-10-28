@@ -49,13 +49,18 @@ class RotationFeaturizer(Featurizer):
 
 class FacingPositionFeaturizer(Featurizer):
     def featurize(self, prev_poses, pose):
-        _, facing_p = conversions.T2Rp(pose.get_facing_transform())
+        facing_r, facing_p = conversions.T2Rp(pose.get_facing_transform())
         prev_data = np.array([
-            prev_pose.positions(local=False) - facing_p
+            np.dot(
+                (prev_pose.positions(local=False) - facing_p),
+                facing_r,
+            )
             for prev_pose in prev_poses
-        ])
-        prev_data = prev_data.reshape(prev_data.shape[:-2] + (-1,))
-        cur_data = (pose.positions(local=False) - facing_p).flatten()
+        ]).reshape(len(prev_poses), -1)
+        cur_data = np.dot(
+            (pose.positions(local=False) - facing_p),
+            facing_r,
+        ).flatten()
         return self.normalize(prev_data), self.normalize(cur_data)
 
     def featurize_all(self, prev_and_current_poses):
