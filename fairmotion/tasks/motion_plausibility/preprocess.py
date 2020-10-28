@@ -7,8 +7,11 @@ import os
 import pickle
 
 from fairmotion.data import bvh
-from fairmotion.ops import conversions
-from fairmotion.tasks.motion_plausibility import options
+from fairmotion.ops import conversions, math
+from fairmotion.tasks.motion_plausibility import (
+    featurizer as mp_featurizer,
+    options,
+)
 from fairmotion.utils import utils
 
 
@@ -19,79 +22,122 @@ logging.basicConfig(
 )
 
 
-def process_sample(data, rep):
-    assert rep in ["aa", "rotmat", "quat"]
-    convert_fn = conversions.convert_fn_from_R(rep)
-    data = convert_fn(data)
-    data = utils.flatten_angles(data, rep)
-    return data
-
-
-def select_poses(data, num_poses, skip_frames):
-    selected_data = []
-    for sample in data:
-        length = sample.shape[0]
+def select_poses(motions, num_poses, skip_frames):
+    selected_poses = []
+    for motion in motions:
+        length = motion.num_frames()
         num_poses_to_extract = num_poses
         indices = np.arange(num_poses_to_extract) * skip_frames
         for i in range(length - num_poses_to_extract * skip_frames):
-            selected_data.append(np.take(sample, i + indices, axis=0))
-    return selected_data
+            poses_i = []
+            for j in i + indices:
+                poses_i.append(motion.poses[j])
+            selected_poses.append(poses_i)
+    return selected_poses
+
+
+def get_negative_samples_facing(
+    poses, negative_motions, skip_frames, negative_sample_ratio=5
+):
+    num_negative_motions = len(negative_motions)
+    negative_samples = []
+    for _ in range(negative_sample_ratio):
+        rand_sample_idx = np.random.randint(skip_frames, num_negative_motions)
+        rand_pose_idx = np.random.randint(
+            negative_motions[rand_sample_idx].num_frames()
+        )
+        rand_pose = negative_motions[rand_sample_idx].poses[rand_pose_idx]
+        prev_rand_pose = negative_motions[rand_sample_idx].poses[
+            rand_pose_idx - skip_frames
+        ]
+        rel_root_xform = np.dot(
+            math.invertT(prev_rand_pose.get_root_transform()),
+            rand_pose.get_root_transform()
+        )
+        negative_sample = poses.copy()
+
+        new_root_xform = np.dot(poses[-2].get_root_transform(), rel_root_xform)
+        rand_pose.set_transform(0, new_root_xform, local=True)
+
+        negative_sample[-1] = rand_pose
+        negative_samples.append(negative_sample)
+    return negative_samples
+
+
+def get_negative_samples(poses, negative_motions, negative_sample_ratio=5):
+    num_negative_motions = len(negative_motions)
+    negative_samples = []
+    for _ in range(negative_sample_ratio):
+        rand_sample_idx = np.random.randint(1, num_negative_motions)
+        rand_pose_idx = np.random.randint(
+            negative_motions[rand_sample_idx].num_frames()
+        )
+        negative_sample = poses.copy()
+        negative_sample[-1] = negative_motions[rand_sample_idx].poses[
+            rand_pose_idx
+        ]
+        negative_samples.append(negative_sample)
+    return negative_samples
 
 
 def create_train_samples(
-    positive_samples,
-    negative_samples,
+    positive_motions,
+    negative_motions,
     rep,
+    featurizer,
     num_observed,
     skip_frames=2,
     negative_sample_ratio=5,
 ):
     selected_positive_poses = select_poses(
-        positive_samples,
+        positive_motions,
         num_poses=num_observed + 1,
         skip_frames=skip_frames,
     )
 
     data = []
     labels = []
-    num_negative_samples = len(negative_samples)
     for sample in selected_positive_poses:
         data.append(sample)
         labels.append(1)
-        for _ in range(negative_sample_ratio):
-            rand_sample_idx = np.random.randint(num_negative_samples)
-            rand_pose_idx = np.random.randint(
-                len(negative_samples[rand_sample_idx])
+        negative_samples = []
+        if isinstance(featurizer, mp_featurizer.FacingPositionFeaturizer):
+            negative_samples = get_negative_samples_facing(
+                sample, negative_motions, skip_frames=skip_frames,
             )
-            negative_sample = sample.copy()
-            negative_sample[-1] = negative_samples[rand_sample_idx][
-                rand_pose_idx
-            ]
-            data.append(negative_sample)
-            labels.append(0)
+        else:
+            negative_samples = get_negative_samples(
+                sample, negative_motions
+            )
+        data.extend(negative_samples)
+        labels.extend([0] * len(negative_samples))
 
     metadata = {
         "num_observed": num_observed,
         "rep": rep,
         "skip_frames": skip_frames,
     }
-    return process_sample(np.array(data), rep), np.array(labels), metadata
+    pose_vectors = np.array(
+        [featurizer.featurize_all(poses) for poses in data]
+    )
+    return pose_vectors, np.array(labels), metadata
 
 
 def create_valid_samples(
-    positive_samples,
-    negative_samples,
+    positive_motions,
+    negative_motions,
     rep,
+    featurizer,
     num_observed,
     skip_frames=2,
 ):
     selected_positive_poses = select_poses(
-        positive_samples,
+        positive_motions,
         num_poses=num_observed + 1,
         skip_frames=skip_frames,
     )
     selected_negative_poses = select_poses(
-        negative_samples,
+        negative_motions,
         num_poses=num_observed + 1,
         skip_frames=skip_frames,
     )
@@ -107,7 +153,10 @@ def create_valid_samples(
         "rep": rep,
         "skip_frames": skip_frames,
     }
-    return process_sample(np.array(data), rep), np.array(labels), metadata
+    pose_vectors = np.array(
+        [featurizer.featurize_all(poses) for poses in data]
+    )
+    return pose_vectors, np.array(labels), metadata
 
 
 def read_content(filepath):
@@ -136,11 +185,7 @@ if __name__ == "__main__":
             os.path.join(os.path.join(args.file_list_folder, file_list_name))
         )
         motions = bvh.load_parallel(files)
-        samples.append(
-            [
-                motion.rotations() for motion in motions
-            ]
-        )
+        samples.append(motions)
         num_frames = sum([motion.num_frames() for motion in motions])
         logging.info(f"{file_list_name}: {num_frames} frames")
 
@@ -153,7 +198,10 @@ if __name__ == "__main__":
             f"{args.frames_between_poses}.pkl"
         )
     )
-
+    if args.feature_type == "facing":
+        featurizer = mp_featurizer.FacingPositionFeaturizer()
+    else:
+        featurizer = mp_featurizer.RotationFeaturizer(rep=args.rep)
     logging.info("Creating dataset...")
     train_dataset = create_train_samples(
         samples[0],
@@ -161,6 +209,7 @@ if __name__ == "__main__":
         rep=args.rep,
         num_observed=args.num_observed,
         skip_frames=args.frames_between_poses,
+        featurizer=featurizer,
     )
     pickle.dump(train_dataset, open(train_path, "wb"))
 
@@ -177,5 +226,6 @@ if __name__ == "__main__":
         rep=args.rep,
         num_observed=args.num_observed,
         skip_frames=args.frames_between_poses,
+        featurizer=featurizer,
     )
     pickle.dump(valid_dataset, open(valid_path, "wb"))

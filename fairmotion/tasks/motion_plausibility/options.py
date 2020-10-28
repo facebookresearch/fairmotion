@@ -25,6 +25,12 @@ def add_preprocess_motion_args(parser):
         choices=["aa", "quat", "rotmat"],
     )
     parser.add_argument(
+        "--feature-type",
+        type=str,
+        choices=["facing", "rotation"],
+        default="rotation",
+    )
+    parser.add_argument(
         "--file-list-folder",
         type=str,
     )

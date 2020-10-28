@@ -32,6 +32,13 @@ class RotationFeaturizer(Featurizer):
         cur_data = self.featurize_pose(pose)
         return self.normalize(prev_data), self.normalize(cur_data)
 
+    def featurize_all(self, prev_and_current_poses):
+        return self.normalize(
+            np.array([
+                self.featurize_pose(pose) for pose in prev_and_current_poses
+            ])
+        )
+
     def featurize_pose(self, pose):
         data = pose.rotations()
         convert_fn = conversions.convert_fn_from_R(self.rep)
@@ -47,5 +54,13 @@ class FacingPositionFeaturizer(Featurizer):
             prev_pose.positions(local=False) - facing_p
             for prev_pose in prev_poses
         ])
-        cur_data = pose.positions(local=False) - facing_p
+        prev_data = prev_data.reshape(prev_data.shape[:-2] + (-1,))
+        cur_data = (pose.positions(local=False) - facing_p).flatten()
         return self.normalize(prev_data), self.normalize(cur_data)
+
+    def featurize_all(self, prev_and_current_poses):
+        prev_data, cur_data = self.featurize(
+            prev_and_current_poses[:-1],
+            prev_and_current_poses[-1],
+        )
+        return np.append(prev_data, np.expand_dims(cur_data, axis=0), axis=0)
