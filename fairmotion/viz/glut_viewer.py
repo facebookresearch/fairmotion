@@ -248,6 +248,10 @@ class Viewer:
         glutMainLoop()
 
     def save_screen(self, dir, name, format="png", render=False):
+        image = self.get_screen(render)
+        image.save(os.path.join(dir, "%s.%s" % (name, format)), format=format)
+
+    def get_screen(self, render=False):
         if render:
             self.draw_GL()
         x, y, width, height = glGetIntegerv(GL_VIEWPORT)
@@ -255,4 +259,4 @@ class Viewer:
         data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
         image = Image.frombytes("RGB", (width, height), data)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
-        image.save(os.path.join(dir, "%s.%s" % (name, format)), format=format)
+        return image
