@@ -110,46 +110,91 @@ def load(
                 cnt += 6
                 t = 0.0
                 range_num_dofs = range(motion.skel.num_dofs)
-                for i in range(num_frames):
+                positions = np.zeros(
+                    (num_frames, motion.skel.num_joints(), 3, 3)
+                )
+                rotations = np.zeros((num_frames, motion.skel.num_joints(), 3))
+                T = np.zeros((num_frames, motion.skel.num_joints(), 4, 4))
+                T[...] = constants.eye_T()
+                position_channels = {
+                    "xposition": 0,
+                    "yposition": 1,
+                    "zposition": 2,
+                }
+                rotation_channels = {
+                    "xrotation": 0,
+                    "yrotation": 1,
+                    "zrotation": 2,
+                }
+                for frame_idx in range(num_frames):
+                    # if frame_idx == 1:
+                    #     break
                     raw_values = [
                         float(words[cnt + j]) for j in range_num_dofs
                     ]
                     cnt += motion.skel.num_dofs
                     cnt_channel = 0
-                    pose_data = []
-                    for joint in motion.skel.joints:
-                        T = constants.eye_T()
+                    for joint_idx, joint in enumerate(motion.skel.joints):
                         for channel in joint.info["bvh_channels"]:
                             value = raw_values[cnt_channel]
-                            if channel == "xposition":
+                            if channel in position_channels:
                                 value = scale * value
-                                T = np.dot(T, conversions.p2T([value, 0, 0]))
-                            elif channel == "yposition":
-                                value = scale * value
-                                T = np.dot(T, conversions.p2T([0, value, 0]))
-                            elif channel == "zposition":
-                                value = scale * value
-                                T = np.dot(T, conversions.p2T([0, 0, value]))
-                            elif channel == "xrotation":
-                                value = value * np.pi / 180.0
-                                T = np.dot(
-                                    T, conversions.R2T(conversions.Ax2R(value))
-                                )
-                            elif channel == "yrotation":
-                                value = value * np.pi / 180.0
-                                T = np.dot(
-                                    T, conversions.R2T(conversions.Ay2R(value))
-                                )
-                            elif channel == "zrotation":
-                                value = value * np.pi / 180.0
-                                T = np.dot(
-                                    T, conversions.R2T(conversions.Az2R(value))
-                                )
+                                positions[frame_idx][joint_idx][
+                                    position_channels[channel]
+                                ][position_channels[channel]] = value
+                            elif channel in rotation_channels:
+                                value = conversions.deg2rad(value)
+                                rotations[frame_idx][joint_idx][
+                                    rotation_channels[channel]
+                                ] = value
                             else:
                                 raise Exception("Unknown Channel")
                             cnt_channel += 1
-                        pose_data.append(T)
-                    motion.add_one_frame(t, pose_data)
+
+                for joint_idx, joint in enumerate(motion.skel.joints):
+                    for channel in joint.info["bvh_channels"]:
+                        if channel in position_channels:
+                            T[:, joint_idx] = T[:, joint_idx] @ conversions.p2T(
+                                positions[
+                                    :,
+                                    joint_idx,
+                                    position_channels[channel],
+                                    :,
+                                ]
+                            )
+                        elif channel == "xrotation":
+                            T[:, joint_idx] = T[:, joint_idx] @ conversions.R2T(
+                                conversions.Ax2R(
+                                    rotations[
+                                        :,
+                                        joint_idx,
+                                        rotation_channels[channel],
+                                    ]
+                                )
+                            )
+                        elif channel == "yrotation":
+                            T[:, joint_idx] = T[:, joint_idx] @ conversions.R2T(
+                                conversions.Ay2R(
+                                    rotations[
+                                        :,
+                                        joint_idx,
+                                        rotation_channels[channel],
+                                    ]
+                                )
+                            )
+                        elif channel == "zrotation":
+                            T[:, joint_idx] = T[:, joint_idx] @ conversions.R2T(
+                                conversions.Az2R(
+                                    rotations[
+                                        :,
+                                        joint_idx,
+                                        rotation_channels[channel],
+                                    ]
+                                )
+                            )
+
+                for i in range(num_frames):
+                    motion.add_one_frame(t, list(T[i]))
                     t += dt
             else:
                 cnt += 1
