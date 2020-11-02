@@ -1,1 +1,1 @@
-/private/home/dgopinath/data/multiagent/fencing/base/Capture5_subject1_stageII.bvh
+/private/home/dgopinath/data/multiagent/fencing/raw/base/Capture5_subject1_stageII.bvh
