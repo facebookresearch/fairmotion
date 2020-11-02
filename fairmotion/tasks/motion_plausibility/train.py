@@ -61,7 +61,7 @@ def prepare_criterion(loss_fn):
         return nn.MSELoss()
 
 
-def save_model(model, epoch, save_model_path, model_kwargs, stats, metadata):
+def save_model(model, epoch, save_model_path, model_kwargs, stats, metadata, save_as_best=False):
     torch.save(
         {
             "state_dict": model.state_dict(),
@@ -70,6 +70,16 @@ def save_model(model, epoch, save_model_path, model_kwargs, stats, metadata):
             "metadata": metadata
         },
         f"{save_model_path}/{epoch}.model",
+    )
+    if save_as_best:
+        torch.save(
+        {
+            "state_dict": model.state_dict(),
+            "model_kwargs": model_kwargs,
+            "stats": stats,
+            "metadata": metadata
+        },
+        f"{save_model_path}/best.model",
     )
 
 
@@ -122,6 +132,7 @@ def train(
     model.init_weights()
 
     epoch_loss = 0
+    prev_valid_loss = float("inf")
 
     logging.info("Training model...")
     opt = prepare_optimizer(optimizer, model, lr)
@@ -165,6 +176,10 @@ def train(
             f"Iterations: {iterations + 1}"
         )
         if epoch % 10 == 0:
+            save_as_best = False
+            if valid_loss < prev_valid_loss:
+                save_as_best = True
+                prev_valid_loss = valid_loss
             save_model(
                 model=model,
                 epoch=epoch,
@@ -174,6 +189,7 @@ def train(
                     train_dataloader.dataset.mean, train_dataloader.dataset.std
                 ],
                 metadata=train_dataloader.dataset.metadata,
+                save_as_best=save_as_best,
             )
 
     save_model(
