@@ -111,20 +111,29 @@ def Ax2R(theta):
     """
     Convert (axis) angle along x axis Ax to rotation matrix R
     """
-    return A2R(theta * np.array([1.0, 0.0, 0.0]))
+    if isinstance(theta, np.ndarray):
+        x = np.zeros((theta.shape + (3,)))
+    else:
+        x = np.zeros(3)
+    x[..., 0] = theta
+    return A2R(x)
 
 
 def Ay2R(theta):
     """
     Convert (axis) angle along y axis Ay to rotation matrix R
     """
-    R = constants.eye_R()
+    if isinstance(theta, np.ndarray):
+        R = np.zeros(theta.shape + (3, 3))
+        R[...] = constants.eye_R()
+    else:
+        R = constants.eye_R()
     c = np.cos(theta)
     s = np.sin(theta)
-    R[0, 0] = c
-    R[0, 2] = s
-    R[2, 0] = -s
-    R[2, 2] = c
+    R[..., 0, 0] = c
+    R[..., 0, 2] = s
+    R[..., 2, 0] = -s
+    R[..., 2, 2] = c
     return R
 
 
@@ -132,13 +141,17 @@ def Az2R(theta):
     """
     Convert (axis) angle along z axis Az to rotation matrix R
     """
-    R = constants.eye_R()
+    if isinstance(theta, np.ndarray):
+        R = np.zeros(theta.shape + (3, 3))
+        R[...] = constants.eye_R()
+    else:
+        R = constants.eye_R()
     c = np.cos(theta)
     s = np.sin(theta)
-    R[0, 0] = c
-    R[0, 1] = -s
-    R[1, 0] = s
-    R[1, 1] = c
+    R[..., 0, 0] = c
+    R[..., 0, 1] = -s
+    R[..., 1, 0] = s
+    R[..., 1, 1] = c
     return R
 
 
