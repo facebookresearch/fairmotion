@@ -39,7 +39,7 @@ class Seq2Seq(nn.Module):
         """
         hidden, cell, outputs = self.encoder(src)
         outputs = self.decoder(
-            tgt, hidden, cell, outputs, max_len, teacher_forcing_ratio,
+            tgt, hidden, cell, max_len, teacher_forcing_ratio,
         )
         return outputs
 

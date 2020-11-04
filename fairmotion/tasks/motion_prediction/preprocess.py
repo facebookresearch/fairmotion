@@ -110,7 +110,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input-dir",
         required=True,
-        help="Location of the downloaded and unpacked zip file.",
+        help="Location of the downloaded and unpacked zip file. See "
+        "https://amass.is.tue.mpg.de/dataset for dataset",
     )
     parser.add_argument(
         "--output-dir", required=True, help="Where to store pickle files."
@@ -125,6 +126,7 @@ if __name__ == "__main__":
         type=str,
         help="Angle representation to convert data to",
         choices=["aa", "quat", "rotmat"],
+        default="aa",
     )
     parser.add_argument(
         "--src-len",
