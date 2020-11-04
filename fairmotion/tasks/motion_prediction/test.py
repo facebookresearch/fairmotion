@@ -128,7 +128,7 @@ def main(args):
         ],
         batch_size=args.batch_size,
         device=device,
-        shuffle=False,
+        shuffle=args.shuffle,
     )
     # number of predictions per time step = num_joints * angle representation
     data_shape = next(iter(dataset["train"]))[0].shape
@@ -196,6 +196,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--batch-size", type=int, help="Batch size for testing", default=64
+    )
+    parser.add_argument(
+        "--shuffle", action='store_true',
+        help="Use this option to enable shuffling",
     )
     parser.add_argument(
         "--epoch",
