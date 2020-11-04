@@ -44,8 +44,9 @@ def train(args):
             os.path.join(args.preprocessed_path, f"{split}.pkl")
             for split in ["train", "test", "validation"]
         ],
-        args.batch_size,
-        device,
+        batch_size=args.batch_size,
+        device=device,
+        shuffle=args.shuffle,
     )
 
     # number of predictions per time step = num_joints * angle representation
@@ -167,6 +168,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--batch-size", type=int, help="Batch size for training", default=64
+    )
+    parser.add_argument(
+        "--shuffle", action='store_true',
+        help="Use this option to enable shuffling",
     )
     parser.add_argument(
         "--hidden-dim",
