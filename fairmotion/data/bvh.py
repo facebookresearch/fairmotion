@@ -194,7 +194,7 @@ def load(
                             )
 
                 for i in range(num_frames):
-                    motion.add_one_frame(t, list(T[i]))
+                    motion.add_one_frame(list(T[i]))
                     t += dt
             else:
                 cnt += 1

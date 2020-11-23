@@ -359,7 +359,7 @@ class Motion(object):
         for idx in range(len(self.poses)):
             self.poses[idx].set_skeleton(skel)
 
-    def add_one_frame(self, t, pose_data):
+    def add_one_frame(self, pose_data):
         """Adds a pose at the end of motion object.
 
         Args:

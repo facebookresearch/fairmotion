@@ -68,6 +68,7 @@ def files_in_dir(
     sort=False,
     sample_mode=None,
     sample_num=None,
+    keywords_exclude=[],
 ):
     """Returns list of files in `path` directory.
 
@@ -81,6 +82,7 @@ def files_in_dir(
             `sample_num` files, or 'shuffle' to return `sample_num` number of
             files randomly
         sample_num: Number of files to return
+        exclude: the files in this this are excluded
     """
     files = []
     # r=root, d=directories, f = files
@@ -91,6 +93,10 @@ def files_in_dir(
                 add = False
             if keyword is not None and keyword not in file:
                 add = False
+            for ke in keywords_exclude:
+                if ke in file:
+                    add = False
+                    break
             if add:
                 files.append(os.path.join(r, file))
     if sort:

@@ -176,8 +176,8 @@ def resample(motion, fps):
     poses_new = []
 
     dt = 1.0 / fps
-    t = 0
-    while t < motion.fps * len(motion.poses):
+    t = 0.0
+    while t <= motion.length():
         pose = motion.get_pose_by_time(t)
         pose.skel = motion.skel
         poses_new.append(pose)

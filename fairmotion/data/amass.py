@@ -78,10 +78,14 @@ def create_skeleton_from_amass_bodymodel(bm, betas, num_joints, joint_names):
     return skel
 
 
-def create_motion_from_amass_data(filename, bm):
+def create_motion_from_amass_data(filename, bm, override_betas=None):
     bdata = np.load(filename)
 
-    betas = torch.Tensor(bdata["betas"][:10][np.newaxis]).to("cpu")
+    if override_betas is not None:
+        betas = torch.Tensor(override_betas[:10][np.newaxis]).to("cpu")
+    else:
+        betas = torch.Tensor(bdata["betas"][:10][np.newaxis]).to("cpu")
+    
     skel = create_skeleton_from_amass_bodymodel(
         bm, betas, len(joint_names), joint_names,
     )
@@ -91,7 +95,7 @@ def create_motion_from_amass_data(filename, bm):
     pose_body = bdata["poses"][:, 3:66]  # controls body joint angles
     trans = bdata["trans"][:, :3]  # controls the finger articulation
 
-    motion = motion_class.Motion(skel=skel)
+    motion = motion_class.Motion(skel=skel, fps=fps)
 
     num_joints = skel.num_joints()
     parents = bm.kintree_table[0].long()[:num_joints]
@@ -113,20 +117,24 @@ def create_motion_from_amass_data(filename, bm):
                     )
                 )
             pose_data.append(T)
-        motion.add_one_frame(frame / fps, pose_data)
+        motion.add_one_frame(pose_data)
 
     return motion
 
 
-def load(file, bm=None, bm_path=None):
+def load(file, bm=None, bm_path=None, num_betas=10, model_type="smplh", override_betas=None):
     if bm is None:
         # Download the required body model. For SMPL-H download it from
         # http://mano.is.tue.mpg.de/.
         assert bm_path is not None, "Please provide SMPL body model path"
         comp_device = torch.device("cpu")
-        num_betas = 10  # number of body parameters
-        bm = BodyModel(bm_path=bm_path, num_betas=num_betas).to(comp_device)
-    return create_motion_from_amass_data(filename=file, bm=bm)
+        bm = BodyModel(
+            bm_path=bm_path, 
+            num_betas=num_betas, 
+            model_type=model_type
+        ).to(comp_device)
+    return create_motion_from_amass_data(
+        filename=file, bm=bm, override_betas=override_betas)
 
 
 def save():
