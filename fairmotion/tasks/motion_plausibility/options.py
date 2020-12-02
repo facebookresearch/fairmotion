@@ -9,9 +9,7 @@ def add_preprocess_args(parser):
         help="Number of observed poses in history",
     )
     parser.add_argument(
-        "--frames-between-poses",
-        type=int,
-        default=2,
+        "--frames-between-poses", type=int, default=2,
     )
     return parser
 
@@ -31,8 +29,23 @@ def add_preprocess_motion_args(parser):
         default="rotation",
     )
     parser.add_argument(
-        "--file-list-folder",
-        type=str,
+        "--file-list-folder", type=str,
+    )
+    parser.add_argument(
+        "--use-negative-motion",
+        action="store_true",
+        help="Use negative motion sequences as negative samples",
+    )
+    parser.add_argument(
+        "--use-negative-random",
+        action="store_true",
+        help="Insert random motion sequences as negative samples",
+    )
+    parser.add_argument(
+        "--use-negative-last-random",
+        action="store_true",
+        help="Insert random pose at the end of positive sample to use as "
+        "negative sample",
     )
     return parser
 

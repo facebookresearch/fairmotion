@@ -12,6 +12,7 @@ from fairmotion.ops import math
 from fairmotion.tasks.motion_plausibility import (
     featurizer as mp_featurizer,
     options,
+    utils as mp_utils,
 )
 from fairmotion.utils import utils
 
@@ -55,7 +56,7 @@ def get_negative_samples_facing(
         ]
         rel_root_xform = np.dot(
             math.invertT(prev_rand_pose.get_root_transform()),
-            rand_pose.get_root_transform()
+            rand_pose.get_root_transform(),
         )
         negative_sample = copy.deepcopy(poses)
 
@@ -83,6 +84,27 @@ def get_negative_samples(poses, negative_motions, negative_sample_ratio=5):
     return negative_samples
 
 
+def create_random_pose(example_pose):
+    random_pose = copy.deepcopy(example_pose)
+    random_T = np.array(random_pose.data)
+    random_T[..., :3, :3] = mp_utils.get_random_R(
+        shape=(len(random_pose.data),),
+    )
+    random_pose.data = list(random_T)
+    return random_pose
+
+
+def create_random_pose_sequences(example_pose, num_pose_sequences, length):
+    random_poses = []
+    for _ in range(num_pose_sequences):
+        pose_sequence = []
+        for _ in range(length):
+            random_pose = create_random_pose(example_pose)
+            pose_sequence.append(random_pose)
+        random_poses.append(pose_sequence)
+    return random_poses
+
+
 def create_train_samples(
     positive_motions,
     negative_motions,
@@ -91,11 +113,12 @@ def create_train_samples(
     num_observed,
     skip_frames=2,
     negative_sample_ratio=5,
+    use_motion_negative_samples=False,
+    use_random_negative_samples=False,
+    use_last_random_negative_samples=False,
 ):
     selected_positive_poses = select_poses(
-        positive_motions,
-        num_poses=num_observed + 1,
-        skip_frames=skip_frames,
+        positive_motions, num_poses=num_observed + 1, skip_frames=skip_frames,
     )
 
     data = []
@@ -109,11 +132,41 @@ def create_train_samples(
                 sample, negative_motions, skip_frames=skip_frames,
             )
         else:
-            negative_samples = get_negative_samples(
-                sample, negative_motions
-            )
+            negative_samples = get_negative_samples(sample, negative_motions)
+
         data.extend(negative_samples)
         labels.extend([0] * len(negative_samples))
+
+    # Add negative motions as negative samples
+    if use_motion_negative_samples:
+        selected_negative_poses = select_poses(
+            negative_motions,
+            num_poses=num_observed + 1,
+            skip_frames=skip_frames,
+        )
+        data.extend(selected_negative_poses)
+        labels.extend([0] * len(selected_negative_poses))
+
+    # Add random motions as negative samples
+    if use_random_negative_samples:
+        random_samples = create_random_pose_sequences(
+            example_pose=positive_motions[0].poses[0],
+            num_pose_sequences=(
+                negative_sample_ratio * len(selected_positive_poses)
+            ),
+            length=num_observed + 1,
+        )
+        data.extend(random_samples)
+        labels.extend([0] * len(random_samples))
+
+    if use_last_random_negative_samples:
+        for sample in selected_positive_poses:
+            for _ in range(negative_sample_ratio):
+                random_pose = create_random_pose(sample[-1])
+                random_sample = copy.deepcopy(sample)
+                random_sample[-1] = random_pose
+                data.append(random_sample)
+                labels.append(0)
 
     metadata = {
         "num_observed": num_observed,
@@ -135,20 +188,15 @@ def create_valid_samples(
     skip_frames=2,
 ):
     selected_positive_poses = select_poses(
-        positive_motions,
-        num_poses=num_observed + 1,
-        skip_frames=skip_frames,
+        positive_motions, num_poses=num_observed + 1, skip_frames=skip_frames,
     )
     selected_negative_poses = select_poses(
-        negative_motions,
-        num_poses=num_observed + 1,
-        skip_frames=skip_frames,
+        negative_motions, num_poses=num_observed + 1, skip_frames=skip_frames,
     )
 
     data = selected_positive_poses + selected_negative_poses
-    labels = (
-        [1] * len(selected_positive_poses) +
-        [0] * len(selected_negative_poses)
+    labels = [1] * len(selected_positive_poses) + [0] * len(
+        selected_negative_poses
     )
 
     metadata = {
@@ -182,7 +230,7 @@ if __name__ == "__main__":
         "positive.txt",
         "negative.txt",
         "valid_positive.txt",
-        "valid_negative.txt"
+        "valid_negative.txt",
     ]:
         files = read_content(
             os.path.join(os.path.join(args.file_list_folder, file_list_name))
@@ -199,7 +247,7 @@ if __name__ == "__main__":
         (
             f"train_num_observed_{args.num_observed}_skip_frames_"
             f"{args.frames_between_poses}.pkl"
-        )
+        ),
     )
     if args.feature_type == "facing":
         featurizer = mp_featurizer.FacingPositionFeaturizer()
@@ -213,6 +261,9 @@ if __name__ == "__main__":
         num_observed=args.num_observed,
         skip_frames=args.frames_between_poses,
         featurizer=featurizer,
+        use_motion_negative_samples=args.use_negative_motion,
+        use_random_negative_samples=args.use_negative_random,
+        use_last_random_negative_samples=args.use_negative_last_random,
     )
     pickle.dump(train_dataset, open(train_path, "wb"))
 
@@ -221,7 +272,7 @@ if __name__ == "__main__":
         (
             f"valid_num_observed_{args.num_observed}_skip_frames_"
             f"{args.frames_between_poses}.pkl"
-        )
+        ),
     )
     valid_dataset = create_valid_samples(
         samples[2],
