@@ -98,4 +98,7 @@ def add_train_args(parser):
     parser.add_argument(
         "--lr", type=float, help="Learning rate", default=0.001,
     )
+    parser.add_argument(
+        "--l1-regularization", type=float, help="0 by default", default=0.0,
+    )
     return parser

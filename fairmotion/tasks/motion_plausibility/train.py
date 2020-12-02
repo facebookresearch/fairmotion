@@ -92,6 +92,7 @@ def train(
     optimizer,
     lr,
     epochs,
+    l1_reg=0,
     batch_size=256,
     device=None,
 ):
@@ -150,6 +151,11 @@ def train(
                 output,
                 label,
             )
+            if l1_reg > 0:
+                l1_loss = torch.zeros(1).to(device=device)
+                for param in model.parameters():
+                    l1_loss += torch.norm(param, 1)/param.numel()
+                loss = loss + l1_reg * l1_loss
             loss.backward()
             opt.step()
             epoch_loss += loss.item()
@@ -223,8 +229,9 @@ def main(args):
         args.optimizer,
         args.lr,
         args.epochs,
-        args.batch_size,
-        args.device,
+        l1_reg=args.l1_regularization,
+        batch_size=args.batch_size,
+        device=args.device,
     )
     plot_curves(args.save_model_path, train_losses)
 
