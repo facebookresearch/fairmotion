@@ -191,7 +191,7 @@ def parse_amc(file_path, joints, skel):
                 )
 
         fps = 60
-        motion.add_one_frame(frame / fps, pose_data)
+        motion.add_one_frame(pose_data)
         frame += 1
     return motion
 

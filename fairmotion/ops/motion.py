@@ -86,7 +86,7 @@ def append_and_blend(motion1, motion2, blend_length=0):
 
     del combined_motion.poses[frame_source + 1 :]
     for i in range(len(poses_new)):
-        combined_motion.add_one_frame(0, copy.deepcopy(poses_new[i].data))
+        combined_motion.add_one_frame(copy.deepcopy(poses_new[i].data))
 
     return combined_motion
 
@@ -176,8 +176,8 @@ def resample(motion, fps):
     poses_new = []
 
     dt = 1.0 / fps
-    t = 0
-    while t < motion.fps * len(motion.poses):
+    t = 0.0
+    while t <= motion.length():
         pose = motion.get_pose_by_time(t)
         pose.skel = motion.skel
         poses_new.append(pose)

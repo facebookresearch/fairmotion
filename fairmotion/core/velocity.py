@@ -177,9 +177,7 @@ class MotionWithVelocity(Motion):
         t1 = self.frame_to_time(frame1)
         t2 = self.frame_to_time(frame2)
         alpha = (time - t1) / (t2 - t1)
-        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)" % (
-            alpha
-        )
+        alpha = np.clip((time - t1) / (t2 - t1), 0.0, 1.0)
 
         v1 = self.get_velocity_by_frame(frame1)
         v2 = self.get_velocity_by_frame(frame2)

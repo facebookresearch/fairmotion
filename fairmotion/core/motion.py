@@ -359,7 +359,7 @@ class Motion(object):
         for idx in range(len(self.poses)):
             self.poses[idx].set_skeleton(skel)
 
-    def add_one_frame(self, t, pose_data):
+    def add_one_frame(self, pose_data):
         """Adds a pose at the end of motion object.
 
         Args:
@@ -372,7 +372,11 @@ class Motion(object):
         return frame * self.fps_inv
 
     def time_to_frame(self, time):
-        return int(time * self.fps)
+        '''
+        Adding small value is necessary to prevent error 
+        arised from floating point precision
+        '''
+        return int(time * self.fps + 1e-05)
 
     def get_pose_by_frame(self, frame):
         assert frame < self.num_frames(), f"{frame} vs. {self.num_frames()}"
@@ -391,10 +395,7 @@ class Motion(object):
 
         t1 = self.frame_to_time(frame1)
         t2 = self.frame_to_time(frame2)
-        alpha = (time - t1) / (t2 - t1)
-        assert 0.0 <= alpha <= 1.0, "alpha (%f) is out of range (0, 1)" % (
-            alpha
-        )
+        alpha = np.clip((time - t1) / (t2 - t1), 0.0, 1.0)
 
         return Pose.interpolate(self.poses[frame1], self.poses[frame2], alpha)
 
