@@ -821,13 +821,14 @@ def render_progress_circle_2D(
     line_width=2.0,
     color_base=[0.5, 0.5, 0.5, 1],
     color_input=[1, 0, 0, 1],
+    scale_input=0.1,
 ):
     p = np.array([origin[0], origin[1], 0])
     T = conversions.p2T(p)
     render_circle(T=T, r=radius, line_width=line_width, color=color_base)
     theta = 2 * math.pi * progress
     p += radius * np.array([math.cos(theta), math.sin(theta), 0])
-    render_point_2D((p[0], p[1]), size=0.1 * radius, color=color_input)
+    render_point_2D((p[0], p[1]), size=scale_input*radius, color=color_input)
 
 
 def render_direction_input_2D(
@@ -838,6 +839,7 @@ def render_direction_input_2D(
     line_width=2.0,
     color_base=[0.5, 0.5, 0.5, 1],
     color_input=[1, 0, 0, 1],
+    scale_input=0.1,
 ):
     v = np.array([val[0] / val_max[0], val[1] / val_max[1]])
     v *= radius
@@ -847,7 +849,7 @@ def render_direction_input_2D(
     render_line_2D(
         p1=origin, p2=origin + v, line_width=line_width, color=color_input
     )
-    render_point_2D(origin, size=0.1 * radius, color=[0.5, 0.5, 0.5, 1])
+    render_point_2D(origin, size=scale_input*radius, color=[0.5, 0.5, 0.5, 1])
 
 
 def render_matrix(
