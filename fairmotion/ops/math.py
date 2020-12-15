@@ -239,6 +239,10 @@ def lerp_from_paired_list(x, xy_pairs, clamp=True):
     raise Exception("This should not be reached!!!")
 
 
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
+
+
 class Normalizer:
     """
     Helper class for the normalization between two sets of values.

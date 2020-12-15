@@ -218,6 +218,19 @@ def read_content(filepath):
     return content
 
 
+def fetch_samples_from_file_lists(file_lists, file_list_folder):
+    samples = []
+    for file_list_name in file_lists:
+        files = read_content(
+            os.path.join(os.path.join(file_list_folder, file_list_name))
+        )
+        motions = bvh.load_parallel(files)
+        samples.append(motions)
+        num_frames = sum([motion.num_frames() for motion in motions])
+        logging.info(f"{file_list_name}: {num_frames} frames")
+    return samples
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     options.add_preprocess_args(parser)
@@ -225,20 +238,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logging.info("Loading files...")
-    samples = []
-    for file_list_name in [
-        "positive.txt",
-        "negative.txt",
-        "valid_positive.txt",
-        "valid_negative.txt",
-    ]:
-        files = read_content(
-            os.path.join(os.path.join(args.file_list_folder, file_list_name))
-        )
-        motions = bvh.load_parallel(files)
-        samples.append(motions)
-        num_frames = sum([motion.num_frames() for motion in motions])
-        logging.info(f"{file_list_name}: {num_frames} frames")
+    samples = fetch_samples_from_file_lists(
+        file_lists=[
+            "positive.txt",
+            "negative.txt",
+            "valid_positive.txt",
+            "valid_negative.txt",
+        ],
+        file_list_folder=args.file_list_folder,
+    )
 
     output_path = os.path.join(args.output_dir, args.rep)
     utils.create_dir_if_absent(output_path)

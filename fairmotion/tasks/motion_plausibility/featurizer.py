@@ -69,3 +69,11 @@ class FacingPositionFeaturizer(Featurizer):
             prev_and_current_poses[-1],
         )
         return np.append(prev_data, np.expand_dims(cur_data, axis=0), axis=0)
+
+
+def get_featurizer(feature_type, rep="aa"):
+    if feature_type == "facing":
+        featurizer = FacingPositionFeaturizer()
+    else:
+        featurizer = RotationFeaturizer(rep=rep)
+    return featurizer
