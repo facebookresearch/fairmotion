@@ -395,15 +395,15 @@ def render_ground_texture(
     nx = int(lx / dx) + 1
     nz = int(lz / dz) + 1
 
-    if axis is "x":
+    if axis == "x":
         raise NotImplementedError
-    elif axis is "y":
+    elif axis == "y":
         up_vec = np.array([0.0, 1.0, 0.0])
         p1 = np.array([-0.5 * size[0], 0, -0.5 * size[0]])
         p2 = np.array([0.5 * size[0], 0, -0.5 * size[0]])
         p3 = np.array([0.5 * size[0], 0, 0.5 * size[0]])
         p4 = np.array([-0.5 * size[0], 0, 0.5 * size[0]])
-    elif axis is "z":
+    elif axis == "z":
         up_vec = np.array([0.0, 0.0, 1.0])
         p1 = np.array([-0.5 * size[0], -0.5 * size[0], 0])
         p2 = np.array([0.5 * size[0], -0.5 * size[0], 0])
@@ -432,7 +432,7 @@ def render_ground_texture(
         glDisable(GL_LIGHTING)
         glPushMatrix()
         glTranslatef(offset[0], offset[1], offset[2])
-        if axis is "y":
+        if axis == "y":
             glRotated(-90.0, 1, 0, 0)
         render_disk(
             constants.eye_T(),
@@ -572,7 +572,7 @@ def render_ground(
     if lighting:
         glEnable(GL_LIGHTING)
 
-    if axis is "x":
+    if axis == "x":
         for i in np.linspace(-0.5 * lx, 0.5 * lx, nx):
             glBegin(GL_LINES)
             glVertex3d(0, i, -0.5 * lz)
@@ -583,7 +583,7 @@ def render_ground(
             glVertex3d(0, -0.5 * lx, i)
             glVertex3d(0, 0.5 * lx, i)
             glEnd()
-    elif axis is "y":
+    elif axis == "y":
         for i in np.linspace(-0.5 * lx, 0.5 * lx, nx):
             glBegin(GL_LINES)
             glVertex3d(i, 0, -0.5 * lz)
@@ -594,7 +594,7 @@ def render_ground(
             glVertex3d(-0.5 * lx, 0, i)
             glVertex3d(0.5 * lx, 0, i)
             glEnd()
-    elif axis is "z":
+    elif axis == "z":
         for i in np.linspace(-0.5 * lx, 0.5 * lx, nx):
             glBegin(GL_LINES)
             glVertex3d(i, -0.5 * lz, 0)
@@ -895,3 +895,76 @@ def render_matrix(
     render_line_2D((0, height), (width, height), line_width=line_width)
 
     glPopMatrix()
+
+def render_expert_weights_circle(
+    weights,
+    origin=np.zeros(2),
+    radius = 60.0,
+    line_width = 4.0,
+    size_weight = 8.0,
+    size_expert = 12.0,
+    base_scale = 1.1,
+    scale_weight = 1.0,
+    trajectory_length = 15,
+    color_base1 = np.array([0.9, 0.9, 0.9, 0.8]),
+    color_base2 = np.array([0.5, 0.5, 0.5, 1.0]),
+    color_experts = None,
+    color_weight = np.array([0.0, 0.0, 0.0, 1.0]),
+    ):
+    # p1 = origin + base_scale*np.array([-radius, -radius])
+    # p2 = origin + base_scale*np.array([-radius, +radius])
+    # p3 = origin + base_scale*np.array([+radius, +radius])
+    # p4 = origin + base_scale*np.array([+radius, -radius])
+    # render_quad_2D(p1, p2, p3, p4, color=color_base1)
+
+    render_disk(
+        conversions.p2T(np.array([origin[0],origin[1],0.0])),
+        r_inner=0.0,
+        r_outer=radius,
+        slice1=32,
+        slice2=1,
+        scale=base_scale,
+        color=color_base1,
+    )
+
+    if len(weights) == 0: return
+
+    num_data = len(weights)
+    num_experts = len(weights[0])
+
+    if color_experts is None:
+        color_experts = [[0, 0, 0, 1] for i in range(num_experts)]
+
+    p_avg_list = []
+    for i in range(min(trajectory_length,num_data)):
+        expert_weights = weights[-i-1]
+        num_experts = len(expert_weights)
+
+        T = conversions.p2T(np.array([origin[0], origin[1], 0]))
+        render_circle(T=T, r=radius, line_width=line_width, color=color_base2)
+        v_avg = []
+        for j in range(num_experts):
+            theta = j/float(num_experts) * 2 * np.pi
+            v = radius * np.array([np.cos(theta), np.sin(theta)])
+            p = origin + v
+            weight = float(expert_weights[j])
+            v_avg.append(weight*v)
+            render_point_2D(
+                p, size=size_expert, color=color_experts[j])
+        v_avg = np.mean(v_avg, axis=0)
+        v_avg_norm = np.linalg.norm(v_avg)
+        v_avg_dir = v_avg/v_avg_norm
+        v_avg = min(radius, scale_weight*v_avg_norm) * v_avg_dir
+        p_avg = origin + v_avg
+        p_avg_list.append(p_avg)
+        if i>0:
+            color = np.array([0.0, 0.0, 0.0]) + i/float(trajectory_length)*color_base1[:3]
+            color = np.hstack([color, 1.0])
+            render_line_2D(
+                p_avg_list[-1], 
+                p_avg_list[-2], 
+                line_width=2.0, color=color)
+    render_point_2D(
+        p_avg_list[0], size=size_weight, color=color_weight)
+
+    

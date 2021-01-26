@@ -10,7 +10,6 @@ from fairmotion.viz import camera, utils
 
 from PIL import Image
 
-
 class Viewer:
     """Viewer class builds general infrastructure to implement visualizer
     class for motion sequences.
@@ -37,12 +36,14 @@ class Viewer:
 
     def __init__(
         self, title="glutgui_base", cam=None, size=(800, 600),
+        bgcolor=[1.0, 1.0, 1.0, 1.0],
     ):
         self.title = title
         self.window = None
         self.window_size = size
         self.mouse_last_pos = None
         self.pressed_button = None
+        self.bgcolor = bgcolor
 
         self.time_checker = utils.TimeChecker()
         if cam is None:
@@ -65,10 +66,7 @@ class Viewer:
         return True
 
     def render_callback(self):
-        glutSolidSphere(0.3, 20, 20)
-        gl_render.render_ground(
-            size=[100, 100], color=[0.8, 0.8, 0.8],
-        )
+        return
 
     def _init_GL(self, w, h):
         glDisable(GL_CULL_FACE)
@@ -76,6 +74,7 @@ class Viewer:
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        
         glEnable(GL_MULTISAMPLE)
 
         glEnable(GL_LINE_SMOOTH)
@@ -94,7 +93,11 @@ class Viewer:
         glDepthFunc(GL_LEQUAL)
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
 
-        glClearColor(1.0, 1.0, 1.0, 1.0)
+        glClearColor(
+            self.bgcolor[0], 
+            self.bgcolor[1], 
+            self.bgcolor[2], 
+            self.bgcolor[3])
         glClear(GL_COLOR_BUFFER_BIT)
 
         ambient = [0.2, 0.2, 0.2, 1.0]
@@ -134,6 +137,8 @@ class Viewer:
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable(GL_COLOR_MATERIAL)
 
+        self._init_msaa()
+
     def resize_GL(self, w, h):
         self.window_size = (w, h)
         glViewport(0, 0, w, h)
@@ -142,7 +147,9 @@ class Viewer:
         gluPerspective(self.cam_cur.fov, float(w) / float(h), 0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
 
-    def draw_GL(self):
+    def draw_GL(self, swap_buffer=True):
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.msaa_fbo)
+        
         # Clear The Screen And The Depth Buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -175,7 +182,61 @@ class Viewer:
             glPopMatrix()
             glPopAttrib()
 
-        glutSwapBuffers()
+        self._post_process_msaa()
+
+        if swap_buffer:
+            glutSwapBuffers()
+
+    def _init_msaa(self):
+        num_samples = glGetIntegerv(GL_MAX_SAMPLES)
+
+        print('num_samples_for_msaa:', num_samples)
+
+        self.msaa_tex = glGenTextures(1)
+        print('msaa_tex:', self.msaa_tex)
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, self.msaa_tex)
+        glTexImage2DMultisample(
+            GL_TEXTURE_2D_MULTISAMPLE, num_samples, GL_RGBA8, self.window_size[0], self.window_size[1], False)
+
+        self.msaa_rbo_color = glGenRenderbuffers(1)
+        print('msaa_rbo_color:', self.msaa_rbo_color)
+        glBindRenderbuffer(GL_RENDERBUFFER, self.msaa_rbo_color)
+        glRenderbufferStorageMultisample(
+            GL_RENDERBUFFER, num_samples, GL_RGBA8, self.window_size[0], self.window_size[1])
+
+        self.msaa_rbo_depth = glGenRenderbuffers(1)
+        print('msaa_rbo_depth:', self.msaa_rbo_depth)
+        glBindRenderbuffer(GL_RENDERBUFFER, self.msaa_rbo_depth)
+        glRenderbufferStorageMultisample(
+            GL_RENDERBUFFER, num_samples, GL_DEPTH_COMPONENT, self.window_size[0], self.window_size[1])
+
+        self.msaa_fbo = glGenFramebuffers(1)
+        glBindFramebuffer(GL_FRAMEBUFFER, self.msaa_fbo)
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, self.msaa_fbo, 0)
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, self.msaa_rbo_color)
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, self.msaa_rbo_depth)
+
+        status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+        print("frame_buffer_status:", status)
+
+        glBindFramebuffer(GL_FRAMEBUFFER, self.msaa_fbo)
+
+        iMultiSample = glGetIntegerv(GL_SAMPLE_BUFFERS)
+        iNumSamples = glGetIntegerv(GL_SAMPLES)
+        print("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n"%(iMultiSample, iNumSamples))
+
+    def _post_process_msaa(self):
+        x, y, w, h = glGetIntegerv(GL_VIEWPORT)
+
+        # Bind the multisampled FBO for reading
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, self.msaa_fbo)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+        glDrawBuffer(GL_BACK)
+        glBlitFramebuffer(
+            x, y, w, h, x, y, w, h, 
+            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, 
+            GL_NEAREST)
 
     # The function called whenever a key is pressed.
     # Note the use of Python tuples to pass in: (key, x, y)
@@ -226,10 +287,11 @@ class Viewer:
             | GLUT_DOUBLE
             | GLUT_ALPHA
             | GLUT_DEPTH
-            | GLUT_MULTISAMPLE
+            # | GLUT_MULTISAMPLE
         )
         glutInitWindowSize(*self.window_size)
         glutInitWindowPosition(0, 0)
+
         self.window = glutCreateWindow(self.title)
 
         # Init functions
@@ -254,9 +316,14 @@ class Viewer:
     def get_screen(self, render=False):
         if render:
             self.draw_GL()
+        
+        self._post_process_msaa()
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        
         x, y, width, height = glGetIntegerv(GL_VIEWPORT)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
         data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
         image = Image.frombytes("RGB", (width, height), data)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        
         return image
