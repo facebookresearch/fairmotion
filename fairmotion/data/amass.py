@@ -122,17 +122,22 @@ def create_motion_from_amass_data(filename, bm, override_betas=None):
     return motion
 
 
+def load_body_model(bm_path, num_betas=10, model_type="smplh"):
+    comp_device = torch.device("cpu")
+    bm = BodyModel(
+        bm_path=bm_path, 
+        num_betas=num_betas, 
+        # model_type=model_type
+    ).to(comp_device)
+    return bm
+
+
 def load(file, bm=None, bm_path=None, num_betas=10, model_type="smplh", override_betas=None):
     if bm is None:
         # Download the required body model. For SMPL-H download it from
         # http://mano.is.tue.mpg.de/.
         assert bm_path is not None, "Please provide SMPL body model path"
-        comp_device = torch.device("cpu")
-        bm = BodyModel(
-            bm_path=bm_path, 
-            num_betas=num_betas, 
-            model_type=model_type
-        ).to(comp_device)
+        bm = load_body_model(bm_path, num_betas, model_type)
     return create_motion_from_amass_data(
         filename=file, bm=bm, override_betas=override_betas)
 
