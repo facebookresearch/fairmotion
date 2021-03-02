@@ -220,6 +220,9 @@ def main(args):
     fairmotion_utils.create_dir_if_absent(args.save_model_path)
     logging.info(args._get_kwargs())
     fairmotion_utils.log_config(args.save_model_path, args)
+    logging.getLogger().addHandler(
+        logging.FileHandler(f"{args.save_model_path}/debug.log")
+    )
     train_losses = train(
         args.save_model_path,
         args.train_preprocessed_file,

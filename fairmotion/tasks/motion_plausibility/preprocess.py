@@ -8,7 +8,7 @@ import os
 import pickle
 
 from fairmotion.data import bvh
-from fairmotion.ops import math
+from fairmotion.ops import math, motion as motion_ops
 from fairmotion.tasks.motion_plausibility import (
     featurizer as mp_featurizer,
     options,
@@ -193,12 +193,31 @@ def create_valid_samples(
     selected_negative_poses = select_poses(
         negative_motions, num_poses=num_observed + 1, skip_frames=skip_frames,
     )
-
-    data = selected_positive_poses + selected_negative_poses
-    labels = [1] * len(selected_positive_poses) + [0] * len(
-        selected_negative_poses
+    random_negative_poses = create_random_pose_sequences(
+        example_pose=negative_motions[0].poses[0],
+        num_pose_sequences=len(selected_negative_poses)//2,
+        length=num_observed + 1,
     )
+    last_frame_negative_poses = copy.deepcopy(
+        selected_negative_poses[:len(selected_negative_poses)//2]
+    )
+    for negative_pose_seq in last_frame_negative_poses:
+        negative_pose_seq[-1] = create_random_pose(
+            example_pose=negative_pose_seq[0]
+        )
 
+    data = (
+        selected_positive_poses +
+        selected_negative_poses +
+        random_negative_poses +
+        last_frame_negative_poses
+    )
+    labels = (
+        [1] * len(selected_positive_poses) +
+        [0] * len(selected_negative_poses) +
+        [0] * len(random_negative_poses) +
+        [0] * len(last_frame_negative_poses)
+    )
     metadata = {
         "num_observed": num_observed,
         "rep": rep,
@@ -225,6 +244,9 @@ def fetch_samples_from_file_lists(file_lists, file_list_folder):
             os.path.join(os.path.join(file_list_folder, file_list_name))
         )
         motions = bvh.load_parallel(files)
+        motions = utils.run_parallel(motion_ops.resample, motions, fps=30)
+        for motion in motions:
+            assert motion.fps == 30
         samples.append(motions)
         num_frames = sum([motion.num_frames() for motion in motions])
         logging.info(f"{file_list_name}: {num_frames} frames")
