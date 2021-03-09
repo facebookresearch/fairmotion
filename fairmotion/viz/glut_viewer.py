@@ -309,11 +309,11 @@ class Viewer:
         # Run
         glutMainLoop()
 
-    def save_screen(self, dir, name, format="png", render=False):
-        image = self.get_screen(render)
+    def save_screen(self, dir, name, format="png", render=False, save_alpha_channel=False):
+        image = self.get_screen(render, save_alpha_channel)
         image.save(os.path.join(dir, "%s.%s" % (name, format)), format=format)
 
-    def get_screen(self, render=False):
+    def get_screen(self, render=False, save_alpha_channel=False):
         if render:
             self.draw_GL()
         
@@ -322,8 +322,12 @@ class Viewer:
         
         x, y, width, height = glGetIntegerv(GL_VIEWPORT)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
-        data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
-        image = Image.frombytes("RGB", (width, height), data)
+        if save_alpha_channel:
+            data = glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
+            image = Image.frombytes("RGBA", (width, height), data)
+        else:
+            data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
+            image = Image.frombytes("RGB", (width, height), data)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
         
         return image
