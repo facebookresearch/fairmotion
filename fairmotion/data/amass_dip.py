@@ -155,7 +155,7 @@ def load(
                             motion.skel.get_index_joint(joint_name)
                         ] = conversions.R2T(pose[major_joint_id])
                         major_joint_id += 1
-                motion.add_one_frame(pose_id * dt, pose_data)
+                motion.add_one_frame(pose_data)
 
     return motion
 
