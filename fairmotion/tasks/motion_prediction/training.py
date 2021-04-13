@@ -48,6 +48,8 @@ def train(args):
         device=device,
         shuffle=args.shuffle,
     )
+    # Loss per epoch is the average loss per sequence
+    num_training_sequences = len(dataset["train"]) * args.batch_size
 
     # number of predictions per time step = num_joints * angle representation
     # shape is (batch_size, seq_len, num_predictions)
@@ -72,7 +74,7 @@ def train(args):
         outputs = model(src_seqs, tgt_seqs, teacher_forcing_ratio=1,)
         loss = criterion(outputs, tgt_seqs)
         epoch_loss += loss.item()
-    epoch_loss = epoch_loss / (iterations + 1)
+    epoch_loss = epoch_loss / num_training_sequences
     val_loss = generate.eval(
         model, criterion, dataset["validation"], args.batch_size, device,
     )
@@ -109,7 +111,7 @@ def train(args):
             loss.backward()
             opt.step()
             epoch_loss += loss.item()
-        epoch_loss = epoch_loss / (iterations + 1)
+        epoch_loss = epoch_loss / num_training_sequences
         training_losses.append(epoch_loss)
         val_loss = generate.eval(
             model, criterion, dataset["validation"], args.batch_size, device,
