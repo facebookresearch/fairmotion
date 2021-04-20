@@ -77,7 +77,7 @@ if __name__ == "__main__":
     # Construct Motion Graph
     mg = graph.MotionGraph(
         motions=motions_with_velocity,
-        motion_files=args.motion_files,
+        motion_files=motion_files,
         skel=skel,
         base_length=args.base_length,
         blend_length=args.blend_length,
