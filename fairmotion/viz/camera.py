@@ -62,7 +62,7 @@ class Camera(object):
         self.pos = self.origin + max(l_min, gamma * length) * (vl / length)
 
     def get_transform_flat(self):
-        R = self.get_cam_rotatioin()
+        R = self.get_cam_rotation()
         R = R.transpose()
         p = self.pos
         return list(conversions.Rp2T(R, p).ravel())
