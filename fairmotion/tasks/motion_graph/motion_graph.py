@@ -282,8 +282,10 @@ class MotionGraph(object):
                     self.load_motion_at_idx(
                         motion_idx, self.motion_files[motion_idx]
                     )
-                m = self.motions[motion_idx].detach(
-                    frame_start, frame_end + self.frames_blend
+                m = motion_ops.cut(
+                    self.motions[motion_idx],
+                    frame_start,
+                    frame_end + self.frames_blend,
                 )
                 motion = motion_ops.append_and_blend(
                     motion, m, blend_length=self.blend_length,
