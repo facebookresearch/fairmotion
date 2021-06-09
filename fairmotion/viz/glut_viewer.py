@@ -37,6 +37,7 @@ class Viewer:
 
     def __init__(
         self, title="glutgui_base", cam=None, size=(800, 600),
+        bgcolor=[1.0, 1.0, 1.0, 1.0],
     ):
         self.title = title
         self.window = None
