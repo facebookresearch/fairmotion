@@ -36,7 +36,7 @@ class Viewer:
 
     def __init__(
         self, title="glutgui_base", cam=None, size=(800, 600),
-        bgcolor=[1.0, 1.0, 1.0, 1.0],
+        bgcolor=[1.0, 1.0, 1.0, 1.0], use_msaa=False,
     ):
         self.title = title
         self.window = None
@@ -44,6 +44,7 @@ class Viewer:
         self.mouse_last_pos = None
         self.pressed_button = None
         self.bgcolor = bgcolor
+        self.use_msaa = use_msaa
 
         self.time_checker = utils.TimeChecker()
         if cam is None:
@@ -137,7 +138,8 @@ class Viewer:
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable(GL_COLOR_MATERIAL)
 
-        self._init_msaa()
+        if self.use_msaa:
+            self._init_msaa()
 
     def resize_GL(self, w, h):
         self.window_size = (w, h)
@@ -148,7 +150,9 @@ class Viewer:
         glMatrixMode(GL_MODELVIEW)
 
     def draw_GL(self, swap_buffer=True):
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.msaa_fbo)
+
+        if self.use_msaa:
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.msaa_fbo)
         
         # Clear The Screen And The Depth Buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -182,7 +186,7 @@ class Viewer:
             glPopMatrix()
             glPopAttrib()
 
-        self._post_process_msaa()
+        # self._post_process_msaa()
 
         if swap_buffer:
             glutSwapBuffers()
@@ -317,8 +321,8 @@ class Viewer:
         if render:
             self.draw_GL()
         
-        self._post_process_msaa()
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        # self._post_process_msaa()
+        # glBindFramebuffer(GL_FRAMEBUFFER, 0)
         
         x, y, width, height = glGetIntegerv(GL_VIEWPORT)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
