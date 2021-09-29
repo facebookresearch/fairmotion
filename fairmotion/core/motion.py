@@ -103,6 +103,18 @@ class Joint(object):
             self.parent_joint.xform_global, self.xform_from_parent_joint,
         )
 
+    def __eq__(self, other):
+        if (self.xform_from_parent_joint != other.xform_from_parent_joint).any():
+            return False
+        if (self.xform_global != other.xform_global).any():
+            return False
+        if "dof" in self.info and "dof" in other.info:
+            if self.info["dof"] != other.info["dof"]:
+                return False
+        if len(self.child_joints) != len(other.child_joints):
+            return False
+        return True
+
 
 class Skeleton(object):
     """Defines a skeleton. A hierarchy of joints form a skeleton.
@@ -165,6 +177,13 @@ class Skeleton(object):
             if len(j.child_joints) == 0:
                 self.end_effectors.append(j)
         return len(self.end_effectors)
+
+    def __eq__(self, other):
+        if self.num_joints() != other.num_joints():
+            return False
+        if sorted(self.index_joint.keys()) != sorted(self.index_joint.keys()):
+            return False
+        return True
 
 
 class Pose(object):
