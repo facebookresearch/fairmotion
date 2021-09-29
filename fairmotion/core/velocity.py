@@ -90,6 +90,12 @@ class Velocity(object):
             data_global_new.append(np.hstack([w, v]))
         self.data_global = np.array(data_global_new)
 
+    def to_matrix(self, local=True):
+        if local:
+            return self.data_local
+        else:
+            return self.data_global
+
     @classmethod
     def interpolate(cls, v1, v2, alpha):
         """Returns interpolated velocity object between two velocity objects.
