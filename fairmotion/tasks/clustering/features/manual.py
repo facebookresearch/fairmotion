@@ -10,6 +10,7 @@ class ManualFeatures:
         self.joints = [joint.name for joint in motion.skel.joints]
         self.frame_time = 1 / motion.fps
         self.frame_num = 1
+        self.num_frames = motion.num_frames()
         self.offsets = [
             conversions.T2p(joint.xform_from_parent_joint)
             for joint in motion.skel.joints
@@ -36,7 +37,16 @@ class ManualFeatures:
         )
 
     def next_frame(self):
-        self.frame_num += 1
+        if self.frame_num + 1 > self.num_frames:
+            print("Reached end of motion!")
+        else:
+            self.frame_num += 1
+    
+    def skip_frames(self, num_frames):
+        if self.frame_num + num_frames > self.num_frames:
+            print("Reached end of motion!")
+        else:
+            self.frame_num += num_frames
 
     def transform_and_fetch_position(self, j):
         if j == "y_unit":
