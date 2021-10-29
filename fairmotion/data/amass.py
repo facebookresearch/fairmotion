@@ -125,7 +125,7 @@ def create_motion_from_amass_data(filename, bm, override_betas=None):
 def load_body_model(bm_path, num_betas=10, model_type="smplh"):
     comp_device = torch.device("cpu")
     bm = BodyModel(
-        bm_fname=bm_path, 
+        bm_path=bm_path, 
         num_betas=num_betas, 
         # model_type=model_type
     ).to(comp_device)
