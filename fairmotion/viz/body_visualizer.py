@@ -68,7 +68,7 @@ def prepare_mesh_viewer(img_shape):
 def main(args):
     comp_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     bm = BodyModel(
-        model_type="smplh", bm_path=args.body_model_file, num_betas=10
+        model_type="smplh", bm_fname=args.body_model_file, num_betas=10
     ).to(comp_device)
     faces = c2c(bm.f)
 
