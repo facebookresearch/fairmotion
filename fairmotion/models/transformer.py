@@ -162,6 +162,12 @@ class TransformerModel(nn.Module):
                 max_len, src.shape[1], src.shape[-1],
             ).type_as(src.data)
             next_pose = tgt[0].clone()
+
+            # Create mask for greedy encoding across the decoded output
+            tgt_mask = self._generate_square_subsequent_mask(max_len).to(
+                device=tgt.device
+            )
+            
             for i in range(max_len):
                 decoder_input[i] = next_pose
                 pos_encoded_input = self.pos_encoder(
