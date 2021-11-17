@@ -143,10 +143,14 @@ class TransformerModel(nn.Module):
         projected_src = self.encoder(src) * np.sqrt(self.ninp)
         pos_encoded_src = self.pos_encoder(projected_src)
         encoder_output = self.transformer_encoder(pos_encoded_src)
-        tgt_mask = self._generate_square_subsequent_mask(tgt.shape[0]).to(
-            device=tgt.device,
-        )
+
         if self.training:
+
+            # Create mask for training
+            tgt_mask = self._generate_square_subsequent_mask(tgt.shape[0]).to(
+                device=tgt.device,
+            )
+
             # Use last source pose as first input to decoder
             tgt = torch.cat((src[-1].unsqueeze(0), tgt[:-1]))
             pos_encoder_tgt = self.pos_encoder(
