@@ -5,6 +5,7 @@ import numpy as np
 from human_body_prior.body_model.body_model import BodyModel
 from fairmotion.core import motion as motion_class
 from fairmotion.ops import conversions
+from fairmotion.utils import utils
 
 """
 Structure of npz file in AMASS dataset is as follows.
@@ -144,3 +145,7 @@ def load(file, bm=None, bm_path=None, num_betas=10, model_type="smplh", override
 
 def save():
     raise NotImplementedError("Using bvh.save() is recommended")
+
+
+def load_parallel(files, cpus=20, **kwargs):
+    return utils.run_parallel(load, files, num_cpus=cpus, **kwargs)
