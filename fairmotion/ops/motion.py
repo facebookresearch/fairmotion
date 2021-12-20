@@ -5,6 +5,7 @@ import numpy as np
 
 from fairmotion.core import motion as motion_class
 from fairmotion.ops import conversions, math, quaternion
+from fairmotion.utils import constants, utils
 
 
 def append(motion1, motion2):
@@ -199,3 +200,26 @@ def position_wrt_root(motion):
     # Subtract root position from all joint positions
     matrix = matrix - matrix[:, np.newaxis, 0]
     return matrix
+
+
+def fix_height(motion, axis_up="y"):
+    """
+    Translates global root position such that the feet do not penetrate the
+    floor. It calculates lowest global joint position along `axis_up` and
+    offsets the root position by that magnitude.
+    """
+    axis = utils.str_to_axis(axis_up)
+    pos = motion.positions(local=False)[..., axis.argmax()]
+    min_height = np.min(pos)
+    fixed_motion = translate(motion, -min_height*axis, local=False)
+    return fixed_motion
+
+def start_from_origin(motion, axis_up="y"):
+    axis = utils.str_to_axis(axis_up)
+    ground_axis_indices = [i for i in range(3) if i != axis.argmax()]
+    # Global position of root in 0th frame
+    pos = conversions.T2p(motion.poses[0].get_root_transform())
+    # Zero out offset along axis_up 
+    pos -= axis * pos
+    translated_motion = translate(motion, -pos)
+    return translated_motion
