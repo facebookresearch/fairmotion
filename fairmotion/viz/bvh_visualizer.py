@@ -117,6 +117,7 @@ class MocapViewer(glut_viewer.Viewer):
                     optimize=False,
                     append_images=gif_images[1:],
                     loop=0,
+                    duration=len(gif_images)/motion.fps,
                 )
         else:
             return False
@@ -185,7 +186,7 @@ class MocapViewer(glut_viewer.Viewer):
             t = self.cur_time % self.motions[0].length()
             frame = self.motions[0].time_to_frame(t)
             gl_render.render_text(
-                f"Frame number: {frame}",
+                f"Frame number: {frame}/{self.motions[0].num_frames()}",
                 pos=[0.05 * w, 0.95 * h],
                 font=GLUT_BITMAP_TIMES_ROMAN_24,
             )
