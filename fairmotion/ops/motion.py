@@ -8,34 +8,6 @@ from fairmotion.core import velocity as vel_class
 from fairmotion.ops import conversions, math, quaternion
 
 
-def append(motion1, motion2):
-    """
-    Combines two motion sequences into one. motion2 is appended to motion1.
-    The operation is not done in place.
-
-    Note that the operation places the sequences next to each other without
-    attempting to blend between the poses. To interpolate between the end of
-    motion1 and start of motion2, use the `append_and_blend` operation.
-
-    Args:
-        motion1, motion2: Motion sequences to be combined.
-    """
-    assert isinstance(motion1, (motion_class.Motion, vel_class.MotionWithVelocity))
-    assert isinstance(motion2, (motion_class.Motion, vel_class.MotionWithVelocity))
-    assert motion1.fps == motion2.fps
-    assert motion1.skel.num_joints() == motion2.skel.num_joints()
-
-    combined_motion = copy.deepcopy(motion1)
-    combined_motion.name = f"{motion1.name}+{motion2.name}"
-    combined_motion.poses.extend(motion2.poses)
-
-    # Recompute velocities if exists
-    if isinstance(combined_motion, vel_class.MotionWithVelocity):
-        combined_motion.compute_velocities()
-
-    return combined_motion
-
-
 def blend(pose1, pose2, alpha=0.5):
     """
     Blends two poses, return (1-alpha)*pose1 + alpha*pose2
@@ -53,18 +25,51 @@ def blend(pose1, pose2, alpha=0.5):
         pose_new.set_transform(j, conversions.Rp2T(R, p), local=True)
     return pose_new
 
-
-def append_and_blend(
+def stitch(
     motion1, 
     motion2, 
     pivot_offset1=0,
     pivot_offset2=0,
-    pivot_alignment=True,
     blend_length=0, 
     blend_method="overlapping"
     ):
     """
-    Append two motions then blends the stiched area if requested.
+    Combines two motion sequences into one, motion2 is appended to motion1.
+    Blending is done if requested. The operation is not done in place.
+    The second motion is rotate and translated so that they are connected smoothly.
+    This method is a subset of the append method
+
+    Args:
+        motion1: Previous motion 
+        motion2: New motions to be added
+        pivot_offset1: Pivot frame offset (sec) to access the pivot pose for motion1.
+            The pose at [motion1.length()-pivot_offset1] will be the pivot pose
+        pivot_offset2: Pivot frame offset (sec) to access the pivot pose for motion2.
+            The pose at [pivot_offset2] will be the pivot pose.
+        blend_length: lentgh of blending for stiched area
+        blend_method: blending methods 'propagation', 'overlapping', and 'inertialization'.
+    """
+    return append(
+        motion1, 
+        motion2, 
+        pivot_offset1, 
+        pivot_offset2, 
+        True, 
+        blend_length, 
+        blend_method)
+
+def append(
+    motion1, 
+    motion2, 
+    pivot_offset1=0,
+    pivot_offset2=0,
+    pivot_alignment=False,
+    blend_length=0, 
+    blend_method="overlapping"
+    ):
+    """
+    Combines two motion sequences into one, motion2 is appended to motion1.
+    Blending is done if requested. The operation is not done in place.
 
     Args:
         motion1: Previous motion 
@@ -74,8 +79,8 @@ def append_and_blend(
         pivot_offset2: Pivot frame offset (sec) to access the pivot pose for motion2.
             The pose at [pivot_offset2] will be the pivot pose.
         pivot_alignment: Whether motion2 will be aligned to motion1 or not
-        blend_length: 
-        blend_method: 
+        blend_length: lentgh of blending for stiched area
+        blend_method: blending methods 'propagation', 'overlapping', and 'inertialization'.
     """
     assert isinstance(motion1, (motion_class.Motion, vel_class.MotionWithVelocity))
     assert isinstance(motion2, (motion_class.Motion, vel_class.MotionWithVelocity))
@@ -131,7 +136,10 @@ def append_and_blend(
     dt = 1 / motion2.fps
     for i in range(frame_target, motion2.num_frames()):
         t_processed += dt
-        alpha = min(1.0, t_processed / float(blend_length))
+        if blend_length > 0.0:
+            alpha = min(1.0, t_processed / float(blend_length))
+        else:
+            alpha = 1.0
         # Do blending for a while (blend_length)
         if alpha < 1.0:
             if blend_method == "propagation":
