@@ -19,6 +19,7 @@ def root_ee_similarity(
     T_ref_2=None,
     auto_weight=True,
     auto_weight_sigma=0.02,
+    verbose=False,
 ):
     """
     This computes similarity between end_effectors and root for two poses
@@ -102,18 +103,13 @@ def root_ee_similarity(
                     )
                 else:
                     ee_weights.append(1.0)
-            ee_weights_sum = np.sum(ee_weights)
-            ee_weights = [w / ee_weights_sum for w in ee_weights]
-            # print('--------------------')
-            # for j in range(len(skel.end_effectors)):
-            #     print(skel.end_effectors[j].name, ee_weights[j])
-            # print('--------------------')
+            ee_weights = np.array(ee_weights)/np.sum(ee_weights)
             if w_ee_pos > 0.0:
                 for j in range(len(skel.end_effectors)):
                     p1_local = np.dot(R_face_1_inv, p1s[j] - p_face_1)
                     p2_local = np.dot(R_face_2_inv, p2s[j] - p_face_2)
                     dp = p2_local - p1_local
-                    diff_ee_pos += np.dot(dp, dp)
+                    diff_ee_pos += ee_weights[j] * np.dot(dp, dp)
             if w_ee_vel > 0.0:
                 for j in range(len(skel.end_effectors)):
                     v1 = vel1.get_linear(j, False, R1s[j])
@@ -121,9 +117,13 @@ def root_ee_similarity(
                     v1_local = np.dot(R_face_1_inv, v1)
                     v2_local = np.dot(R_face_2_inv, v2)
                     dv = v2_local - v1_local
-                    diff_ee_vel += np.dot(dv, dv)
-            # diff_ee_pos /= float(num_ee)
-            # diff_ee_vel /= float(num_ee)
+                    diff_ee_vel += ee_weights[j] * np.dot(dv, dv)
+
+    if verbose:
+        print("diff_root_pos:", diff_root_pos)
+        print("diff_root_vel:", diff_root_vel)
+        print("diff_ee_pos:", diff_ee_pos)
+        print("diff_ee_vel:", diff_ee_vel)
 
     diff = (
         w_root_pos * diff_root_pos
@@ -144,6 +144,7 @@ def pose_similarity(
     w_joint_vel=0.1,
     w_joints=None,
     apply_root_correction=True,
+    verbose=False,
 ):
     """
     This only measure joint angle difference (i.e. root translation will
@@ -187,6 +188,9 @@ def pose_similarity(
                 j, local=True
             )
             diff_vel += w_joints[j] * np.dot(dw, dw)
+    if verbose:
+        print("diff_pos:", diff_pos)
+        print("diff_vel:", diff_vel)
     return (
         w_joint_pos * diff_pos + w_joint_vel * diff_vel
     ) / skel.num_joints()
