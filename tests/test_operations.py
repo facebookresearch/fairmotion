@@ -40,9 +40,9 @@ class TestMotion(unittest.TestCase):
             motion1.num_frames(), num_frames,
         )
 
-        # Test blending
+        # Test stitching
         blend_length = 0.1
-        combined_motion3 = motion_ops.append_and_blend(
+        combined_motion3 = motion_ops.stitch(
             motion1, motion2, blend_length=blend_length,
         )
         self.assertEqual(
@@ -50,7 +50,6 @@ class TestMotion(unittest.TestCase):
             (
                 motion1.num_frames()
                 + motion2.num_frames()
-                - blend_length * motion1.fps
             ),
         )
 

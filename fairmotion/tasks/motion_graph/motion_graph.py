@@ -290,84 +290,13 @@ class MotionGraph(object):
                     frame_start,
                     frame_end + num_frames_blend,
                 )
-                motion = motion_ops.append_and_blend(
+                motion = motion_ops.stich(
                     motion1=motion, 
                     motion2=m, 
                     pivot_offset1=blend_length,
                     blend_length=blend_length,
                 )
         return motion
-
-    # def create_random_path(
-    #     self,
-    #     length,
-    #     start_node=None,
-    #     leave_visit_info=True,
-    #     use_visit_info="edge",
-    # ):
-    #     """
-    #     This funtion generate a sequence of randomly visited nodes on the graph
-
-    #     length - length of the generated motion
-    #     start_node - we can specify a start node if necessary
-    #     """
-
-    #     t_processed = 0.0
-    #     nodes = list(self.graph.nodes)
-    #     if start_node is None or start_node not in self.graph.nodes:
-    #         cur_node = random.choice(nodes)
-    #     else:
-    #         cur_node = start_node
-    #     prev_node = cur_node
-    #     visited_nodes = []
-    #     while t_processed < length:
-    #         # Record currently visiting node
-    #         visited_nodes.append(cur_node)
-
-    #         if leave_visit_info:
-    #             self.graph.nodes[cur_node]["num_visit"] += 1
-    #             if t_processed > 0.0:
-    #                 self.graph.edges[(prev_node, cur_node)]["num_visit"] += 1
-
-    #         # Append the selected motion to the current motion
-    #         frame_start = self.graph.nodes[cur_node]["frame_start"]
-    #         frame_end = self.graph.nodes[cur_node]["frame_end"]
-
-    #         if self.verbose:
-    #             logging.info(f"[{cur_node}] {self.graph.nodes[cur_node]}")
-
-    #         t_processed += (frame_end - frame_start + 1.0) / self.fps
-    #         # Jump to adjacent node (motion) randomly
-    #         if self.graph.out_degree(cur_node) == 0:
-    #             if self.verbose:
-    #                 logging.info("Dead-end exists in the graph!")
-    #             break
-    #         prev_node = cur_node
-    #         successors = list(self.graph.successors(cur_node))
-    #         if use_visit_info == "node" or use_visit_info == "edge":
-    #             if use_visit_info == "node":
-    #                 num_visit = np.array(
-    #                     [
-    #                         self.graph.nodes[next_node]["num_visit"] + 0.001
-    #                         for next_node in successors
-    #                     ]
-    #                 )
-    #             else:
-    #                 num_visit = np.array(
-    #                     [
-    #                         self.graph.edges[(cur_node, next_node)][
-    #                             "num_visit"
-    #                         ]
-    #                         + 0.001
-    #                         for next_node in successors
-    #                     ]
-    #                 )
-    #             probability = 1.0 / num_visit
-    #             probability = probability / np.sum(probability)
-    #             cur_node = np.random.choice(successors, p=probability)
-    #         else:
-    #             cur_node = random.choice(successors)
-    #     return visited_nodes, t_processed
 
     def create_random_path(
         self, 
@@ -457,53 +386,6 @@ class MotionGraph(object):
 
         motion = self.create_motion_from_nodes(
             visited_nodes, blend_length=blend_length)
-
-        # num_frames_blend = int(blend_length * self.fps)        
-        
-        # visited_nodes = []
-        # while t_processed < length:
-        #     # Record currently visiting node
-        #     visited_nodes.append(cur_node)
-
-        #     # Append the selected motion to the current motion
-        #     motion_idx = self.graph.nodes[cur_node]["motion_idx"]
-        #     frame_start = self.graph.nodes[cur_node]["frame_start"]
-        #     frame_end = self.graph.nodes[cur_node]["frame_end"]
-
-        #     # Load the motion if it is not loaded in advance
-        #     if self.motions[motion_idx] is None:
-        #         self.load_motion_at_idx(
-        #             motion_idx, self.motion_files[motion_idx]
-        #         )
-
-        #     """
-        #     We should detach with the extra (frames_blend)
-        #     because motion.append affects the end of current motion
-        #     """
-        #     m = motion_ops.cut(
-        #         self.motions[motion_idx],
-        #         frame_start,
-        #         frame_end + num_frames_blend,
-        #     )
-
-        #     if self.verbose:
-        #         logging.info(f"[{cur_node}] {self.graph.nodes[cur_node]}")
-
-        #     motion = motion_ops.append_and_blend(
-        #         motion, m, blend_length=blend_length,
-        #     )
-
-        #     t_processed = motion.length()
-        #     # Jump to adjacent node (motion) randomly
-        #     if self.graph.out_degree(cur_node) == 0:
-        #         if self.verbose:
-        #             logging.info("Dead-end exists in the graph!")
-        #         break
-        #     successors = list(self.graph.successors(cur_node))
-        #     weights = [visit_weights[node] for node in successors]
-        #     # print("weights", weights)
-        #     cur_node = random.choices(successors, weights=weights)[0]
-        #     visit_weights[cur_node] *= visit_discount_factor
         
         return motion, visited_nodes
 
