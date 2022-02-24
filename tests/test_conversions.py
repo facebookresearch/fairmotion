@@ -49,6 +49,21 @@ class TestConversions(unittest.TestCase):
         for r, r_test in zip(R.flatten(), R_test.flatten()):
             self.assertAlmostEqual(r, r_test)
 
+    def test_R2R6D(self):
+        R = test_utils.get_random_R()
+        R6D = conversions.R2R6D(np.array([R]))
+
+        np.testing.assert_almost_equal(
+            conversions.R2R6D(np.array([R]))[0], conversions.R2R6D(R)
+        )
+        np.testing.assert_almost_equal(
+            conversions.R6D2R(np.array([R6D]))[0], conversions.R6D2R(R6D)
+        )
+
+        R_test = conversions.R6D2R(R6D[0])
+        for r, r_test in zip(R.flatten(), R_test.flatten()):
+            self.assertAlmostEqual(r, r_test)
+
     def test_Rp2T(self):
         T = test_utils.get_random_T()
         R, p = conversions.T2Rp(T)
