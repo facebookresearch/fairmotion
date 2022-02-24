@@ -3,6 +3,7 @@
 import numpy as np
 
 from fairmotion.core import motion as motion_classes
+from fairmotion.core.velocity import MotionWithVelocity
 from fairmotion.utils import constants, utils
 from fairmotion.ops import conversions
 
@@ -13,6 +14,7 @@ def load(
     scale=1.0,
     load_skel=True,
     load_motion=True,
+    load_velocity=False,
     v_up_skel=np.array([0.0, 1.0, 0.0]),
     v_face_skel=np.array([0.0, 0.0, 1.0]),
     v_up_env=np.array([0.0, 1.0, 0.0]),
@@ -198,7 +200,10 @@ def load(
                     t += dt
             else:
                 cnt += 1
+        if load_velocity:
+            motion = MotionWithVelocity.from_motion(motion)
         assert motion.num_frames() > 0
+
     return motion
 
 
