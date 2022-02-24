@@ -181,6 +181,16 @@ def R2Q(R):
     )
 
 
+def R2R6D(R):
+    return R[..., 0:2]
+
+
+def R6D2R(R6D):
+    R3D = np.cross(R6D[..., 0], R6D[..., 1])
+    R = np.concatenate((R6D, np.expand_dims(R3D, axis=-1)), axis=-1)
+    return R
+
+
 def R2R(R):
     """
     This returns valid (corrected) rotation if input
