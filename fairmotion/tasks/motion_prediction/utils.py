@@ -150,7 +150,7 @@ def log_config(path, args):
             f.write(f"{key}:{value}\n")
 
 
-def prepare_optimizer(model, opt: str, lr=None):
+def prepare_optimizer(model, opt="sgd", lr=None):
     kwargs = {}
     if lr is not None:
         kwargs["lr"] = lr
