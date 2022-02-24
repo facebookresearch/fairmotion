@@ -66,3 +66,12 @@ class Camera(object):
         R = R.transpose()
         p = self.pos
         return list(conversions.Rp2T(R, p).ravel())
+
+    def update_target_pos(self, pos, ignore_x=False, ignore_y=False, ignore_z=False):
+        if np.array_equal(pos, self.origin):
+            return
+        d = pos - self.origin
+        if ignore_x: d[0] = 0.0
+        if ignore_y: d[1] = 0.0
+        if ignore_z: d[2] = 0.0
+        self.translate(d)
