@@ -27,9 +27,10 @@ import torch
 import tqdm
 import trimesh
 
+from body_visualizer.mesh import mesh_viewer
+from body_visualizer.tools.vis_tools import colors
 from human_body_prior.body_model.body_model import BodyModel
-from human_body_prior.mesh import MeshViewer
-from human_body_prior.tools.omni_tools import copy2cpu as c2c, colors
+from human_body_prior.tools.omni_tools import copy2cpu as c2c
 from fairmotion.data import bvh
 from fairmotion.ops import conversions, motion as motion_ops
 
@@ -48,7 +49,7 @@ def get_dfs_order(parents_np):
 
 
 def prepare_mesh_viewer(img_shape):
-    mv = MeshViewer(
+    mv = mesh_viewer.MeshViewer(
         width=img_shape[0], height=img_shape[1], use_offscreen=True
     )
     mv.scene = pyrender.Scene(
@@ -68,7 +69,7 @@ def prepare_mesh_viewer(img_shape):
 def main(args):
     comp_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     bm = BodyModel(
-        model_type="smplh", bm_fname=args.body_model_file, num_betas=10
+        bm_fname=args.body_model_file, num_betas=10
     ).to(comp_device)
     faces = c2c(bm.f)
 
