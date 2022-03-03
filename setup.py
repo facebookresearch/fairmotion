@@ -12,7 +12,6 @@ setup(
     install_requires=[
         "black",
         "dataclasses",  # py3.6 backport required by human_body_prior
-        "human_body_prior",
         "matplotlib",
         "numpy",
         "pillow",
@@ -22,6 +21,8 @@ setup(
         "torch==1.6.0",
         "tqdm",
         "PyOpenGL==3.1.0",
+        "body_visualizer @ git+https://github.com/nghorbani/body_visualizer.git@be9cf756f8d1daed870d4c7ad1aa5cc3478a546c",
+        "human_body_prior @ git+https://github.com/nghorbani/human_body_prior.git@0278cb45180992e4d39ba1a11601f5ecc53ee148",
     ],
     packages=find_packages(exclude=["tests"]),
     classifiers=[
