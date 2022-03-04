@@ -76,17 +76,6 @@ class Viewer:
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        
-        glEnable(GL_MULTISAMPLE)
-
-        glEnable(GL_LINE_SMOOTH)
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
-
-        glEnable(GL_POINT_SMOOTH)
-        glHint(GL_POINT_SMOOTH_HINT, GL_NICEST)
-
-        glEnable(GL_POLYGON_SMOOTH)
-        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
 
         glEnable(GL_DITHER)
         glShadeModel(GL_SMOOTH)
@@ -187,7 +176,8 @@ class Viewer:
             glPopMatrix()
             glPopAttrib()
 
-        # self._post_process_msaa()
+        if self.use_msaa:
+            self._post_process_msaa()
 
         if swap_buffer:
             glutSwapBuffers()
@@ -320,9 +310,6 @@ class Viewer:
     def get_screen(self, render=False, save_alpha_channel=False):
         if render:
             self.draw_GL()
-        
-        # self._post_process_msaa()
-        # glBindFramebuffer(GL_FRAMEBUFFER, 0)
         
         x, y, width, height = glGetIntegerv(GL_VIEWPORT)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
