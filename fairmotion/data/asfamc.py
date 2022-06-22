@@ -213,7 +213,7 @@ def load(file, motion=None, scale=1.0, load_skel=True, load_motion=True):
                 joint.info["dof"] = 3
                 parent_joint = v.parent_joint
                 joint.xform_from_parent_joint = conversions.p2T(
-                    v.direction.squeeze() * v.length
+                    parent_joint.direction.squeeze() * parent_joint.length
                 )
             joints.append(joint)
             parent_joints.append(parent_joint)
