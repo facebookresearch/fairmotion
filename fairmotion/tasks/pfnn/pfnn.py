@@ -21,7 +21,7 @@ which uses this code or data.
     
     
 If you have any questions, or wish to enquire about commerical licenses, please 
-contact me at `contact@theorangeduck.com`.
+contact the original author at `contact@theorangeduck.com`.
 """
 
 import os
