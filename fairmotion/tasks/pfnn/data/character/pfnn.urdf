@@ -1,0 +1,771 @@
+<?xml version="1.0"?>
+
+  <robot name="pfnn">
+
+    <link name="Hips">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="1.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_Hips">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.02"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_Hips">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.02"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LHipJoint">
+      <inertial>
+        <origin xyz="0.033 -0.045 0.021" rpy="0 0 0"/>
+        <mass value="2.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_LHipJoint">
+        <origin xyz="0.033 -0.045 0.021" rpy="1.57079632679 0.60214 0.39095"/>
+        <geometry>
+          <sphere radius="0.06"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_LHipJoint">
+        <origin xyz="0.033 -0.045 0.021" rpy="1.57079632679 0.60214 0.39095"/>
+        <geometry>
+          <sphere radius="0.06"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LeftUpLeg">
+      <inertial>
+        <origin xyz="0.062 -0.17 0" rpy="0 0 0"/>
+        <mass value="5.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_LeftUpLeg">
+        <origin xyz="0.062 -0.17 0" rpy="1.57079632679 0.34907 0.34907"/>
+        <geometry>
+          <capsule radius="0.045" length="0.3"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_LeftUpLeg">
+        <origin xyz="0.062 -0.17 0" rpy="1.57079632679 0.34907 0.34907"/>
+        <geometry>
+          <!-- <capsule radius="0.045" length="0.27"/> -->
+          <capsule radius="0.045" length="0.28"/>
+        </geometry>
+        <!-- <origin xyz="0.062 -0.17 0" rpy="0 0.34907 0.34907"/>
+        <geometry>
+          <box size="0.07 0.35 0.07"/>
+        </geometry> -->
+      </collision>
+    </link>
+
+    <link name="LeftLeg">
+      <inertial>
+        <origin xyz="0.065 -0.175 0" rpy="0 0 0"/>
+        <mass value="2.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_LeftLeg">
+        <origin xyz="0.065 -0.175 0" rpy="1.57079632679 0.34907 0.34907"/>
+        <geometry>
+          <capsule radius="0.036" length="0.315"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_LeftLeg">
+        <origin xyz="0.065 -0.175 0" rpy="1.57079632679 0.34907 0.34907"/>
+        <geometry>
+          <!-- <capsule radius="0.036" length="0.285"/> -->
+          <!-- <capsule radius="0.036" length="0.3"/> -->
+          <capsule radius="0.04" length="0.3"/>
+        </geometry>
+        <!-- <origin xyz="0.065 -0.175 0" rpy="0 0.34907 0.34907"/>
+        <geometry>
+          <box size="0.06 0.35 0.06"/>
+        </geometry> -->
+      </collision>
+    </link>
+
+    <link name="LeftFoot">
+      <inertial>
+        <origin xyz="0 -0.02 0.03" rpy="0 0 0"/>
+        <mass value="0.6"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_LeftFoot">
+        <origin xyz="0 -0.02 0.03" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.07 0.045 0.15"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_LeftFoot">
+        <origin xyz="0 -0.02 0.03" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.07 0.045 0.15"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LeftToeBase">
+      <inertial>
+        <origin xyz="0 0 0.01" rpy="0 0 0"/>
+        <mass value="0.1"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_LeftToeBase">
+        <origin xyz="0 0 0.01" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <capsule radius="0.0225" length="0.025"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_LeftToeBase">
+        <origin xyz="0 0 0.01" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <capsule radius="0.0225" length="0.025"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="RHipJoint">
+      <inertial>
+        <origin xyz="-0.033 -0.045 0.021" rpy="0 0 0"/>
+        <mass value="2.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_RHipJoint">
+        <origin xyz="-0.033 -0.045 0.021" rpy="1.57079632679 -0.60214 -0.39095"/>
+        <geometry>
+          <sphere radius="0.06"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_RHipJoint">
+        <origin xyz="-0.033 -0.045 0.021" rpy="1.57079632679 -0.60214 -0.39095"/>
+        <geometry>
+          <sphere radius="0.06"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="RightUpLeg">
+      <inertial>
+        <origin xyz="-0.062 -0.17 0" rpy="0 0 0"/>
+        <mass value="5.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_RightUpLeg">
+        <origin xyz="-0.062 -0.17 0" rpy="1.57079632679 -0.34907 -0.34907"/>
+        <geometry>
+          <capsule radius="0.045" length="0.3"/>
+          <box size="0.1 0.4 0.1"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_RightUpLeg">
+        <origin xyz="-0.062 -0.17 0" rpy="1.57079632679 -0.34907 -0.34907"/>
+        <geometry>
+          <!-- <capsule radius="0.045" length="0.27"/> -->
+          <capsule radius="0.045" length="0.28"/>
+        </geometry>
+        <!-- <origin xyz="-0.062 -0.17 0" rpy="0 -0.34907 -0.34907"/>
+        <geometry>
+          <box size="0.07 0.35 0.07"/>
+        </geometry> -->
+      </collision>
+    </link>
+
+    <link name="RightLeg">
+      <inertial>
+        <origin xyz="-0.065 -0.175 0" rpy="0 0 0"/>
+        <mass value="2.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_RightLeg">
+        <origin xyz="-0.065 -0.175 0" rpy="1.57079632679 -0.34907 -0.34907"/>
+        <geometry>
+          <capsule radius="0.036" length="0.315"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_RightLeg">
+        <origin xyz="-0.065 -0.175 0" rpy="1.57079632679 -0.34907 -0.34907"/>
+        <geometry>
+          <!-- <capsule radius="0.036" length="0.285"/> -->
+          <capsule radius="0.04" length="0.3"/>
+        </geometry>
+        <!-- <origin xyz="-0.065 -0.175 0" rpy="0 -0.34907 -0.34907"/>
+        <geometry>
+          <box size="0.06 0.35 0.06"/>
+        </geometry> -->
+      </collision>
+    </link>
+
+    <link name="RightFoot">
+      <inertial>
+        <origin xyz="0 -0.02 0.03" rpy="0 0 0"/>
+        <mass value="0.6"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_RightFoot">
+        <origin xyz="0 -0.02 0.03" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.07 0.045 0.15"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_RightFoot">
+        <origin xyz="0 -0.02 0.03" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.07 0.045 0.15"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="RightToeBase">
+      <inertial>
+        <origin xyz="0 0 0.01" rpy="0 0 0"/>
+        <mass value="0.1"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_RightToeBase">
+        <origin xyz="0 0 0.01" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <capsule radius="0.0225" length="0.025"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_RightToeBase">
+        <origin xyz="0 0 0.01" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <capsule radius="0.0225" length="0.025"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LowerBack">
+      <inertial>
+        <origin xyz="0 0.06 0" rpy="0 0 0"/>
+        <mass value="5.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_LowerBack">
+        <origin xyz="0 0.05089 0" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <capsule radius="0.045" length="0.0845"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_LowerBack">
+        <origin xyz="0 0.06 0" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <!-- <capsule radius="0.04" length="0.0845"/> -->
+          <sphere radius="0.06"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="Spine">
+      <inertial>
+        <origin xyz="0 0.05122 0" rpy="0 0 0"/>
+        <mass value="8.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_Spine">
+        <origin xyz="0 0.05122 0" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <capsule radius="0.06" length="0.085"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_Spine">
+        <origin xyz="0 0.05122 0" rpy="0 1.57079632679 0"/>
+        <geometry>
+          <!-- <capsule radius="0.05" length="0.085"/> -->
+          <sphere radius="0.08"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="Spine1">
+      <inertial>
+        <origin xyz="0 0.03 0" rpy="0 0 0"/>
+        <mass value="1.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_Spine1">
+        <origin xyz="0 0.03 0" rpy="0 0 0"/>
+        <geometry>
+          <capsule radius="0.045" length="0"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_Spine1">
+        <origin xyz="0 0.03 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.03"/>
+          <!-- <sphere radius="0.045"/> -->
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="Neck">
+      <inertial>
+        <origin xyz="0 0.06 0" rpy="0 0 0"/>
+        <mass value="0.25"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_Neck">
+        <origin xyz="0 0.08 0" rpy="-1.57079632679 0 0"/>
+        <geometry>
+          <sphere radius="0.024"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_Neck">
+        <origin xyz="0 0.06 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.02"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="Neck1">
+      <inertial>
+        <origin xyz="0 0.02 0" rpy="0 0 0"/>
+        <mass value="0.25"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_Neck1">
+        <origin xyz="0 0.02 0" rpy="-1.57079632679 0 0"/>
+        <geometry>
+          <sphere radius="0.021"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_Neck1">
+        <origin xyz="0 0.02 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.02"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="Head">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="3.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_Head">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.06"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_Head">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.06"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LeftShoulder">
+      <inertial>
+        <origin xyz="0.08 0.035 -0.01" rpy="0 0 0"/>
+        <mass value="1.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_LeftShoulder">
+        <origin xyz="0.08 0.035 -0.01" rpy="-1.8326 1.22173 -1.39626"/>
+        <geometry>
+          <capsule radius="0.04" length="0.115"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_LeftShoulder">
+        <origin xyz="0.08 0.035 -0.01" rpy="-1.8326 1.22173 -1.39626"/>
+        <geometry>
+          <capsule radius="0.03" length="0.115"/>
+        </geometry>
+        <!-- <origin xyz="0.08 0.035 -0.01" rpy="-1.8326 1.22173 -1.39626"/>
+        <geometry>
+          <box size="0.06 0.06 0.12"/>
+        </geometry> -->
+      </collision>
+    </link>
+
+    <link name="LeftArm">
+      <inertial>
+        <origin xyz="0.13 0 0" rpy="0 0 0"/>
+        <mass value="1.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_LeftArm">
+        <origin xyz="0.13 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.22"/> -->
+          <box size="0.25 0.05 0.05"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_LeftArm">
+        <origin xyz="0.13 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.22"/> -->
+          <box size="0.25 0.04 0.04"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LeftForeArm">
+      <inertial>
+        <origin xyz="0.09 0 0" rpy="0 0 0"/>
+        <mass value="1.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_LeftForeArm">
+        <origin xyz="0.09 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.135"/> -->
+          <box size="0.15 0.05 0.05"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_LeftForeArm">
+        <origin xyz="0.09 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.135"/> -->
+          <box size="0.15 0.04 0.04"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LeftHand">
+      <inertial>
+        <origin xyz="0.03 0 0" rpy="0 0 0"/>
+        <mass value="0.3"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_LeftHand">
+        <origin xyz="0.03 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.04"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_LeftHand">
+        <origin xyz="0.03 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.04"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="RightShoulder">
+      <inertial>
+        <origin xyz="-0.08 0.035 -0.01" rpy="0 0 0"/>
+        <mass value="1.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <!-- <visual name="visual_0_RightShoulder">
+        <origin xyz="-0.08 0.035 -0.01" rpy="-1.8326 -1.22173 1.39626"/>
+        <geometry>
+          <capsule radius="0.04" length="0.115"/>
+        </geometry>
+        <material name="def"/>
+      </visual> -->
+      <collision name="collision_0_RightShoulder">
+        <origin xyz="-0.08 0.035 -0.01" rpy="-1.8326 -1.22173 1.39626"/>
+        <geometry>
+          <capsule radius="0.03" length="0.115"/>
+        </geometry>
+        <!-- <origin xyz="-0.08 0.035 -0.01" rpy="-1.8326 -1.22173 1.39626"/>
+        <geometry>
+          <box size="0.06 0.06 0.12"/>
+        </geometry> -->
+      </collision>
+    </link>    
+
+    <!-- I suspect where the inertia tensor is computed based on the given collision shapes -->
+    <!-- If the inertia tensor and collision shape are given independently, there is no problem -->
+    <link name="RightArm">
+      <inertial>
+        <origin xyz="-0.13 0 0" rpy="0 0 0"/>
+        <mass value="1.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+        <!-- <inertia ixx="0.000899999964" ixy="0" ixz="0" iyy="0.010249999590000003" iyz="0" izz="0.010249999590000003"/> -->
+        <!-- (0.010249999590000003, 0.010249999590000003, 0.000899999964) -->
+      </inertial>
+      <visual name="visual_0_RightArm">
+        <origin xyz="-0.13 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.22"/> -->
+          <box size="0.25 0.05 0.05"/>
+          <!-- <box size="0.06 0.06 0.28"/> -->
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_RightArm">
+        <origin xyz="-0.13 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.22"/> -->
+          <box size="0.25 0.04 0.04"/>
+          <!-- <box size="0.06 0.06 0.28"/> -->
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="RightForeArm">
+      <inertial>
+        <origin xyz="-0.09 0 0" rpy="0 0 0"/>
+        <mass value="1.0"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_RightForeArm">
+        <origin xyz="-0.09 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.135"/> -->
+          <box size="0.15 0.05 0.05"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_RightForeArm">
+        <origin xyz="-0.09 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- <capsule radius="0.03" length="0.135"/> -->
+          <box size="0.15 0.04 0.04"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="RightHand">
+      <inertial>
+        <origin xyz="-0.03 0 0" rpy="0 0 0"/>
+        <mass value="0.3"/>
+        <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual name="visual_0_RightHand">
+        <origin xyz="-0.03 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.04"/>
+        </geometry>
+        <material name="def"/>
+      </visual>
+      <collision name="collision_0_RightHand">
+        <origin xyz="-0.03 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.04"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="LHipJoint" type="spherical">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="Hips"/>
+      <child link="LHipJoint"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftUpLeg" type="spherical">
+      <origin xyz="0.068 -0.09 0.042" rpy="0 0 0"/>
+      <parent link="LHipJoint"/>
+      <child link="LeftUpLeg"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftLeg" type="spherical">
+      <origin xyz="0.122 -0.337 0" rpy="0 0 0"/>
+      <parent link="LeftUpLeg"/>
+      <child link="LeftLeg"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftFoot" type="spherical">
+      <origin xyz="0.128 -0.352 0" rpy="0 0 0"/>
+      <parent link="LeftLeg"/>
+      <child link="LeftFoot"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftToeBase" type="fixed">
+      <origin xyz="0 -0.02 0.1" rpy="0 0 0"/>
+      <parent link="LeftFoot"/>
+      <child link="LeftToeBase"/>
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RHipJoint" type="spherical">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="Hips"/>
+      <child link="RHipJoint"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightUpLeg" type="spherical">
+      <origin xyz="-0.068 -0.09 0.042" rpy="0 0 0"/>
+      <parent link="RHipJoint"/>
+      <child link="RightUpLeg"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightLeg" type="spherical">
+      <origin xyz="-0.122 -0.337 0" rpy="0 0 0"/>
+      <parent link="RightUpLeg"/>
+      <child link="RightLeg"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightFoot" type="spherical">
+      <origin xyz="-0.128 -0.352 0" rpy="0 0 0"/>
+      <parent link="RightLeg"/>
+      <child link="RightFoot"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightToeBase" type="fixed">
+      <origin xyz="0 -0.02 0.1" rpy="0 0 0"/>
+      <parent link="RightFoot"/>
+      <child link="RightToeBase"/>
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LowerBack" type="spherical">
+      <origin xyz="0 0.0 0.02" rpy="0 0 0"/>
+      <parent link="Hips"/>
+      <child link="LowerBack"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="Spine" type="spherical">
+      <origin xyz="0 0.102 0" rpy="0 0 0"/>
+      <parent link="LowerBack"/>
+      <child link="Spine"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="Spine1" type="spherical">
+      <origin xyz="0 0.1 0" rpy="0 0 0"/>
+      <parent link="Spine"/>
+      <child link="Spine1"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="Neck" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="Spine1"/>
+      <child link="Neck"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="Neck1" type="spherical">
+      <origin xyz="0 0.087 0.0085" rpy="0 0 0"/>
+      <parent link="Neck"/>
+      <child link="Neck1"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="Head" type="fixed">
+      <origin xyz="0 0.088 0" rpy="0 0 0"/>
+      <parent link="Neck1"/>
+      <child link="Head"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftShoulder" type="spherical">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="Spine1"/>
+      <child link="LeftShoulder"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftArm" type="spherical">
+      <origin xyz="0.16 0.07 -0.02" rpy="0 0 0"/>
+      <parent link="LeftShoulder"/>
+      <child link="LeftArm"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftForeArm" type="spherical">
+      <origin xyz="0.25 0 0" rpy="0 0 0"/>
+      <parent link="LeftArm"/>
+      <child link="LeftForeArm"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="LeftHand" type="fixed">
+      <origin xyz="0.174 0 0" rpy="0 0 0"/>
+      <parent link="LeftForeArm"/>
+      <child link="LeftHand"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightShoulder" type="spherical">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="Spine1"/>
+      <child link="RightShoulder"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightArm" type="spherical">
+      <origin xyz="-0.16 0.07 -0.02" rpy="0 0 0"/>
+      <parent link="RightShoulder"/>
+      <child link="RightArm"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightForeArm" type="spherical">
+      <origin xyz="-0.25 0 0" rpy="0 0 0"/>
+      <parent link="RightArm"/>
+      <child link="RightForeArm"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <joint name="RightHand" type="fixed">
+      <origin xyz="-0.174 0 0" rpy="0 0 0"/>
+      <parent link="RightForeArm"/>
+      <child link="RightHand"/>
+      <!-- <dynamics damping="0.02" friction="0.000"/> -->
+      <axis xyz="1.00000 0.00000 0.00000"/>
+    </joint>
+
+    <material name="def">
+      <color rgba="0.2 0.7 0.3 1.0"/>
+    </material>
+
+  </robot>

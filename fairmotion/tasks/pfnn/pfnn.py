@@ -75,21 +75,21 @@ def mix_directions(x, y, mu):
     R = fm_math.slerp(R1, R2, mu)
     return R[:, 2]
 
-
+dirname = os.path.dirname(__file__)
 _filenames = {}
 _filenames["mode"] = "constant"
 _filenames["num_point"] = 50
-_filenames["x_mean"] = "data/learning/Xmean.bin"
-_filenames["y_mean"] = "data/learning/Ymean.bin"
-_filenames["x_std"] = "data/learning/Xstd.bin"
-_filenames["y_std"] = "data/learning/Ystd.bin"
+_filenames["x_mean"] = os.path.join(dirname, "data/learning/Xmean.bin")
+_filenames["y_mean"] = os.path.join(dirname, "data/learning/Ymean.bin")
+_filenames["x_std"] = os.path.join(dirname, "data/learning/Xstd.bin")
+_filenames["y_std"] = os.path.join(dirname, "data/learning/Ystd.bin")
 for i in range(_filenames["num_point"]):
-    _filenames["W0_%03i" % (i)] = "data/learning/W0_%03i.bin" % (i)
-    _filenames["W1_%03i" % (i)] = "data/learning/W1_%03i.bin" % (i)
-    _filenames["W2_%03i" % (i)] = "data/learning/W2_%03i.bin" % (i)
-    _filenames["b0_%03i" % (i)] = "data/learning/b0_%03i.bin" % (i)
-    _filenames["b1_%03i" % (i)] = "data/learning/b1_%03i.bin" % (i)
-    _filenames["b2_%03i" % (i)] = "data/learning/b2_%03i.bin" % (i)
+    _filenames["W0_%03i" % (i)] = os.path.join(dirname, "data/learning/W0_%03i.bin" % (i))
+    _filenames["W1_%03i" % (i)] = os.path.join(dirname, "data/learning/W1_%03i.bin" % (i))
+    _filenames["W2_%03i" % (i)] = os.path.join(dirname, "data/learning/W2_%03i.bin" % (i))
+    _filenames["b0_%03i" % (i)] = os.path.join(dirname, "data/learning/b0_%03i.bin" % (i))
+    _filenames["b1_%03i" % (i)] = os.path.join(dirname, "data/learning/b1_%03i.bin" % (i))
+    _filenames["b2_%03i" % (i)] = os.path.join(dirname, "data/learning/b2_%03i.bin" % (i))
 
 
 class Areas(object):
@@ -352,11 +352,14 @@ class Character(object):
         self.forward_kinematics()
 
     def load(self):
+        dirname = os.path.dirname(__file__)
         self.joint_parents = np.fromfile(
-            "data/character/character_parents.bin", dtype=np.float32
+            os.path.join(dirname, "data/character/character_parents.bin"),
+            dtype=np.float32,
         ).astype(int)
         self.joint_rest_xform = np.fromfile(
-            "data/character/character_xforms.bin", dtype=np.float32
+            os.path.join(dirname, "data/character/character_xforms.bin"),
+            dtype=np.float32,
         ).reshape((-1, 4, 4))
         self.joint_anim_xform = self.joint_rest_xform.copy()
         self.forward_kinematics(rest_xform=True)
@@ -779,8 +782,10 @@ class AutonomousCommand(Command):
         self.speed.update()
         self.crouch.update()
         self.stop.update()
-        self.command["x_vel"] = self.scale * self.vel_side.get()
-        self.command["y_vel"] = self.scale * self.vel_fwrd.get()
+        # self.command["x_vel"] = self.scale * self.vel_side.get()
+        # self.command["y_vel"] = self.scale * self.vel_fwrd.get()
+        self.command["x_vel"] = 5.0
+        self.command["y_vel"] = 5.0
         self.command["trigger_speed"] = (
             self.scale if self.speed.triggered() else -self.scale
         )
@@ -811,11 +816,63 @@ class AutonomousCommand(Command):
         self.vel_side.dx = vel_side_change
 
 
+class PointgoalCommand(Command):
+    def __init__(
+        self,
+        trajectory,
+        record=False,
+    ):
+        super(PointgoalCommand, self).__init__(trajectory, record)
+        self.speed = Trigger(dt=1 / 60.0)
+        self.crouch = Trigger(dt=1 / 60.0)
+        self.stop = Trigger(dt=1 / 60.0, prob=0.1, min_duration=3.0, max_duration=5.0)
+        self.reset()
+
+    def reset(self):
+        super(PointgoalCommand, self).reset()
+        self.command["x_vel"] = 0
+        self.command["y_vel"] = 0
+
+    def _update(self):
+        self.speed.update()
+        self.crouch.update()
+        self.stop.update()
+
+        if self.speed.triggered():
+            self.command["x_vel"] = self.scale * 1.0
+            self.command["y_vel"] = self.scale * 1.0
+        else:
+            self.command["x_vel"] = self.scale * 0.1
+            self.command["y_vel"] = self.scale * 0.1
+        self.command["trigger_speed"] = (
+            self.scale if self.speed.triggered() else -self.scale
+        )
+        self.command["trigger_crouch"] = (
+            self.scale if self.crouch.triggered() else -self.scale
+        )
+        self.command["trigger_stop"] = (
+            self.scale if self.stop.triggered() else -self.scale
+        )
+        if self.command["trigger_stop"] > 0:
+            self.command["x_vel"] = 0
+            self.command["y_vel"] = 0
+        if math.fabs(self.command["x_vel"]) + math.fabs(self.command["y_vel"]) < 10000:
+            self.command["x_vel"] = 0
+            self.command["y_vel"] = 0
+        if (
+            math.fabs(self.command["x_move"]) + math.fabs(self.command["y_move"])
+            < 10000
+        ):
+            self.command["x_move"] = 0
+            self.command["y_move"] = 0
+
+
 class Runner(object):
     class UserInput(Enum):
         Autonomous = 0
         Joystick = 1
         Recorded = 2
+        Pointgoal = 3
 
         @classmethod
         def from_string(cls, string):
@@ -825,6 +882,8 @@ class Runner(object):
                 return cls.Joystick
             if string == "recorded":
                 return cls.Recorded
+            if string == "pointgoal":
+                return cls.Pointgoal
             raise NotImplementedError
 
     def __init__(
@@ -1411,6 +1470,7 @@ class PfnnViewer(glut_viewer.Viewer):
         self.cam_cur.translate(d)
 
     def keyboard_callback(self, key):
+        dirname = os.path.dirname(__file__)
         if key in self.toggle:
             self.flag[self.toggle[key]] = not self.flag[self.toggle[key]]
             print("Toggle:", self.toggle[key], self.flag[self.toggle[key]])
@@ -1425,7 +1485,9 @@ class PfnnViewer(glut_viewer.Viewer):
             self.motion.save_bvh("test.bvh", scale=0.01, verbose=True)
         elif key == b"S":
             """Make sure that PFNN uses (cm), we outputs the motion as (m)"""
-            self.runner.command.save_history("data/temp/temp.pfnncommand.gzip")
+            self.runner.command.save_history(
+                os.path.join(dirname, "data/temp/temp.pfnncommand.gzip")
+            )
         elif key == b"c":
             cnt_screenshot = 0
             time_elapsed = 0.0
@@ -1434,7 +1496,10 @@ class PfnnViewer(glut_viewer.Viewer):
             while time_elapsed <= 60.0:
                 self.runner.update()
                 name = "screenshot_pfnn_%04d" % (cnt_screenshot)
-                self.save_screen(dir="data/screenshot", name=name)
+                self.save_screen(
+                    dir=os.path.join(dirname, "data/screenshot"),
+                    name=name,
+                )
                 print("time_elapsed:", time_elapsed, "(", name, ")")
                 time_elapsed += dt
                 cnt_screenshot += 1
@@ -1727,7 +1792,8 @@ if __name__ == "__main__":
         b"6": "trajectory",
         b"a": "auto_play",
     }
-    motion = bvh.load("data/motion/pfnn_hierarchy.bvh")
+    dirname = os.path.dirname(__file__)
+    motion = bvh.load(os.path.join(dirname, "data/motion/pfnn_hierarchy.bvh"))
     motion.clear()
 
     viewer = PfnnViewer(
