@@ -1,9 +1,9 @@
 version: 2.1
 jobs:
   fairmotion:
-    resource_class: gpu.small
+    resource_class: small
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.6
       
     steps:
       - checkout            
