@@ -13,7 +13,7 @@ jobs:
             cd ~/project
             sudo apt-get update -y
             sudo apt-get install freeglut3-dev
-            sudo pip3 install virtualenv 
+            pip3 install virtualenv 
             virtualenv --python=python3 ./fairmotion_env
             source ./fairmotion_env/bin/activate
             pip install -e .
