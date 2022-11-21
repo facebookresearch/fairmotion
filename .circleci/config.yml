@@ -1,7 +1,7 @@
 version: 2.1
 jobs:
   fairmotion:
-    resource_class: small
+    resource_class: large
     docker:
       - image: cimg/python:3.6
       
