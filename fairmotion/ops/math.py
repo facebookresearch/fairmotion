@@ -110,7 +110,7 @@ def project_rotation_1D(R, axis):
     when a rotational axis is given
     """
     Q, angle = quaternion.Q_closest(
-        conversions.R2Q(R), [1.0, 0.0, 0.0, 0.0], axis,
+        conversions.R2Q(R), [0.0, 0.0, 0.0, 1.0], axis,
     )
     return angle
 
