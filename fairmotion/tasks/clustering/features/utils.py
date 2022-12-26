@@ -129,8 +129,8 @@ def calc_average_acceleration(
         ) / frame_time
         v1 = (
             positions[i + j][joint_idx]
-            - positions[i + j - 1][joint_idx] / frame_time
-        )
+            - positions[i + j - 1][joint_idx]
+        ) / frame_time
         average_acceleration += (v2 - v1) / frame_time
         current_window += 1
     return np.linalg.norm(average_acceleration / current_window)
