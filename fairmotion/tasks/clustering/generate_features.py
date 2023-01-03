@@ -24,7 +24,8 @@ thresholds = None
 def extract_manual_features(motion):
     features = []
     f = manual.ManualFeatures(motion, feat_utils.Skeleton.PFNN)
-    for _ in range(1, motion.num_frames(), 30):
+    frames_to_skip = 30
+    for _ in range(1, motion.num_frames(), frames_to_skip):
         pose_features = []
         pose_features.append(
             f.f_nmove("neck", "rhip", "lhip", "rwrist", 1.8 * f.hl)
@@ -115,7 +116,7 @@ def extract_manual_features(motion):
         )
         pose_features.append(f.f_fast("root", 2.3 * f.hl))
         features.append(pose_features)
-        f.next_frame()
+        f.skip_frames(frames_to_skip)
     return features
 
 
