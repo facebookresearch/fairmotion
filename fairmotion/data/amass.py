@@ -49,6 +49,8 @@ joint_names = [
 
 
 def create_skeleton_from_amass_bodymodel(bm, betas, num_joints, joint_names):
+    if betas is None:
+        betas = torch.zeros(1, 10).to("cpu")
     pose_body_zeros = torch.zeros((1, 3 * (num_joints - 1)))
     body = bm(pose_body=pose_body_zeros, betas=betas)
     base_position = body.Jtr.detach().numpy()[0, 0:num_joints]
